@@ -1,0 +1,40 @@
+# Generated data and databases (never commit these)
+ml/data/
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Dependencies and virtual environments
+node_modules/
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Frontend build output and test coverage
+dist/
+build/
+coverage/
+
+# Secrets: real env files are ignored, the example is committed
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhythm-rush.local/schemas/session.schema.json",
+  "title": "Rhythm Rush game session",
+  "description": "Session record sent by the ESP32 to POST /api/game-sessions.",
+  "type": "object",
+  "required": [
+    "session_id",
+    "device_id",
+    "outcome",
+    "final_score",
+    "highest_level_completed",
+    "final_sequence_length",
+    "successful_rounds",
+    "failed_attempts",
+    "duration_seconds",
+    "attempts"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "game_over",
+        "win"
+      ]
+    },
+    "final_score": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "highest_level_completed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "final_sequence_length": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "successful_rounds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed_attempts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "level",
+          "result",
+          "response_ms"
+        ],
+        "properties": {
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 15
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "wrong",
+              "timeout"
+            ]
+          },
+          "response_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "session_id": "RR01-000127",
+      "device_id": "RR01",
+      "outcome": "game_over",
+      "final_score": 127,
+      "highest_level_completed": 1,
+      "final_sequence_length": 4,
+      "successful_rounds": 1,
+      "failed_attempts": 3,
+      "duration_seconds": 42,
+      "attempts": [
+        {
+          "level": 1,
+          "result": "pass",
+          "response_ms": 4100
+        },
+        {
+          "level": 2,
+          "result": "wrong",
+          "response_ms": 2100
+        },
+        {
+          "level": 2,
+          "result": "timeout",
+          "response_ms": 0
+        }
+      ]
+    }
+  ]
+}

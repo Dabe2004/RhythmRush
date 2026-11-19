@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "features": [
+    "final_score",
+    "avg_reaction_sec",
+    "highest_sequence_length",
+    "success_rate"
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "feature": 1,
+      "threshold": 0.7804999947547913,
+      "left": 1,
+      "right": 8
+    },
+    {
+      "id": 1,
+      "feature": 1,
+      "threshold": 0.6644999980926514,
+      "left": 2,
+      "right": 5
+    },
+    {
+      "id": 2,
+      "feature": 0,
+      "threshold": 12497.5,
+      "left": 3,
+      "right": 4
+    },
+    {
+      "id": 3,
+      "leaf": "Pro"
+    },
+    {
+      "id": 4,
+      "leaf": "Pro"
+    },
+    {
+      "id": 5,
+      "feature": 1,
+      "threshold": 0.7205000221729279,
+      "left": 6,
+      "right": 7
+    },
+    {
+      "id": 6,
+      "leaf": "Intermediate"
+    },
+    {
+      "id": 7,
+      "leaf": "Intermediate"
+    },
+    {
+      "id": 8,
+      "feature": 1,
+      "threshold": 0.8695000112056732,
+      "left": 9,
+      "right": 12
+    },
+    {
+      "id": 9,
+      "feature": 1,
+      "threshold": 0.8375000059604645,
+      "left": 10,
+      "right": 11
+    },
+    {
+      "id": 10,
+      "leaf": "Intermediate"
+    },
+    {
+      "id": 11,
+      "leaf": "Beginner"
+    },
+    {
+      "id": 12,
+      "feature": 1,
+      "threshold": 0.94200000166893,
+      "left": 13,
+      "right": 14
+    },
+    {
+      "id": 13,
+      "leaf": "Beginner"
+    },
+    {
+      "id": 14,
+      "leaf": "Beginner"
+    }
+  ]
+}
