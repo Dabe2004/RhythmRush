@@ -18,6 +18,8 @@ __pycache__/
 .pytest_cache/
 
 # Frontend build output and test coverage
+frontend/dist/
+frontend/node_modules/
 dist/
 build/
 coverage/
@@ -26,6 +28,9 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Firmware secrets (Wi-Fi password, device API key); config.h.example is committed
+firmware/**/config.h
 *.pem
 *.key
 

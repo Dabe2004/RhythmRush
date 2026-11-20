@@ -1,0 +1,39 @@
+// config.h.example - copy this file to config.h (same folder) and edit it.
+//
+// config.h is gitignored: it contains your Wi-Fi password and the device
+// API key, which must NEVER be committed or shown on a slide.
+
+#pragma once
+
+// ---------------------------------------------------------------------------
+// Wi-Fi (2.4 GHz only: the ESP32 cannot join 5 GHz networks)
+// ---------------------------------------------------------------------------
+#define WIFI_SSID      "ExhibitionWiFi"
+#define WIFI_PASSWORD  "wifi-password-here"
+
+// ---------------------------------------------------------------------------
+// Rhythm Rush server
+// ---------------------------------------------------------------------------
+// The laptop that runs "npm start". Use the address it prints under
+// "on this network", WITHOUT a slash at the end. Plain http only (see the
+// HTTPS note in rhythm_rush_client.ino).
+#define SERVER_URL     "http://192.168.1.5:3000"
+
+// Must be EXACTLY the DEVICE_API_KEY from backend/.env on the laptop.
+#define API_KEY        "paste-the-device-api-key-here"
+
+// Must match the device row in the database (the seed script creates RR01).
+#define DEVICE_ID      "RR01"
+
+// ---------------------------------------------------------------------------
+// Optional
+// ---------------------------------------------------------------------------
+// Session ids are "<DEVICE_ID>-<counter>" and the counter is kept in flash.
+// A FULL flash erase resets it, and the server would then ignore new games as
+// duplicates of old ones. After a full erase, set this above the highest
+// counter already on the server (see the admin page), e.g. 5000.
+#define SESSION_COUNTER_START 0
+
+// 1 = type single-letter test commands in the Serial Monitor (h = help).
+// Set to 0 in the final game firmware.
+#define RR_DEMO_SERIAL_COMMANDS 1

@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Dark arcade base. Individual components use Tailwind utilities. */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #070a16;
+  color: #e2e8f0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Idle kiosk screen: the six arcade dots pulse one after another
+   (each dot gets its own animation-delay in Result.jsx). */
+@keyframes arcade-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+.arcade-dot {
+  animation: arcade-pulse 1.4s ease-in-out infinite;
+}
+
+/* Respect the "reduce motion" setting of the operating system. */
+@media (prefers-reduced-motion: reduce) {
+  .arcade-dot {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
+/* Soft neon glow plus a faint grid, used behind the page content. */
+.arcade-grid {
+  background-image:
+    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.22), transparent 55%),
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    48px 48px,
+    48px 48px;
+}

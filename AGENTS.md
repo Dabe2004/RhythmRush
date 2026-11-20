@@ -4,8 +4,13 @@
 - ESP32 hardware/firmware is NOT finished. No real gameplay data exists yet.
 - Build order: ML on SYNTHETIC data -> SQLite database -> Express backend -> fake ESP32
   uploader -> React frontend. Everything must be easy to retrain with real data later.
-- DONE so far: Phase A, A2, B, B2, C, D (all ML training scripts and exported artifacts)
-- NEXT: Phase E (SQLite database), then F-L.
+- DONE so far: Phase A, A2, B, B2, C, D, E, F, G, H, I, J1, J2, K, L, M (all ML training scripts and exported
+  artifacts, plus the SQLite database, the upload endpoint, ML predictions inside Express, the read/gameplay
+  endpoints, the fake ESP32 uploader, the React leaderboard, the live result/kiosk page, the session detail
+  page, the admin API + dashboard, production serving, hardening, README and demo checklist, and the ESP32
+  network client in /firmware, compiled but not yet run on hardware)
+- NEXT: hardware integration by the firmware teammate (game logic + pins, using the /firmware network layer),
+  then retrain the models with real games.
 
 ## Rules for you (the AI)
 - Do ONE phase at a time, exactly as written. Never start the next phase and never create

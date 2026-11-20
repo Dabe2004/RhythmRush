@@ -1,0 +1,17 @@
+{
+  "name": "rhythm-rush",
+  "private": true,
+  "description": "Rhythm Rush: ESP32 musical button game with an Express + SQLite backend, ML models and a React kiosk website.",
+  "scripts": {
+    "install-all": "npm --prefix backend install && npm --prefix frontend install",
+    "migrate": "npm --prefix backend run migrate",
+    "seed": "npm --prefix backend run seed",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test-all": "npm --prefix backend test && npm --prefix frontend test && npm --prefix frontend run lint && python ml/game_rules.py && python ml/check_exports.py",
+    "simulate": "python ml/simulate_games.py",
+    "retrain": "python ml/train_skill.py && python ml/train_animal.py && python ml/train_difficulty.py && python ml/check_exports.py",
+    "fake": "node tools/fake_esp32.js --count 20 --duplicate"
+  }
+}
