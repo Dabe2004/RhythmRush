@@ -58,12 +58,44 @@ describe("brochure page", () => {
   })
 })
 
+describe("brochure page in Filipino", () => {
+  // The page reads the chosen language from localStorage.
+  globalThis.localStorage = { getItem: () => "fil", setItem: () => {} }
+  const html = at("/how-to-play", <HowToPlay />)
+  delete globalThis.localStorage
+
+  it("has the same one print button, in Filipino, and no review note", () => {
+    expect(html).toContain('lang="fil"')
+    expect(html.match(/<button[^>]*>[^<]*<\/button>/g).filter((b) => /print/i.test(b))).toEqual([
+      expect.stringContaining(">I-print ang pahinang ito</button>"),
+    ])
+    expect(html).not.toMatch(/Paalala|katutubong/)
+  })
+
+  it("prints the Wi-Fi and QR lines in Filipino", () => {
+    const qr = renderToStaticMarkup(<PrintQr ui={brochure("fil").ui} location={{ origin: "http://192.168.1.5:3000", hostname: "192.168.1.5" }} env={{}} />)
+    const text = qr.replace(/<[^>]+>/g, "")
+    expect(text).toContain("Kumonekta muna sa Wi-Fi ng booth")
+    expect(text).toContain("Wi-Fi: ____________")
+    expect(text).toContain("I-scan para buksan sa phone mo")
+    expect(text).not.toContain("Password")
+  })
+})
+
 describe("print CSS: one portrait A4 page", () => {
   const css = fs.readFileSync("src/index.css", "utf8")
 
   it("sets the page size and margin, with no other paper rules", () => {
     expect(css).toMatch(/@page \{\s*size: A4 portrait;\s*margin: 12mm;\s*\}/)
     expect(css).not.toMatch(/A5|data-paper/)
+  })
+
+  it("fits Filipino with spacing only: no smaller text", () => {
+    const rules = [...css.matchAll(/\.brochure\[lang="fil"\] ([^{]+)\{([^}]*)\}/g)]
+    expect(rules.length).toBeGreaterThan(0)
+    for (const [, selector, body] of rules) {
+      if (body.includes("font-size")) expect(selector.trim()).toBe(".brochure-num")
+    }
   })
 
   it("prints the Good to know bullets as solid black dots", () => {

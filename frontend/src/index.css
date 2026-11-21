@@ -1092,12 +1092,6 @@ button.rr-pill:active,
   margin-left: auto;
 }
 
-.brochure-review {
-  margin-top: 0.75rem;
-  font-size: 1rem;
-  font-style: italic;
-}
-
 .brochure-contents {
   position: sticky;
   top: 0;
@@ -1456,7 +1450,6 @@ button.rr-pill:active,
   .site-footer,
   .skip-link,
   .no-print,
-  .brochure-review,
   .brochure-glossary {
     display: none !important;
   }
@@ -1680,6 +1673,30 @@ button.rr-pill:active,
     margin-top: 2mm;
     font-size: 14pt;
     font-weight: 800;
+  }
+
+  /* Filipino sentences are longer: tighter spacing and smaller title circles
+     keep it on one page. Text sizes stay the same (body 11pt). */
+  .brochure[lang="fil"] .brochure-panel {
+    margin-bottom: 1.5mm;
+    padding-top: 1.6mm;
+    padding-bottom: 1.8mm;
+    line-height: 1.12;
+  }
+
+  .brochure[lang="fil"] .brochure-title {
+    margin-bottom: 0.6mm;
+  }
+
+  .brochure[lang="fil"] .brochure-num {
+    width: 5.5mm;
+    height: 5.5mm;
+    font-size: 9pt;
+  }
+
+  .brochure[lang="fil"] .brochure-text,
+  .brochure[lang="fil"] .brochure-note {
+    margin-top: 0.3mm;
   }
 }
 

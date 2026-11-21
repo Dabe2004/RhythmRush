@@ -220,8 +220,9 @@ closed "What does this mean?" list. Desktop: three columns that flow like a
 tri-fold leaflet; tablet: two; phone: one, with a sticky mini contents (Play,
 Score, Rank, Animal) that jumps to the panels (smooth, instant with reduced
 motion; focus moves to the panel). English / Filipino toggle on this page
-only (remembered in localStorage; the Filipino text needs review by a native
-speaker and falls back to English for a missing key). No popup anywhere.
+only (remembered in localStorage; falls back to English for a missing key).
+The Filipino text still needs review by a native speaker, but the page shows
+no note about it. No popup anywhere.
 
 - **Numbers are never typed by hand.** `vite.config.js` serves
   `virtual:game-facts`, built by `frontend/gameFacts.mjs` from
@@ -245,7 +246,9 @@ speaker and falls back to English for a missing key). No popup anywhere.
   boxed section: "Join the booth Wi-Fi first", then "Wi-Fi: <name>" from
   `VITE_WIFI_NAME` or a write-in line "Wi-Fi: ____________", then the QR code
   (40 mm with its white quiet zone) with "Scan to open on your phone" (14pt)
-  and the address under it (12pt).
+  and the address under it (12pt). Filipino prints the same page in
+  Filipino; its longer sentences get tighter spacing and smaller title
+  circles (`.brochure[lang="fil"]` print rules), never smaller text.
   The QR code exists ONLY on paper: it is in the page but `.print-only` hides
   it on screen. It encodes `<address>/how-to-play`, where the address is
   `VITE_PUBLIC_URL` (build-time) or the page's own address unless that is

@@ -524,7 +524,10 @@ black panel borders, body 11pt, panel titles 13pt, page title 18pt. The
 border at the end of the column flow (bottom right): "Join the booth Wi-Fi
 first" (16pt), "Wi-Fi: <name>" or a write-in line (14pt), then the 40 mm QR
 with its quiet zone, "Scan to open on your phone" (14pt) and the address
-(12pt). Measured with headless Chrome print-to-PDF at the LAN address: 1 page.
+(12pt). Filipino has longer sentences, so its print rules only tighten the
+spacing (line height 1.12, smaller panel gaps, 5.5 mm title circles); the text
+sizes stay the same. Measured with headless Chrome print-to-PDF at the LAN
+address: 1 page in English and 1 page in Filipino.
 
 ### Critique and revisions (screenshots: `docs/screenshots/how-to-play/`, local only)
 

@@ -191,7 +191,6 @@ export default function HowToPlay() {
           </button>
         </div>
       </header>
-      {b.ui.review ? <p className="brochure-review">{b.ui.review}</p> : null}
 
       <nav aria-label={b.ui.contents} className="brochure-contents no-print">
         {JUMPS.map((id) => (

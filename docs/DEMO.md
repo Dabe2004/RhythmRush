@@ -88,8 +88,9 @@ See `firmware/rhythm_rush_client/README.md`.
 3. Start the server and open `http://<laptop IP>:3000/how-to-play` on the
    laptop. **Never `localhost`**: then the sign prints "Ask the staff for the
    game address" instead of a QR code.
-4. Press "Print this page": one portrait A4 page. In the print dialog turn
-   **"Headers and footers" OFF** (otherwise the browser adds the date, title
+4. Choose English or Filipino, then press "Print this page" ("I-print ang
+   pahinang ito"): one portrait A4 page in either language. In the print
+   dialog turn **"Headers and footers" OFF** (otherwise the browser adds the date, title
    and address and the sign can spill onto a second page). "Background
    graphics" can stay off: the dots still print black. Check the QR code and
    the address under it in the print preview, print, and tape it up at the

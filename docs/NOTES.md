@@ -788,15 +788,16 @@ numbers when speed alone no longer decides.
 
 ### Verification (copy database, port 3100, deleted afterwards)
 
-- Frontend `npm test`: **138 passed** (114 before + 24: brochure facts,
+- Frontend `npm test`: **141 passed** (114 before + 27: brochure facts,
   wording, QR rule, nav, anchors, "?" links, print-only QR, Manila clock, one
-  print button, the A4 `@page` rule, black print dots, Wi-Fi lines);
+  print button, the A4 `@page` rule, black print dots, Wi-Fi lines, the
+  Filipino print page);
   build and lint clean. Backend unchanged: 123 passed.
 - Headless Chrome at 360, 768, 1280x720, 1920x1080: no sideways scroll, body
   text 18 px, tap targets 44 px, sticky contents at the top and focus moved to
   the panel, both "?" links on the result and game pages, only the LAN host
   requested, 0 console errors. Print to PDF (portrait A4, the only layout):
-  **1 page** (LAN and localhost); the printed QR decodes to
+  **1 page** in English (LAN and localhost) and **1 page** in Filipino (LAN); the printed QR decodes to
   `http://192.168.1.5:3100/how-to-play`.
 - Bundle: main JS 322.52 -> 328.89 kB (103.48 kB gzip) (visitor text module, "?" links, Manila
   clock); the brochure is a lazy 20 kB chunk (8 kB gzip) including the QR
