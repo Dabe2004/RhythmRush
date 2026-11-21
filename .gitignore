@@ -37,6 +37,21 @@ firmware/**/config.h
 *.pem
 *.key
 
+# Other secret files that must never reach GitHub
+# (certificates, SSH keys, cloud credentials, local tool settings)
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+id_ecdsa*
+credentials*.json
+service-account*.json
+*.secret
+secrets/
+.claude/settings.local.json
+
 # Logs
 *.log
 
