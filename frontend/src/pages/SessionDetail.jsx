@@ -3,12 +3,18 @@
 // the response time per attempt, and the attempts table (the chart's
 // "table view": every value in the chart is also readable as text here).
 //
+// Look: the same paper-ticket language as the leaderboard; the facts are a
+// printed receipt, the attempts a ruled ledger.
+//
 // Lazy-loaded from App.jsx because it pulls in Recharts.
 
 import { Link, useParams } from "react-router-dom"
 
 import { RESULT_STYLES, toAttemptRows } from "../chartData"
+import AnimalIcon from "../components/animals/AnimalIcon"
 import { AttemptsChart, ResultLabel } from "../components/Charts"
+import PlayerName from "../components/PlayerName"
+import ScoreCounter from "../components/ScoreCounter"
 import SkillBadge from "../components/SkillBadge"
 import StatusMessage from "../components/StatusMessage"
 import {
@@ -16,56 +22,68 @@ import {
   formatDateTime,
   formatDuration,
   formatPercent,
-  formatScore,
   levelReached,
   outcomeTitle,
 } from "../format"
-import { animalEmoji } from "../theme"
 import useSession from "../useSession"
 
 function BackToLeaderboard() {
   return (
     <Link
       to="/"
-      className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 transition hover:text-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+      className="sign inline-flex min-h-[44px] -rotate-1 items-center gap-2 bg-ticket px-4 py-2 text-sm transition-transform hover:-translate-y-0.5"
     >
-      <span aria-hidden="true">&larr;</span> Leaderboard
+      <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14">
+        <path d="M7 1L1 7l6 6M1 7h16" fill="none" stroke="#1d1a2f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      Leaderboard
     </Link>
   )
 }
 
-function Fact({ label, value }) {
+// One receipt line: label ........ value
+function ReceiptLine({ label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-white">{value}</p>
+    <div className="flex items-baseline gap-2 py-1.5">
+      <dt className="shrink-0 text-base">{label}</dt>
+      <span aria-hidden="true" className="min-w-4 flex-1 translate-y-[-4px] border-b-2 border-dotted border-ink/50" />
+      <dd className="shrink-0 text-lg font-extrabold tabular-nums">{value}</dd>
     </div>
   )
 }
 
 function AnimalResult({ prediction }) {
   if (!prediction?.animal) {
-    return <p className="text-lg text-slate-400">Fun result not available for this game</p>
+    return (
+      <div className="flex items-center gap-4">
+        <AnimalIcon animal={null} size={64} />
+        <p className="text-lg font-extrabold">Fun result not available for this game</p>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <p className="text-xl font-bold text-amber-100">
-        Played like {animalArticle(prediction.animal)}{" "}
-        <span aria-hidden="true">{animalEmoji(prediction.animal)}</span> {prediction.animal}
-        {typeof prediction.animal_iq === "number" ? `, IQ ${prediction.animal_iq}` : ""}
-      </p>
-      <p className="mt-1 text-sm text-amber-200/70">Just for fun, not a real IQ test.</p>
+    <div className="flex items-center gap-4">
+      <AnimalIcon animal={prediction.animal} size={88} className="shrink-0" />
+      <div>
+        <p className="text-xl font-extrabold leading-tight">
+          Played like {animalArticle(prediction.animal)} {prediction.animal}
+        </p>
+        {typeof prediction.animal_iq === "number" ? (
+          <p className="font-sign text-2xl">IQ {prediction.animal_iq}</p>
+        ) : null}
+        <p className="mt-1 text-sm font-extrabold">Just for fun, not a real IQ test.</p>
+      </div>
     </div>
   )
 }
 
 function AttemptsTable({ rows }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/70">
+    <div className="overflow-x-auto rounded-[6px] border-[3px] border-ink bg-ticket shadow-hard">
       <table className="w-full min-w-[560px] border-collapse text-left">
         <caption className="sr-only">Every attempt of this game</caption>
-        <thead className="bg-slate-950/60 text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+        <thead className="border-b-[3px] border-ink bg-cream font-sign text-xs">
           <tr>
             <th scope="col" className="px-4 py-3">#</th>
             <th scope="col" className="px-4 py-3">Level</th>
@@ -74,12 +92,12 @@ function AttemptsTable({ rows }) {
             <th scope="col" className="px-4 py-3 text-right">Response time</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800 text-slate-200">
+        <tbody>
           {rows.map((row) => (
-            <tr key={row.attemptNo}>
-              <td className="px-4 py-3 tabular-nums text-slate-400">{row.attemptNo}</td>
-              <td className="px-4 py-3 tabular-nums">{row.level}</td>
-              <td className="px-4 py-3 tabular-nums">{row.sequenceLength}</td>
+            <tr key={row.attemptNo} className="border-b border-rule last:border-b-0">
+              <td className="px-4 py-3 font-sign text-muted">{row.attemptNo}</td>
+              <td className="px-4 py-3 font-sign">{row.level}</td>
+              <td className="px-4 py-3 font-sign">{row.sequenceLength}</td>
               <td className="px-4 py-3">
                 <ResultLabel result={row.result} />
               </td>
@@ -102,24 +120,26 @@ export default function SessionDetail() {
 
   if (game.notFound) {
     return (
-      <section className="mx-auto w-full max-w-3xl px-4 py-20 text-center sm:px-6">
-        <h1 className="text-4xl font-black text-white sm:text-5xl">Game not found</h1>
-        <p className="mt-4 text-lg text-slate-400">
-          We could not find this game. It may have been removed, or the link is wrong.
-        </p>
-        <Link
-          to="/"
-          className="mt-8 inline-block rounded-xl bg-indigo-500 px-6 py-3 text-lg font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
-        >
-          Back to the leaderboard
-        </Link>
+      <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6">
+        <div className="ticket ticket-notched max-w-2xl -rotate-1 px-8 py-10 sm:px-12">
+          <h1 className="font-sign text-4xl sm:text-5xl">Game not found</h1>
+          <p className="mt-4 text-lg text-muted">
+            We could not find this game. It may have been removed, or the link is wrong.
+          </p>
+          <Link
+            to="/"
+            className="sign mt-8 inline-flex min-h-[44px] items-center bg-tent px-5 py-2 text-base text-cream transition-transform hover:-translate-y-0.5"
+          >
+            Back to the leaderboard
+          </Link>
+        </div>
       </section>
     )
   }
 
   if (game.error && !game.data) {
     return (
-      <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <section className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
         <StatusMessage variant="error" error={game.error} onRetry={game.retry} title="Could not load this game" />
       </section>
     )
@@ -127,8 +147,8 @@ export default function SessionDetail() {
 
   if (!game.data) {
     return (
-      <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6" role="status">
-        <p className="text-lg text-slate-400">Loading the game...</p>
+      <section className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6" role="status">
+        <p className="font-sign text-lg">Loading the game...</p>
       </section>
     )
   }
@@ -136,77 +156,89 @@ export default function SessionDetail() {
   const { session, features, prediction } = game.data
   const rows = toAttemptRows(game.data.attempts)
   const counts = rows.reduce((acc, row) => ({ ...acc, [row.result]: (acc[row.result] || 0) + 1 }), {})
+  const won = session.outcome === "win"
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 sm:px-6 lg:py-12">
+    <section className="mx-auto w-full max-w-5xl space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <BackToLeaderboard />
 
-      {/* Header facts */}
-      <header className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-slate-500">
+      {/* Header ticket: outcome stub | name and game | score */}
+      <header className="ticket ticket-notched grid md:grid-cols-[auto_1fr_auto]">
+        <div className="flex items-center px-6 pb-2 pt-6 md:px-6 md:py-6">
+          <span
+            className={`sign -rotate-3 px-3 py-1.5 text-lg sm:text-xl ${
+              won ? "bg-paint-yellow text-ink" : "bg-tent text-cream"
+            }`}
+          >
             {outcomeTitle(session.outcome)}
-          </p>
-          <h1 className="mt-1 text-4xl font-black tracking-tight text-white sm:text-5xl">
-            {session.nickname || <span className="text-slate-400">Anonymous player</span>}
+          </span>
+        </div>
+        <div className="min-w-0 border-ink px-6 py-4 md:border-l-[3px] md:border-dashed md:py-6">
+          <h1 className="truncate text-3xl font-extrabold sm:text-4xl">
+            <PlayerName nickname={session.nickname} />
           </h1>
-          <p className="mt-2 text-slate-400">
-            Game <span className="font-mono text-slate-300">{session.session_id}</span> · device{" "}
+          <p className="mt-1 text-muted">
+            Game <span className="font-sign text-sm text-ink">{session.session_id}</span> · device{" "}
             {session.device_id ?? "-"} · {formatDateTime(session.received_at)}
           </p>
         </div>
-        <div className="sm:text-right">
-          <p className="text-5xl font-black text-amber-300 sm:text-6xl">{formatScore(session.final_score)}</p>
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">points</p>
+        <div className="flex flex-col items-start justify-center gap-1 border-t-[3px] border-dashed border-ink px-6 py-5 md:items-end md:border-l-[3px] md:border-t-0">
+          <ScoreCounter value={session.final_score} tone="dark" className="text-3xl sm:text-4xl" />
+          <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-muted">points</span>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        <Fact label="Level reached" value={levelReached(session) ?? "-"} />
-        <Fact label="Levels cleared" value={session.highest_level_completed ?? "-"} />
-        <Fact label="Successful rounds" value={session.successful_rounds ?? "-"} />
-        <Fact label="Failed attempts" value={session.failed_attempts ?? "-"} />
-        <Fact label="Duration" value={formatDuration(session.duration_seconds)} />
-        <Fact label="Success rate" value={formatPercent(features?.success_rate)} />
-        <Fact
-          label="Average time per press"
-          value={
-            typeof features?.avg_reaction_sec === "number"
-              ? `${features.avg_reaction_sec.toFixed(2)} s`
-              : "-"
-          }
-        />
-        <Fact label="Data" value={session.is_synthetic === 1 || session.device_id === "SIM01" ? "Simulated" : "Real"} />
-      </div>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* The printed receipt */}
+        <div className="ticket rotate-[0.4deg] px-6 py-5">
+          <h2 className="font-sign text-lg text-tent">Receipt</h2>
+          <dl className="mt-2">
+            <ReceiptLine label="Level reached" value={levelReached(session) ?? "-"} />
+            <ReceiptLine label="Levels cleared" value={session.highest_level_completed ?? "-"} />
+            <ReceiptLine label="Successful rounds" value={session.successful_rounds ?? "-"} />
+            <ReceiptLine label="Failed attempts" value={session.failed_attempts ?? "-"} />
+            <ReceiptLine label="Duration" value={formatDuration(session.duration_seconds)} />
+            <ReceiptLine label="Success rate" value={formatPercent(features?.success_rate)} />
+            <ReceiptLine
+              label="Average time per press"
+              value={
+                typeof features?.avg_reaction_sec === "number"
+                  ? `${features.avg_reaction_sec.toFixed(2)} s`
+                  : "-"
+              }
+            />
+            <ReceiptLine
+              label="Data"
+              value={session.is_synthetic === 1 || session.device_id === "SIM01" ? "Simulated" : "Real"}
+            />
+          </dl>
+        </div>
 
-      {/* ML results */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-          <p className="text-sm text-slate-400">Skill (ML classifier)</p>
-          <div className="mt-2">
+        {/* ML results: stamp and prize */}
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4 px-1">
+            <p className="text-lg font-extrabold">Skill, by the ML classifier:</p>
             {prediction?.skill_rank ? (
               <SkillBadge value={prediction.skill_rank} size="lg" />
             ) : (
-              <p className="text-lg text-slate-400">Not available for this game</p>
+              <p className="text-lg text-muted">Not available for this game</p>
             )}
           </div>
-        </div>
-        <div className="rounded-2xl border border-amber-400/20 bg-amber-500/5 p-5">
-          <p className="mb-2 text-sm text-slate-400">Animal match</p>
-          <AnimalResult prediction={prediction} />
+          <div className="-rotate-1 rounded-[6px] border-[3px] border-ink bg-tag px-5 py-5 shadow-hard">
+            <p className="mb-2 font-sign text-sm">Animal match</p>
+            <AnimalResult prediction={prediction} />
+          </div>
         </div>
       </div>
 
       {/* Chart + table */}
       {rows.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-700 px-6 py-10 text-center text-lg text-slate-400">
-          No attempts were recorded for this game.
-        </p>
+        <p className="ticket px-6 py-10 text-lg">No attempts were recorded for this game.</p>
       ) : (
         <>
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6">
-            <h2 className="text-xl font-bold text-white">Response time per attempt</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-400">
+          <div className="ticket px-5 py-6 sm:px-7">
+            <h2 className="font-sign text-xl sm:text-2xl">Response time per attempt</h2>
+            <p className="mb-5 mt-1 text-muted">
               {rows.length} attempts:{" "}
               {["pass", "wrong", "timeout"]
                 .map((result) => `${counts[result] || 0} ${RESULT_STYLES[result].label.toLowerCase()}`)
@@ -216,7 +248,7 @@ export default function SessionDetail() {
           </div>
 
           <div>
-            <h2 className="mb-3 text-xl font-bold text-white">Attempts</h2>
+            <h2 className="mb-4 font-sign text-xl sm:text-2xl">Attempts</h2>
             <AttemptsTable rows={rows} />
           </div>
         </>

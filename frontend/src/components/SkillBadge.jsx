@@ -1,23 +1,21 @@
 // frontend/src/components/SkillBadge.jsx
-// Coloured pill for the ML skill label. Unknown or missing labels are safe.
+// The ML skill label as a rubber stamp: tilted, double ink border, the word
+// itself in stamp ink. The word carries the meaning, not the colour.
 
-import { skillStyle } from "../theme"
+import { stampColor } from "../theme"
 
-// size="lg" is the big version for the result screen.
+// size: "lg" = the big stamp on the result screen, "xs" = slim list rows.
+const SIZES = { lg: "text-2xl sm:text-4xl", sm: "text-base", xs: "text-xs" }
+
 export default function SkillBadge({ value, size = "sm" }) {
   if (!value) {
-    return <span className="text-slate-500">-</span>
+    return <span className="text-muted">-</span>
   }
 
-  const sizeClasses =
-    size === "lg" ? "px-5 py-2 text-2xl ring-2" : "px-3 py-1 text-sm ring-1"
+  const sizeClasses = SIZES[size] || SIZES.sm
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full font-semibold ring-inset ${sizeClasses} ${skillStyle(
-        value,
-      )}`}
-    >
+    <span className={`stamp ${sizeClasses}`} style={{ color: stampColor(value) }}>
       {value}
     </span>
   )

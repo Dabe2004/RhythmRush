@@ -1,12 +1,15 @@
 // frontend/src/pages/Admin.jsx
-// /admin - moderator dashboard. Reachable by typing the URL only (it is NOT
-// linked in the public header).
+// /admin - moderator "back office". Reachable by typing the URL only (it is
+// NOT linked in the public header).
 //
 // - The password is kept ONLY in sessionStorage (adminAuth.js) and sent as
 //   the X-Admin-Password header. It is cleared on logout and on any 401.
 // - Everything refreshes every 15 seconds. A failed refresh keeps the old
 //   data on screen and shows a banner.
 // - Destructive actions ask for confirmation first.
+//
+// Look: the calm ledger variant of the carnival theme: same palette and
+// fonts, no tilt, no bulbs, thin rules, dense tables. Clarity first.
 //
 // Lazy-loaded from App.jsx because it pulls in Recharts.
 
@@ -44,8 +47,12 @@ const SIMULATED_DEVICE = "SIM01"
 const SKILL_ORDER = ["Beginner", "Intermediate", "Pro"]
 const ANIMAL_ORDER = ["Chimpanzee", "Bottlenose Dolphin", "Elephant", "Orangutan", "Pig"]
 
+// Plain ledger buttons: ink outline, small hard shadow, >= 44 px tall.
 const BUTTON_BASE =
-  "rounded-lg px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+  "inline-flex min-h-[44px] items-center justify-center rounded-[4px] border-2 border-ink px-3 text-sm font-extrabold shadow-hard-sm transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+
+const PANEL = "rounded-[4px] border-2 border-ink bg-ticket shadow-hard-sm"
+const TABLE_HEAD = "border-b-2 border-ink bg-cream font-sign text-xs"
 
 export default function Admin() {
   const [password, setPassword] = useState(() => loadAdminPassword())
@@ -102,41 +109,46 @@ function LoginForm({ notice, onLoggedIn }) {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
-      <h1 className="text-4xl font-black tracking-tight text-white">Admin</h1>
-      <p className="mt-2 text-slate-400">For the people running the exhibition.</p>
-
-      {notice ? (
-        <p role="status" className="mt-6 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-amber-100">
-          {notice}
-        </p>
-      ) : null}
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <label htmlFor="admin-password" className="block font-semibold text-white">
-          Password
-        </label>
-        <input
-          id="admin-password"
-          type="password"
-          autoComplete="current-password"
-          value={value}
-          disabled={busy}
-          onChange={(event) => setValue(event.target.value)}
-          className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 text-lg text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+    <section className="mx-auto w-full max-w-md px-4 py-14 sm:px-6">
+      {/* A clipboard: the clip on top, the sheet below. */}
+      <div className="relative">
+        <span
+          aria-hidden="true"
+          className="absolute -top-4 left-1/2 h-8 w-28 -translate-x-1/2 rounded-[4px] border-2 border-ink bg-silver"
         />
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-xl bg-indigo-500 px-6 py-3 text-lg font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200 disabled:opacity-60"
-        >
-          {busy ? "Checking..." : "Log in"}
-        </button>
-        <p role="alert" className="min-h-[1.5rem] font-semibold text-red-300">
-          {message}
-        </p>
-      </form>
-      <p className="mt-4 text-sm text-slate-500">
+        <div className={`${PANEL} px-6 pb-6 pt-9`}>
+          <h1 className="font-sign text-3xl">Back office</h1>
+          <p className="mt-1 text-muted">For the people running the booth.</p>
+
+          {notice ? (
+            <p role="status" className="mt-5 border-l-4 border-ink bg-paint-yellow px-4 py-3 font-extrabold">
+              {notice}
+            </p>
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+            <label htmlFor="admin-password" className="block font-extrabold">
+              Password
+            </label>
+            <input
+              id="admin-password"
+              type="password"
+              autoComplete="current-password"
+              value={value}
+              disabled={busy}
+              onChange={(event) => setValue(event.target.value)}
+              className="min-h-[48px] w-full rounded-[4px] border-2 border-ink bg-cream px-4 text-lg"
+            />
+            <button type="submit" disabled={busy} className={`${BUTTON_BASE} w-full bg-tent py-3 text-base text-cream`}>
+              {busy ? "Checking..." : "Log in"}
+            </button>
+            <p role="alert" className="min-h-[1.5rem] font-extrabold text-danger">
+              {message}
+            </p>
+          </form>
+        </div>
+      </div>
+      <p className="mt-4 text-sm text-muted">
         The password is kept in this browser tab only and is forgotten when you close it.
       </p>
     </section>
@@ -195,24 +207,24 @@ function Dashboard({ password, onLogout }) {
     : "--:--:--"
 
   return (
-    <section className="mx-auto w-full max-w-6xl space-y-10 px-4 py-8 sm:px-6 lg:py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className="mx-auto w-full max-w-6xl space-y-10 px-4 py-8 sm:px-6 lg:py-10">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-white">Admin</h1>
-          <p className="mt-1 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Updated {updated} · refreshes every 15 s
+          <h1 className="font-sign text-3xl sm:text-4xl">Back office</h1>
+          <p className="mt-1 text-sm font-extrabold text-muted">
+            Updated <span className="font-sign text-ink">{updated}</span> · refreshes every 15 s
           </p>
         </div>
         <button
           type="button"
           onClick={() => onLogout("You are logged out.")}
-          className={`${BUTTON_BASE} border border-slate-600 px-4 py-2 text-slate-200 hover:bg-slate-800 focus-visible:ring-slate-300`}
+          className={`${BUTTON_BASE} bg-ticket px-4`}
         >
           Log out
         </button>
       </div>
 
-      <nav aria-label="Admin sections" className="flex flex-wrap gap-2 text-sm">
+      <nav aria-label="Admin sections" className="flex flex-wrap gap-2">
         {[
           ["overview", "Overview"],
           ["charts", "Charts"],
@@ -221,11 +233,7 @@ function Dashboard({ password, onLogout }) {
           ["cleanup", "Clean-up"],
           ["models", "Models"],
         ].map(([id, label]) => (
-          <a
-            key={id}
-            href={`#${id}`}
-            className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-1.5 font-semibold text-slate-300 hover:bg-slate-800 hover:text-white"
-          >
+          <a key={id} href={`#${id}`} className={`${BUTTON_BASE} bg-cream`}>
             {label}
           </a>
         ))}
@@ -244,12 +252,11 @@ function Dashboard({ password, onLogout }) {
       {actionMessage ? (
         <p
           role="status"
-          className={`rounded-xl border px-4 py-3 font-semibold ${
-            actionMessage.ok
-              ? "border-green-400/40 bg-green-500/10 text-green-100"
-              : "border-red-400/40 bg-red-500/10 text-red-100"
+          className={`border-2 border-l-8 border-ink px-4 py-3 font-extrabold ${
+            actionMessage.ok ? "bg-ticket text-ok" : "bg-ticket text-danger"
           }`}
         >
+          {actionMessage.ok ? "Done: " : "Problem: "}
           {actionMessage.text}
         </p>
       ) : null}
@@ -264,14 +271,14 @@ function Dashboard({ password, onLogout }) {
       ) : null}
 
       {!data && !overview.error ? (
-        <p role="status" className="text-lg text-slate-400">
+        <p role="status" className="font-sign text-lg">
           Loading...
         </p>
       ) : null}
 
       {data ? (
         <>
-          <OverviewCards data={data} />
+          <OverviewLedger data={data} />
           <ChartsSection data={data} />
           <DevicesTable devices={data.devices} />
           <RecentGames
@@ -323,42 +330,44 @@ function Dashboard({ password, onLogout }) {
 function SectionTitle({ id, children, hint }) {
   return (
     <div className="mb-4">
-      <h2 id={id} className="scroll-mt-6 text-2xl font-bold text-white">
+      <h2 id={id} className="scroll-mt-6 font-sign text-xl sm:text-2xl">
         {children}
       </h2>
-      {hint ? <p className="mt-1 text-sm text-slate-400">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-sm text-muted">{hint}</p> : null}
     </div>
   )
 }
 
-function StatTile({ label, value, note }) {
+// One ledger box split into four columns (not four separate cards). The
+// 2 px ink rules between the cells are the grid gap showing the ink behind.
+function LedgerCell({ label, value, note }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-5 py-4">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-1 text-4xl font-bold text-white">{value}</p>
-      {note ? <p className="mt-1 text-sm text-slate-500">{note}</p> : null}
+    <div className="bg-ticket px-5 py-4">
+      <p className="text-sm font-extrabold text-muted">{label}</p>
+      <p className="mt-1 font-sign text-3xl">{value}</p>
+      {note ? <p className="mt-1 text-sm text-muted">{note}</p> : null}
     </div>
   )
 }
 
-function OverviewCards({ data }) {
+function OverviewLedger({ data }) {
   const counts = data.game_counts || { real: 0, synthetic: 0 }
   return (
     <div>
       <SectionTitle id="overview">Overview</SectionTitle>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Total games" value={formatScore(data.total_games)} />
-        <StatTile
+      <div className="grid gap-[2px] overflow-hidden rounded-[4px] border-2 border-ink bg-ink shadow-hard-sm sm:grid-cols-2 lg:grid-cols-4">
+        <LedgerCell label="Total games" value={formatScore(data.total_games)} />
+        <LedgerCell
           label="Average score"
           value={data.average_score === null ? "-" : formatScore(Math.round(data.average_score))}
           note={data.max_score === null ? null : `Best ${formatScore(data.max_score)}`}
         />
-        <StatTile
+        <LedgerCell
           label="Win rate"
           value={formatPercent(data.win_rate)}
           note={`${data.outcomes?.win ?? 0} wins, ${data.outcomes?.game_over ?? 0} game overs`}
         />
-        <StatTile
+        <LedgerCell
           label="Real games"
           value={formatScore(counts.real)}
           note={`${formatScore(counts.synthetic)} simulated`}
@@ -374,40 +383,41 @@ function ChartsSection({ data }) {
       <SectionTitle id="charts" hint="Hover a bar for the exact number.">
         Charts
       </SectionTitle>
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-        <h3 className="mb-3 font-bold text-white">Games per score range</h3>
+      <div className={`${PANEL} p-5`}>
+        <h3 className="mb-3 font-extrabold">Games per score range</h3>
         <ScoreHistogram rows={histogramRows(data.score_histogram)} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-          <h3 className="mb-3 font-bold text-white">Games per skill level</h3>
+        <div className={`${PANEL} p-5`}>
+          <h3 className="mb-3 font-extrabold">Games per skill level</h3>
           <CountBars
             rows={countsToRows(data.skill_counts, SKILL_ORDER)}
             label="Bar chart: number of games per predicted skill level."
           />
         </div>
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-          <h3 className="mb-3 font-bold text-white">Games per animal</h3>
+        <div className={`${PANEL} p-5`}>
+          <h3 className="mb-3 font-extrabold">Games per animal</h3>
           <CountBars
             rows={countsToRows(data.animal_counts, ANIMAL_ORDER)}
-            withEmoji
+            withAnimals
             label="Bar chart: number of games per matched animal."
           />
-          <p className="mt-2 text-sm text-slate-500">Animal IQ is just for fun, not a real IQ test.</p>
+          <p className="mt-2 text-sm text-muted">Animal IQ is just for fun, not a real IQ test.</p>
         </div>
       </div>
     </div>
   )
 }
 
+// Online/offline as a word with a symbol, not a coloured pill.
 function OnlineBadge({ online }) {
   return online ? (
-    <span className="inline-flex items-center gap-2 rounded-full bg-green-500/15 px-3 py-1 text-sm font-semibold text-green-200 ring-1 ring-inset ring-green-400/40">
-      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-green-400" /> Online
+    <span className="inline-flex items-center gap-2 font-extrabold text-ok">
+      <span aria-hidden="true" className="h-3 w-3 rounded-full border-2 border-ink bg-paint-green" /> Online
     </span>
   ) : (
-    <span className="inline-flex items-center gap-2 rounded-full bg-slate-500/15 px-3 py-1 text-sm font-semibold text-slate-300 ring-1 ring-inset ring-slate-500/40">
-      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-slate-500" /> Offline
+    <span className="inline-flex items-center gap-2 font-extrabold text-muted">
+      <span aria-hidden="true" className="h-3 w-3 rounded-full border-2 border-ink bg-ticket" /> Offline
     </span>
   )
 }
@@ -419,9 +429,9 @@ function DevicesTable({ devices }) {
       <SectionTitle id="devices" hint="Online = uploaded a game or asked for difficulty in the last 10 minutes.">
         Devices
       </SectionTitle>
-      <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/70">
+      <div className={`${PANEL} overflow-x-auto`}>
         <table className="w-full min-w-[640px] border-collapse text-left">
-          <thead className="bg-slate-950/60 text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+          <thead className={TABLE_HEAD}>
             <tr>
               <th scope="col" className="px-4 py-3">Device</th>
               <th scope="col" className="px-4 py-3">Name</th>
@@ -430,10 +440,10 @@ function DevicesTable({ devices }) {
               <th scope="col" className="px-4 py-3 text-right">Games</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-200">
+          <tbody>
             {list.map((device) => (
-              <tr key={device.device_id}>
-                <td className="px-4 py-3 font-mono">{device.device_id}</td>
+              <tr key={device.device_id} className="border-b border-rule last:border-b-0">
+                <td className="px-4 py-3 font-sign text-sm">{device.device_id}</td>
                 <td className="px-4 py-3">{device.name || "-"}</td>
                 <td className="px-4 py-3">
                   <OnlineBadge online={device.is_online} />
@@ -441,7 +451,7 @@ function DevicesTable({ devices }) {
                 <td className="px-4 py-3" title={formatDateTime(device.last_seen_at)}>
                   {formatRelative(device.last_seen_at)}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatScore(device.games_count)}</td>
+                <td className="px-4 py-3 text-right font-sign">{formatScore(device.games_count)}</td>
               </tr>
             ))}
           </tbody>
@@ -459,13 +469,11 @@ function RecentGames({ sessions, busyKey, onClearNickname, onDelete }) {
         Recent games
       </SectionTitle>
       {list.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-700 px-6 py-8 text-center text-slate-400">
-          No games yet.
-        </p>
+        <p className={`${PANEL} px-6 py-8 text-muted`}>No games yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/70">
-          <table className="w-full min-w-[760px] border-collapse text-left">
-            <thead className="bg-slate-950/60 text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+        <div className={`${PANEL} overflow-x-auto`}>
+          <table className="w-full min-w-[780px] border-collapse text-left">
+            <thead className={TABLE_HEAD}>
               <tr>
                 <th scope="col" className="px-4 py-3">Received</th>
                 <th scope="col" className="px-4 py-3">Game</th>
@@ -475,33 +483,33 @@ function RecentGames({ sessions, busyKey, onClearNickname, onDelete }) {
                 <th scope="col" className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-200">
+            <tbody>
               {list.map((session) => (
-                <tr key={session.session_id}>
-                  <td className="px-4 py-3 text-sm" title={formatDateTime(session.received_at)}>
+                <tr key={session.session_id} className="border-b border-rule last:border-b-0">
+                  <td className="px-4 py-2 text-sm" title={formatDateTime(session.received_at)}>
                     {formatRelative(session.received_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2">
                     <Link
                       to={`/session/${encodeURIComponent(session.session_id)}`}
-                      className="font-mono text-sm text-indigo-300 hover:text-indigo-200"
+                      className="inline-flex min-h-[44px] items-center font-sign text-xs text-stamp-blue underline decoration-2 underline-offset-4"
                     >
                       {session.session_id}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 font-mono text-sm">{session.device_id ?? "-"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatScore(session.final_score)}</td>
-                  <td className="px-4 py-3">
-                    {session.nickname ? session.nickname : <span className="text-slate-500">none</span>}
+                  <td className="px-4 py-2 font-sign text-xs">{session.device_id ?? "-"}</td>
+                  <td className="px-4 py-2 text-right font-sign">{formatScore(session.final_score)}</td>
+                  <td className="px-4 py-2">
+                    {session.nickname ? session.nickname : <span className="text-muted">none</span>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2">
                     <div className="flex justify-end gap-2">
                       {session.nickname ? (
                         <button
                           type="button"
                           disabled={busyKey !== null}
                           onClick={() => onClearNickname(session)}
-                          className={`${BUTTON_BASE} border border-slate-600 text-slate-200 hover:bg-slate-800 focus-visible:ring-slate-300`}
+                          className={`${BUTTON_BASE} bg-ticket`}
                         >
                           {busyKey === `nick:${session.session_id}` ? "Clearing..." : "Clear nickname"}
                         </button>
@@ -510,7 +518,7 @@ function RecentGames({ sessions, busyKey, onClearNickname, onDelete }) {
                         type="button"
                         disabled={busyKey !== null}
                         onClick={() => onDelete(session)}
-                        className={`${BUTTON_BASE} border border-red-400/50 bg-red-500/10 text-red-100 hover:bg-red-500/25 focus-visible:ring-red-300`}
+                        className={`${BUTTON_BASE} bg-ticket text-danger`}
                       >
                         {busyKey === `del:${session.session_id}` ? "Deleting..." : "Delete"}
                       </button>
@@ -533,12 +541,12 @@ function RemoveSimulated({ count, busy, disabled, onConfirm }) {
   return (
     <div>
       <SectionTitle id="cleanup">Clean-up</SectionTitle>
-      <div className="rounded-2xl border border-red-500/30 bg-red-950/20 p-5">
-        <h3 className="font-bold text-white">Remove simulated games</h3>
-        <p className="mt-1 text-slate-300">
-          Deletes every game uploaded by the fake device <span className="font-mono">{SIMULATED_DEVICE}</span>{" "}
+      <div className="rounded-[4px] border-2 border-dashed border-danger bg-ticket p-5">
+        <h3 className="font-extrabold text-danger">Remove simulated games</h3>
+        <p className="mt-1">
+          Deletes every game uploaded by the fake device <span className="font-sign text-sm">{SIMULATED_DEVICE}</span>{" "}
           ({formatScore(count)} now), with their attempts and predictions. Real devices such as{" "}
-          <span className="font-mono">RR01</span> are never touched.
+          <span className="font-sign text-sm">RR01</span> are never touched.
         </p>
         <form
           className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
@@ -549,8 +557,8 @@ function RemoveSimulated({ count, busy, disabled, onConfirm }) {
           }}
         >
           <div className="flex-1">
-            <label htmlFor="confirm-sim" className="block text-sm text-slate-300">
-              Type <span className="font-mono font-bold">{SIMULATED_DEVICE}</span> to confirm
+            <label htmlFor="confirm-sim" className="block text-sm font-extrabold">
+              Type <span className="font-sign">{SIMULATED_DEVICE}</span> to confirm
             </label>
             <input
               id="confirm-sim"
@@ -559,13 +567,13 @@ function RemoveSimulated({ count, busy, disabled, onConfirm }) {
               spellCheck={false}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-2 font-mono text-white focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/40"
+              className="mt-1 min-h-[44px] w-full rounded-[4px] border-2 border-ink bg-cream px-4 font-sign"
             />
           </div>
           <button
             type="submit"
             disabled={!ready || disabled}
-            className={`${BUTTON_BASE} bg-red-600 px-5 py-2.5 text-white hover:bg-red-500 focus-visible:ring-red-300`}
+            className={`${BUTTON_BASE} bg-danger px-5 text-cream`}
           >
             {busy ? "Removing..." : "Remove simulated games"}
           </button>
@@ -577,7 +585,7 @@ function RemoveSimulated({ count, busy, disabled, onConfirm }) {
 
 function ModelDetails({ model }) {
   if (model.error) {
-    return <span className="text-red-300">{model.error === "missing" ? "File missing" : "Unreadable JSON"}</span>
+    return <span className="font-extrabold text-danger">{model.error === "missing" ? "File missing" : "Unreadable JSON"}</span>
   }
   if (model.name === "skill") {
     return <span>{model.node_count} tree nodes, {model.features?.length ?? 0} features</span>
@@ -614,14 +622,14 @@ function ModelsSection({ models }) {
         Models
       </SectionTitle>
       {models.error && models.error.status !== 401 ? (
-        <p className="mb-3 text-sm font-semibold text-red-300">{adminErrorMessage(models.error)}</p>
+        <p className="mb-3 text-sm font-extrabold text-danger">{adminErrorMessage(models.error)}</p>
       ) : null}
       {list.length === 0 ? (
-        <p className="text-slate-400">{models.loading ? "Loading..." : "No model information."}</p>
+        <p className="text-muted">{models.loading ? "Loading..." : "No model information."}</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/70">
+        <div className={`${PANEL} overflow-x-auto`}>
           <table className="w-full min-w-[760px] border-collapse text-left">
-            <thead className="bg-slate-950/60 text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+            <thead className={TABLE_HEAD}>
               <tr>
                 <th scope="col" className="px-4 py-3">Model</th>
                 <th scope="col" className="px-4 py-3">Version</th>
@@ -630,19 +638,19 @@ function ModelsSection({ models }) {
                 <th scope="col" className="px-4 py-3">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-200">
+            <tbody>
               {list.map((model) => (
-                <tr key={model.name}>
+                <tr key={model.name} className="border-b border-rule last:border-b-0">
                   <td className="px-4 py-3">
-                    <span className="font-semibold capitalize">{model.name}</span>
-                    <span className="block font-mono text-xs text-slate-500">{model.file}</span>
+                    <span className="font-extrabold capitalize">{model.name}</span>
+                    <span className="block font-mono text-xs text-muted">{model.file}</span>
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{model.version ?? "-"}</td>
+                  <td className="px-4 py-3 font-sign">{model.version ?? "-"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatBytes(model.size_bytes)}</td>
                   <td className="px-4 py-3 text-sm">
                     {model.modified_at ? new Date(model.modified_at).toLocaleString("en-GB", { hour12: false }) : "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">
+                  <td className="px-4 py-3 text-sm">
                     <ModelDetails model={model} />
                   </td>
                 </tr>

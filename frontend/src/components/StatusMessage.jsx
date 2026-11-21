@@ -1,8 +1,67 @@
 // frontend/src/components/StatusMessage.jsx
-// One component for the three page states: loading, error, empty.
-//
-// "compact" is used for the inline refresh banner, when old rows are still
-// visible underneath.
+// One component for the three page states, drawn as booth signs:
+//   loading - the six buttons light up in sequence
+//   error   - an "Out of order" sign taped up (compact = taped over old data)
+//   empty   - a closed booth: "Step right up! No games yet."
+
+import ArcadeButtons from "./ArcadeButtons"
+
+// Two strips of tape on the top corners of a sign.
+function Tape() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="absolute -top-3 left-6 h-6 w-16 -rotate-6 border border-ink/30 bg-ticket/80"
+      />
+      <span
+        aria-hidden="true"
+        className="absolute -top-3 right-6 h-6 w-16 rotate-6 border border-ink/30 bg-ticket/80"
+      />
+    </>
+  )
+}
+
+// A little booth with its shutter down and a CLOSED sign.
+function ClosedBooth() {
+  return (
+    <svg viewBox="0 0 160 120" width="160" height="120" role="img" aria-label="A closed game booth">
+      <g stroke="#1d1a2f" strokeWidth="3" strokeLinejoin="round">
+        <rect x="20" y="44" width="120" height="70" fill="#fffaee" />
+        <path d="M20 44h120" />
+        <rect x="32" y="56" width="96" height="40" fill="#d8c9a6" />
+        <path d="M32 66h96M32 76h96M32 86h96" strokeWidth="2" />
+        <path d="M14 20h132l-6 24H20z" fill="#b3261e" />
+        <path d="M36 20l-4 24M58 20l-2 24M80 20v24M102 20l2 24M124 20l4 24" strokeWidth="2.5" />
+        <path d="M80 6v14" />
+        <path d="M54 92l52-6 3 22-52 6z" fill="#f6c522" />
+      </g>
+      <text
+        x="81"
+        y="106"
+        textAnchor="middle"
+        fontFamily="Bungee, sans-serif"
+        fontSize="13"
+        fill="#1d1a2f"
+        transform="rotate(-6 81 102)"
+      >
+        CLOSED
+      </text>
+    </svg>
+  )
+}
+
+function RetryButton({ onRetry }) {
+  return (
+    <button
+      type="button"
+      onClick={onRetry}
+      className="sign min-h-[44px] bg-tent px-5 py-2 text-base text-cream transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+    >
+      Retry
+    </button>
+  )
+}
 
 export default function StatusMessage({
   variant,
@@ -13,13 +72,9 @@ export default function StatusMessage({
 }) {
   if (variant === "loading") {
     return (
-      <div className="space-y-3" role="status" aria-label="Loading leaderboard">
-        {[0, 1, 2, 3, 4].map((row) => (
-          <div
-            key={row}
-            className="h-16 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/60"
-          />
-        ))}
+      <div role="status" className="flex flex-col items-start gap-5 py-10">
+        <ArcadeButtons sequence size="2.5rem" />
+        <p className="font-sign text-lg">Loading the scores...</p>
       </div>
     )
   }
@@ -28,24 +83,18 @@ export default function StatusMessage({
     return (
       <div
         role="alert"
-        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-500/40 bg-red-950/50 ${
-          compact ? "mb-4 px-4 py-3" : "px-5 py-4"
+        className={`relative inline-block max-w-xl -rotate-2 border-[3px] border-ink bg-paint-yellow shadow-hard-lg ${
+          compact ? "px-5 pb-4 pt-5" : "px-7 pb-6 pt-7"
         }`}
       >
-        <div>
-          <p className="font-semibold text-red-200">{title}</p>
-          <p className="text-sm text-red-300/80">
-            {error?.message || "Unknown error"}
-          </p>
-        </div>
+        <Tape />
+        <p className={`font-sign ${compact ? "text-2xl" : "text-3xl sm:text-4xl"}`}>Out of order</p>
+        <p className="mt-1 text-lg font-extrabold">{title}</p>
+        <p className="text-base">{error?.message || "Unknown error"}</p>
         {onRetry ? (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="rounded-xl border border-red-400/50 bg-red-500/10 px-4 py-2 font-semibold text-red-100 transition hover:bg-red-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
-          >
-            Retry
-          </button>
+          <div className="mt-4">
+            <RetryButton onRetry={onRetry} />
+          </div>
         ) : null}
       </div>
     )
@@ -53,13 +102,13 @@ export default function StatusMessage({
 
   if (variant === "empty") {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 px-6 py-16 text-center">
-        <p className="text-2xl font-bold text-slate-200">
-          No games yet.{" "}
-          <span className="mt-2 block text-lg font-normal text-slate-400">
-            Press Start on the device!
-          </span>
-        </p>
+      <div className="ticket ticket-notched flex flex-col gap-6 px-8 py-10 sm:flex-row sm:items-center sm:px-12">
+        <ClosedBooth />
+        <div>
+          <p className="font-sign text-3xl text-tent sm:text-4xl">Step right up!</p>
+          <p className="mt-2 text-2xl font-extrabold">No games yet.</p>
+          <p className="text-lg text-muted">Press Start on the device!</p>
+        </div>
       </div>
     )
   }

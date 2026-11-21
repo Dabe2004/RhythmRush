@@ -1,88 +1,242 @@
 // frontend/src/pages/Leaderboard.jsx
-// Public top-20 leaderboard, refreshed every 10 seconds.
+// Public Top 10, refreshed every 10 seconds.
 //
-// Nicknames and every other value are rendered as React text (never as HTML),
-// so a nickname containing < or > is shown literally.
+// Layout (see docs/FRONTEND.md):
+//   - ranks 1-3: the WINNERS PODIUM (rank 1 = the big "Champion" ticket,
+//     ranks 2 and 3 side by side under it)
+//   - ranks 4-10: a COMPACT LIST of slim ticket rows
+//   - from 1024 px: podium left (about 5/12), list right (about 7/12)
+//   - narrower: one column, podium first
+// Ties keep their shared rank number and are never hidden: every entry the
+// API returns is shown, in API order (splitPodium in leaderboard.js).
+//
+// Every ticket is one link to /session/:id. Nicknames and every other value
+// are rendered as React text (never as HTML).
 
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 
 import { getLeaderboard } from "../api"
+import AnimalIcon from "../components/animals/AnimalIcon"
 import AnimalTag from "../components/AnimalTag"
+import LevelSign from "../components/LevelSign"
+import PlayerName from "../components/PlayerName"
+import RankBadge from "../components/RankBadge"
+import ScoreCounter from "../components/ScoreCounter"
 import SkillBadge from "../components/SkillBadge"
 import StatusMessage from "../components/StatusMessage"
+import { LEADERBOARD_LIMIT, leaderboardSubtitle, splitPodium } from "../leaderboard"
 import usePolling from "../usePolling"
-
-// Gold, silver, and bronze for the first three ranks. Tied entries keep the
-// same number and therefore the same colour.
-function rankClasses(rank) {
-  if (rank === 1) {
-    return "bg-gradient-to-br from-yellow-200 to-amber-500 text-amber-950 ring-yellow-100/70"
-  }
-  if (rank === 2) {
-    return "bg-gradient-to-br from-slate-100 to-slate-400 text-slate-900 ring-slate-100/70"
-  }
-  if (rank === 3) {
-    return "bg-gradient-to-br from-orange-300 to-amber-700 text-orange-950 ring-orange-200/70"
-  }
-  return "bg-slate-800 text-slate-300 ring-slate-700"
-}
-
-function RankBadge({ rank }) {
-  return (
-    <span
-      className={`inline-flex h-11 w-11 items-center justify-center rounded-full text-lg font-black ring-2 ring-inset ${rankClasses(
-        rank,
-      )}`}
-    >
-      {rank}
-    </span>
-  )
-}
 
 function sessionPath(sessionId) {
   return `/session/${encodeURIComponent(sessionId)}`
 }
 
-// The name is a real link (keyboard and screen readers); the whole row or
-// card is also clickable for mouse and touch users.
-function PlayerName({ nickname, sessionId }) {
+// Stagger for the one-time slide-in (40 ms per ticket).
+function enterDelay(index) {
+  return { "--enter-delay": `${index * 0.04}s` }
+}
+
+// Animal drawing + name + IQ. A game without a prediction shows "No prize".
+function PrizeBlurb({ animal, iq, size }) {
+  if (!animal) {
+    return (
+      <div className="flex items-center gap-3">
+        <AnimalIcon animal={null} size={size} className="shrink-0 opacity-60" />
+        <p className="font-extrabold text-muted">No prize</p>
+      </div>
+    )
+  }
+
   return (
-    <Link
-      to={sessionPath(sessionId)}
-      className="rounded hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-    >
-      {nickname ? nickname : <span className="text-slate-500">Anonymous</span>}
-    </Link>
+    <div className="flex min-w-0 items-center gap-3">
+      <AnimalIcon animal={animal} size={size} className="shrink-0" />
+      <div className="min-w-0 leading-tight">
+        <p className="truncate font-extrabold">{animal}</p>
+        {typeof iq === "number" ? (
+          <p className="mt-1 inline-block rounded-[3px] border-2 border-ink bg-tag px-1.5 font-sign text-sm">
+            IQ {iq}
+          </p>
+        ) : null}
+      </div>
+    </div>
   )
 }
 
-// Row/card click, ignored when the click was on the link itself (otherwise
-// the same page would be pushed onto the history twice).
-function useOpenSession() {
-  const navigate = useNavigate()
-  return (event, sessionId) => {
-    if (event.target.closest("a")) return
-    navigate(sessionPath(sessionId))
-  }
+// ---------------------------------------------------------------------------
+// Podium
+// ---------------------------------------------------------------------------
+function ChampionCard({ entry, index }) {
+  return (
+    <li className="lb-enter w-full" style={enterDelay(index)}>
+      <Link
+        to={sessionPath(entry.session_id)}
+        className="ticket ticket-notched block -rotate-[0.6deg] px-5 pb-4 pt-5 shadow-hard-lg transition-transform hover:-translate-y-1 sm:px-6"
+      >
+        <span className="sign absolute -top-4 left-5 -rotate-2 bg-paint-yellow px-3 py-0.5 text-sm text-ink">
+          Champion
+        </span>
+
+        <div className="flex items-center gap-4">
+          <span className="shrink-0">
+            <RankBadge rank={entry.rank} size={72} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-2xl font-extrabold sm:text-3xl">
+              <PlayerName nickname={entry.nickname} />
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <LevelSign level={entry.highest_level_completed} />
+              <SkillBadge value={entry.skill_rank} />
+            </div>
+          </div>
+        </div>
+
+        <div aria-hidden="true" className="my-2.5 border-t-[3px] border-dashed border-ink" />
+
+        {/* Prize and score share one line from 640 px (wraps on phones). */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:flex-nowrap">
+          <PrizeBlurb animal={entry.animal} iq={entry.animal_iq} size={96} />
+          <div className="shrink-0 text-right">
+            <ScoreCounter value={entry.final_score} tone="dark" className="text-3xl" />
+            <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.25em] text-muted">points</p>
+          </div>
+        </div>
+      </Link>
+    </li>
+  )
 }
 
-function formatScore(score) {
-  return typeof score === "number" ? score.toLocaleString("en-US") : "-"
+function RunnerUpCard({ entry, index }) {
+  const tilt = index % 2 === 0 ? "rotate-[0.6deg]" : "-rotate-[0.5deg]"
+
+  return (
+    <li
+      className="lb-enter w-full sm:w-[calc(50%-0.375rem)]"
+      style={enterDelay(index)}
+    >
+      {/* Compact two-tier ticket: ribbon + name, level + stamp, tear line,
+          then the 72 px prize drawing with its name, IQ and the score. */}
+      <Link
+        to={sessionPath(entry.session_id)}
+        className={`ticket ticket-notched block h-full ${tilt} px-4 pb-3 pt-3 transition-transform hover:-translate-y-1`}
+      >
+        {/* Name and level sit beside the ribbon; the stamp gets its own
+            line, so "Level 13" + "INTERMEDIATE" never wrap and the card
+            height is the same for every entry. */}
+        <div className="flex items-center gap-3">
+          <span className="shrink-0">
+            <RankBadge rank={entry.rank} size={48} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-extrabold">
+              <PlayerName nickname={entry.nickname} />
+            </p>
+            <LevelSign level={entry.highest_level_completed} small className="mt-0.5" />
+          </div>
+        </div>
+        <div className="mt-1.5">
+          <SkillBadge value={entry.skill_rank} size="xs" />
+        </div>
+
+        <div aria-hidden="true" className="my-2 border-t-[3px] border-dashed border-ink" />
+
+        <div className="flex items-center gap-3">
+          {entry.animal ? (
+            <AnimalIcon animal={entry.animal} size={72} className="shrink-0" />
+          ) : (
+            <AnimalIcon animal={null} size={72} className="shrink-0 opacity-60" />
+          )}
+          <div className="min-w-0 flex-1 leading-tight">
+            {/* Long names ("Bottlenose Dolphin") may use two lines. */}
+            <p className="line-clamp-2 text-sm font-extrabold">{entry.animal || "No prize"}</p>
+            {typeof entry.animal_iq === "number" ? (
+              <p className="mt-0.5 inline-block rounded-[3px] border-2 border-ink bg-tag px-1.5 font-sign text-xs">
+                IQ {entry.animal_iq}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {/* The score gets its own line: next to the 72 px drawing a 5-digit
+            counter does not fit in a half-width card. */}
+        <div className="mt-1.5 text-right">
+          <ScoreCounter value={entry.final_score} tone="dark" className="text-xl" />
+        </div>
+      </Link>
+    </li>
+  )
 }
 
-function formatLevel(level) {
-  return typeof level === "number" ? `Level ${level}` : "-"
+// ---------------------------------------------------------------------------
+// Compact list (ranks 4-10)
+// ---------------------------------------------------------------------------
+// One line when the list is wide enough (container query), otherwise two
+// tidy lines: rank, name + level, score / stamp, prize.
+function ListRow({ entry, index }) {
+  const tilt = index % 2 === 0 ? "-rotate-[0.25deg]" : "rotate-[0.25deg]"
+
+  return (
+    <li className="lb-enter @container" style={enterDelay(index)}>
+      <Link
+        to={sessionPath(entry.session_id)}
+        className={`ticket ${tilt} flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 transition-transform hover:-translate-y-0.5 @min-[600px]:flex-nowrap`}
+      >
+        <span className="shrink-0">
+          <RankBadge rank={entry.rank} />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-extrabold" title={entry.nickname || "Mystery Player"}>
+            <PlayerName nickname={entry.nickname} />
+          </p>
+          <p className="mt-0.5 font-sign text-xs text-muted">Level {entry.highest_level_completed}</p>
+        </div>
+
+        {/* One-line rows use fixed column widths so stamps and tags line up
+            row to row; on the second line of a narrow row they shrink to fit
+            (a phone row is only about 300 px wide). */}
+        <div className="order-last flex w-full items-center gap-3 border-t-2 border-dashed border-rule pt-2 @min-[600px]:order-none @min-[600px]:w-auto @min-[600px]:border-t-0 @min-[600px]:pt-0">
+          <span className="shrink-0 text-center @min-[600px]:w-[8.25rem]">
+            <SkillBadge value={entry.skill_rank} size="xs" />
+          </span>
+          <AnimalTag
+            animal={entry.animal}
+            iq={entry.animal_iq}
+            size={44}
+            className="min-w-0 @min-[600px]:w-[12rem] @min-[600px]:shrink-0"
+          />
+        </div>
+
+        <span className="ml-auto shrink-0 text-right">
+          <ScoreCounter value={entry.final_score} className="text-lg" />
+        </span>
+      </Link>
+    </li>
+  )
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 export default function Leaderboard() {
   const { data, error, loading, lastUpdated, retry } = usePolling(
-    () => getLeaderboard(20),
+    () => getLeaderboard(LEADERBOARD_LIMIT),
     10000,
   )
-  const openSession = useOpenSession()
 
   const entries = Array.isArray(data?.entries) ? data.entries : []
   const hasRows = entries.length > 0
+  const { champions, runnersUp, rest } = splitPodium(entries)
+  const showList = rest.length > 0
+
+  // One-time slide-in: on for the first 1.5 s after the tickets appear.
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    if (!hasRows) return undefined
+    const timer = setTimeout(() => setIntro(false), 1500)
+    return () => clearTimeout(timer)
+  }, [hasRows])
+
   const updated = lastUpdated
     ? lastUpdated.toLocaleTimeString("en-GB", {
         hour: "2-digit",
@@ -93,33 +247,21 @@ export default function Leaderboard() {
     : "--:--:--"
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
-            Leaderboard
-          </h1>
-          <p className="mt-2 text-lg text-slate-400">
-            Top 20 scores from the arcade.
-          </p>
-        </div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-          Updated {updated}
+    <section className="mx-auto w-full max-w-[1200px] px-4 pb-12 pt-6 sm:px-6 lg:pt-3">
+      {/* Title row: the sign, the subtitle (full remaining width), the time. */}
+      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 lg:mb-3 lg:flex-nowrap">
+        <h1 className="sign shrink-0 -rotate-1 bg-tent px-4 py-1.5 text-3xl text-cream sm:text-4xl lg:text-3xl">
+          Top 10
+        </h1>
+        <p className="order-last min-h-[1.75rem] w-full text-lg lg:order-none lg:w-auto lg:flex-1">
+          {leaderboardSubtitle(entries.length)}
+        </p>
+        <p className="ml-auto shrink-0 rotate-1 rounded-[4px] border-2 border-ink bg-ticket px-3 py-1.5 text-sm font-extrabold shadow-hard-sm lg:ml-0">
+          Updated <span className="font-sign">{updated}</span>
         </p>
       </div>
 
-      {/* Refresh failed, but old rows are still on screen. */}
-      {error && data ? (
-        <StatusMessage
-          variant="error"
-          compact
-          error={error}
-          onRetry={retry}
-          title="Could not refresh. Showing the last known scores."
-        />
-      ) : null}
-
-      {/* First load: skeleton rows. */}
+      {/* First load: the buttons light up while waiting. */}
       {loading && !data ? <StatusMessage variant="loading" /> : null}
 
       {/* First load failed: no data at all. */}
@@ -128,100 +270,67 @@ export default function Leaderboard() {
       ) : null}
 
       {/* Loaded successfully, but the database is empty. */}
-      {!loading && !error && data && !hasRows ? (
-        <StatusMessage variant="empty" />
-      ) : null}
+      {!loading && !error && data && !hasRows ? <StatusMessage variant="empty" /> : null}
 
       {hasRows ? (
-        <>
-          {/* Wide screens: table. */}
-          <div className="hidden overflow-x-auto rounded-3xl border border-slate-800 bg-slate-900/70 shadow-2xl shadow-indigo-950/40 md:block">
-            <table className="w-full min-w-[820px] border-collapse text-left">
-              <thead className="bg-slate-950/60 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                <tr>
-                  <th scope="col" className="px-5 py-4">
-                    Rank
-                  </th>
-                  <th scope="col" className="px-5 py-4">
-                    Player
-                  </th>
-                  <th scope="col" className="px-5 py-4 text-right">
-                    Score
-                  </th>
-                  <th scope="col" className="px-5 py-4">
-                    Level
-                  </th>
-                  <th scope="col" className="px-5 py-4">
-                    Skill
-                  </th>
-                  <th scope="col" className="px-5 py-4">
-                    Animal
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {entries.map((entry) => (
-                  <tr
-                    key={entry.session_id}
-                    onClick={(event) => openSession(event, entry.session_id)}
-                    className="cursor-pointer transition hover:bg-slate-800/40"
-                  >
-                    <td className="px-5 py-4">
-                      <RankBadge rank={entry.rank} />
-                    </td>
-                    <td className="px-5 py-4 text-xl font-semibold text-white">
-                      <PlayerName nickname={entry.nickname} sessionId={entry.session_id} />
-                    </td>
-                    <td className="px-5 py-4 text-right text-2xl font-black tabular-nums text-amber-300">
-                      {formatScore(entry.final_score)}
-                    </td>
-                    <td className="px-5 py-4 text-lg text-slate-300">
-                      {formatLevel(entry.highest_level_completed)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <SkillBadge value={entry.skill_rank} />
-                    </td>
-                    <td className="px-5 py-4 text-lg text-slate-300">
-                      <AnimalTag animal={entry.animal} iq={entry.animal_iq} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className={`relative ${intro ? "lb-intro" : ""}`}>
+          {/* Refresh failed: the sign is taped over the board (no layout
+              shift); the old tickets stay. */}
+          {error && data ? (
+            <div className="absolute left-1/2 top-2 z-20 w-[min(36rem,92%)] -translate-x-1/2">
+              <StatusMessage
+                variant="error"
+                compact
+                error={error}
+                onRetry={retry}
+                title="Could not refresh. Showing the last known scores."
+              />
+            </div>
+          ) : null}
 
-          {/* Narrow phones: one card per entry. */}
-          <div className="space-y-3 md:hidden">
-            {entries.map((entry) => (
-              <article
-                key={entry.session_id}
-                onClick={(event) => openSession(event, entry.session_id)}
-                className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg transition hover:bg-slate-800/50"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <RankBadge rank={entry.rank} />
-                    <div>
-                      <p className="text-lg font-bold text-white">
-                        <PlayerName nickname={entry.nickname} sessionId={entry.session_id} />
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        {formatLevel(entry.highest_level_completed)}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-2xl font-black tabular-nums text-amber-300">
-                    {formatScore(entry.final_score)}
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
-                  <SkillBadge value={entry.skill_rank} />
-                  <AnimalTag animal={entry.animal} iq={entry.animal_iq} />
-                </div>
-              </article>
-            ))}
+          <div
+            className={`${error ? "opacity-75" : ""} ${
+              showList
+                ? "grid items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-7"
+                : "mx-auto max-w-[36rem]"
+            }`}
+          >
+            <section aria-labelledby="podium-title">
+              <h2 id="podium-title" className="sr-only">
+                Winners podium
+              </h2>
+              <ol className="flex flex-wrap justify-center gap-3 pt-3">
+                {champions.map((entry, index) => (
+                  <ChampionCard key={entry.session_id} entry={entry} index={index} />
+                ))}
+                {runnersUp.map((entry, index) => (
+                  <RunnerUpCard
+                    key={entry.session_id}
+                    entry={entry}
+                    index={champions.length + index}
+                  />
+                ))}
+              </ol>
+            </section>
+
+            {showList ? (
+              <section aria-labelledby="list-title">
+                <h2 id="list-title" className="sr-only">
+                  Ranks 4 to {LEADERBOARD_LIMIT}
+                </h2>
+                <ol className="space-y-2.5 lg:pt-3">
+                  {rest.map((entry, index) => (
+                    <ListRow
+                      key={entry.session_id}
+                      entry={entry}
+                      index={champions.length + runnersUp.length + index}
+                    />
+                  ))}
+                </ol>
+              </section>
+            ) : null}
           </div>
-        </>
+        </div>
       ) : null}
     </section>
   )

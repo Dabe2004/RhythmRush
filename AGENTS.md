@@ -7,10 +7,12 @@
 - DONE so far: Phase A, A2, B, B2, C, D, E, F, G, H, I, J1, J2, K, L, M (all ML training scripts and exported
   artifacts, plus the SQLite database, the upload endpoint, ML predictions inside Express, the read/gameplay
   endpoints, the fake ESP32 uploader, the React leaderboard, the live result/kiosk page, the session detail
-  page, the admin API + dashboard, production serving, hardening, README and demo checklist, and the ESP32
-  network client in /firmware, compiled but not yet run on hardware)
-- NEXT: hardware integration by the firmware teammate (game logic + pins, using the /firmware network layer),
-  then retrain the models with real games.
+  page, the admin API + dashboard, production serving, hardening, README and demo checklist, the ESP32
+  network client in /firmware (compiled, not yet run on hardware), the carnival-booth visual redesign of
+  the frontend (docs/DESIGN.md; same routes, API calls, polling and kiosk logic), and the Top 10 leaderboard
+  (podium for ranks 1-3 + compact list for 4-10, getLeaderboard(10); ties kept; win confetti behind the text)
+- NEXT: check the redesign on the real exhibition TV and tablet, hardware integration by the firmware teammate
+  (game logic + pins, using the /firmware network layer), then retrain the models with real games.
 
 ## Rules for you (the AI)
 - Do ONE phase at a time, exactly as written. Never start the next phase and never create

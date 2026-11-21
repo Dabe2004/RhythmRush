@@ -63,25 +63,26 @@ export default function NicknameForm({
     return (
       <p
         role="status"
-        className="rounded-2xl border border-green-400/40 bg-green-500/10 px-6 py-5 text-center text-2xl font-bold text-green-200 sm:text-3xl"
+        className="mt-8 inline-block -rotate-2 border-4 border-double border-ok bg-ticket px-6 py-4 font-sign text-2xl text-ok sm:text-3xl"
       >
         Saved! You are {savedName}
       </p>
     )
   }
 
+  // "Sign the guest book": a dashed paper field with big tap targets.
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="rounded-2xl border border-slate-700 bg-slate-900/70 p-5 sm:p-6"
+      className="mt-8 rounded-[6px] border-[3px] border-dashed border-ink bg-ticket px-5 pb-3 pt-5 sm:px-6"
     >
-      <label
-        htmlFor="nickname-input"
-        className="block text-xl font-bold text-white sm:text-2xl"
-      >
-        Add your nickname to the leaderboard
+      <label htmlFor="nickname-input" className="block font-sign text-2xl text-tent sm:text-3xl">
+        Sign the guest book
       </label>
+      <p id="nickname-help" className="mt-1 text-base sm:text-lg">
+        Put your name on the leaderboard: up to 16 letters, numbers, spaces, - or _.
+      </p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <input
@@ -102,13 +103,13 @@ export default function NicknameForm({
             setMessage("")
             onActivity?.()
           }}
-          className="min-w-0 flex-1 rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 text-2xl text-white placeholder:text-slate-600 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 disabled:opacity-60"
+          className="min-h-[56px] min-w-0 flex-1 rounded-[4px] border-[3px] border-ink bg-cream px-4 text-2xl font-extrabold text-ink placeholder:font-normal placeholder:text-muted disabled:opacity-60"
         />
         <div className="flex gap-3">
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-indigo-500 px-6 py-3 text-xl font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200 disabled:cursor-wait disabled:opacity-60 sm:flex-none"
+            className="sign min-h-[56px] flex-1 bg-tent px-7 text-xl text-cream transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:cursor-wait disabled:opacity-60 sm:flex-none"
           >
             {saving ? "Saving..." : "Save"}
           </button>
@@ -116,20 +117,17 @@ export default function NicknameForm({
             type="button"
             disabled={saving}
             onClick={() => onSkip?.()}
-            className="flex-1 rounded-xl border border-slate-600 px-6 py-3 text-xl font-semibold text-slate-300 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-60 sm:flex-none"
+            className="sign min-h-[56px] flex-1 bg-ticket px-6 text-xl text-ink transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-60 sm:flex-none"
           >
             Skip
           </button>
         </div>
       </div>
 
-      <p id="nickname-help" className="mt-3 text-base text-slate-400">
-        Up to 16 letters, numbers, spaces, - or _.
-      </p>
       <p
         id="nickname-message"
         role="alert"
-        className="mt-2 min-h-[1.75rem] text-lg font-semibold text-red-300"
+        className="mt-2 min-h-[2rem] text-lg font-extrabold text-danger"
       >
         {message}
       </p>

@@ -6,10 +6,12 @@
 //
 // Chart rules used here:
 //   - thin bars (max 24 px) with 4 px rounded ends, square at the baseline
-//   - hairline horizontal grid, quiet axes, no animation on refresh
-//   - text always uses the grey "ink" colours, never the bar colour
+//   - hairline grid, ink axis line, numbers in the display face (Bungee)
+//   - text always uses the ink colours, never the bar colour
 //   - one series = one colour and no legend box (the heading names it)
 //   - colour is never the only signal (labels, legend, tooltip, table)
+// The result colours were validated for colour blindness and contrast on
+// the cream ticket surface (docs/DESIGN.md).
 
 import {
   Bar,
@@ -24,43 +26,43 @@ import {
 } from "recharts"
 
 import { RESULT_STYLES } from "../chartData"
-import { animalEmoji } from "../theme"
+import AnimalIcon from "./animals/AnimalIcon"
 
-// Ink and chrome colours (Tailwind slate) for the dark theme.
+// Ink and chrome colours of the carnival theme (cream paper).
 const INK = {
-  primary: "#f1f5f9",
-  secondary: "#cbd5e1",
-  muted: "#94a3b8",
-  grid: "#1e293b",
-  axis: "#334155",
+  primary: "#1d1a2f",
+  muted: "#5c5468",
+  grid: "#d8c9a6",
+  axis: "#1d1a2f",
 }
 
-// Single-series bar colour, validated on the dark surfaces (>= 3:1).
+// Single-series bar colour (>= 3:1 on the ticket paper).
 const SERIES_COLOR = "#3987e5"
 
-const AXIS_TICK = { fill: INK.muted, fontSize: 12 }
-// Hover highlight behind the hovered bar: a faint wash, no outline.
-const HOVER_CURSOR = { fill: "rgba(148, 163, 184, 0.08)", stroke: "none" }
+const NUMBER_TICK = { fill: INK.primary, fontSize: 12, fontFamily: "Bungee, sans-serif" }
+// Hover highlight behind the hovered bar: a faint ink wash, no outline.
+const HOVER_CURSOR = { fill: "rgba(29, 26, 47, 0.07)", stroke: "none" }
 
+// Tooltip drawn as a small paper ticket.
 function TooltipBox({ children }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-950/95 px-3 py-2 text-sm shadow-xl">
+    <div className="rounded-[4px] border-2 border-ink bg-ticket px-3 py-2 text-sm text-ink shadow-hard-sm">
       {children}
     </div>
   )
 }
 
-// Small colour key placed BESIDE text (the text itself stays grey/white).
+// Small colour key placed BESIDE text (the text itself stays ink).
 function Swatch({ result }) {
   const style = RESULT_STYLES[result]
   const hollow = result === "timeout"
   return (
     <span
       aria-hidden="true"
-      className="inline-block h-3 w-3 shrink-0 rounded-[3px]"
+      className="inline-block h-3.5 w-3.5 shrink-0 rounded-[3px]"
       style={{
         backgroundColor: hollow ? `${style.color}26` : style.color,
-        boxShadow: hollow ? `inset 0 0 0 2px ${style.color}` : undefined,
+        boxShadow: hollow ? `inset 0 0 0 2px ${style.color}` : "inset 0 0 0 1.5px #1d1a2f",
       }}
     />
   )
@@ -68,11 +70,11 @@ function Swatch({ result }) {
 
 export function ResultLabel({ result }) {
   const style = RESULT_STYLES[result]
-  if (!style) return <span className="text-slate-400">{String(result)}</span>
+  if (!style) return <span className="text-muted">{String(result)}</span>
   return (
     <span className="inline-flex items-center gap-2">
       <Swatch result={result} />
-      <span>{style.label}</span>
+      <span className="font-extrabold">{style.label}</span>
     </span>
   )
 }
@@ -86,16 +88,16 @@ function AttemptTooltip({ active, payload }) {
 
   return (
     <TooltipBox>
-      <p className="font-semibold text-slate-100">
+      <p className="font-sign">
         Attempt {row.attemptNo} · Level {row.level}
       </p>
-      <p className="mt-1 flex items-center gap-2 text-slate-200">
+      <p className="mt-1 flex items-center gap-2 font-extrabold">
         <Swatch result={row.result} />
         {row.isTimeout
           ? "Timeout: no answer in time"
           : `${RESULT_STYLES[row.result]?.label ?? row.result} after ${row.responseSec.toFixed(2)} s`}
       </p>
-      <p className="mt-1 text-slate-400">
+      <p className="mt-1 text-muted">
         {row.sequenceLength} presses, time limit {row.deadlineSec.toFixed(1)} s
       </p>
     </TooltipBox>
@@ -117,7 +119,7 @@ function TimeoutLabel({ x, y, width, height, index, rows }) {
       dominantBaseline="central"
       fill={INK.primary}
       fontSize={12}
-      fontWeight={600}
+      fontFamily="Bungee, sans-serif"
     >
       Timeout
     </text>
@@ -126,7 +128,7 @@ function TimeoutLabel({ x, y, width, height, index, rows }) {
 
 export function ResultLegend() {
   return (
-    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-300">
+    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
       <li className="flex items-center gap-2">
         <Swatch result="pass" /> Pass (response time)
       </li>
@@ -154,17 +156,19 @@ export function AttemptsChart({ rows }) {
             <CartesianGrid vertical={false} stroke={INK.grid} />
             <XAxis
               dataKey="attemptNo"
-              tick={AXIS_TICK}
+              tick={NUMBER_TICK}
               tickLine={false}
-              axisLine={{ stroke: INK.axis }}
+              axisLine={{ stroke: INK.axis, strokeWidth: 2 }}
               label={{ value: "Attempt", position: "insideBottom", offset: -10, fill: INK.muted, fontSize: 12 }}
             />
+            {/* Plain numbers on the ticks; the unit is the axis label (Bungee
+                has no lowercase, so "16 s" would read "16 S"). */}
             <YAxis
-              tick={AXIS_TICK}
+              tick={NUMBER_TICK}
               tickLine={false}
               axisLine={false}
-              width={52}
-              tickFormatter={(value) => `${value} s`}
+              width={56}
+              label={{ value: "Seconds", angle: -90, position: "insideLeft", offset: 10, fill: INK.muted, fontSize: 12 }}
             />
             <Tooltip cursor={HOVER_CURSOR} content={<AttemptTooltip />} />
             <Bar dataKey="chartValue" maxBarSize={24} radius={[4, 4, 0, 0]} isAnimationActive={false}>
@@ -186,7 +190,7 @@ export function AttemptsChart({ rows }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <figcaption className="text-sm text-slate-400">
+      <figcaption className="text-sm text-muted">
         A timeout has no response time, so its bar shows the full time limit of that level
         (presses × seconds per press) instead of a zero-height bar.
       </figcaption>
@@ -202,8 +206,8 @@ function HistogramTooltip({ active, payload }) {
   const row = payload[0].payload
   return (
     <TooltipBox>
-      <p className="font-semibold text-slate-100">{row.range} points</p>
-      <p className="mt-1 text-slate-300">
+      <p className="font-sign">{row.range} points</p>
+      <p className="mt-1 font-extrabold">
         {row.count} {row.count === 1 ? "game" : "games"}
       </p>
     </TooltipBox>
@@ -222,12 +226,12 @@ export function ScoreHistogram({ rows }) {
           <CartesianGrid vertical={false} stroke={INK.grid} />
           <XAxis
             dataKey="label"
-            tick={AXIS_TICK}
+            tick={NUMBER_TICK}
             tickLine={false}
-            axisLine={{ stroke: INK.axis }}
+            axisLine={{ stroke: INK.axis, strokeWidth: 2 }}
             label={{ value: "Score (points)", position: "insideBottom", offset: -10, fill: INK.muted, fontSize: 12 }}
           />
-          <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
+          <YAxis tick={NUMBER_TICK} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
           <Tooltip cursor={HOVER_CURSOR} content={<HistogramTooltip />} />
           <Bar
             dataKey="count"
@@ -250,18 +254,30 @@ function CountTooltip({ active, payload }) {
   const row = payload[0].payload
   return (
     <TooltipBox>
-      <p className="font-semibold text-slate-100">{row.name}</p>
-      <p className="mt-1 text-slate-300">
+      <p className="font-extrabold">{row.name}</p>
+      <p className="mt-1">
         {row.count} {row.count === 1 ? "game" : "games"}
       </p>
     </TooltipBox>
   )
 }
 
+// Category label with the animal drawing in front of the name.
+function AnimalTick({ x, y, payload }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <AnimalIcon animal={payload.value} size={24} x={-170} y={-12} aria-hidden="true" />
+      <text x={-142} y={0} dominantBaseline="central" fill={INK.primary} fontSize={13} fontWeight={800}>
+        {payload.value}
+      </text>
+    </g>
+  )
+}
+
 /**
- * @param {{rows: {name: string, count: number}[], withEmoji?: boolean, label: string}} props
+ * @param {{rows: {name: string, count: number}[], withAnimals?: boolean, label: string}} props
  */
-export function CountBars({ rows, withEmoji = false, label }) {
+export function CountBars({ rows, withAnimals = false, label }) {
   const height = rows.length * 44 + 24
 
   return (
@@ -272,11 +288,10 @@ export function CountBars({ rows, withEmoji = false, label }) {
           <YAxis
             type="category"
             dataKey="name"
-            width={withEmoji ? 168 : 112}
-            tick={{ fill: INK.secondary, fontSize: 13 }}
+            width={withAnimals ? 176 : 112}
+            tick={withAnimals ? <AnimalTick /> : { fill: INK.primary, fontSize: 13, fontWeight: 800 }}
             tickLine={false}
-            axisLine={{ stroke: INK.axis }}
-            tickFormatter={(name) => (withEmoji ? `${animalEmoji(name)} ${name}` : name)}
+            axisLine={{ stroke: INK.axis, strokeWidth: 2 }}
           />
           <Tooltip cursor={HOVER_CURSOR} content={<CountTooltip />} />
           <Bar
@@ -286,8 +301,8 @@ export function CountBars({ rows, withEmoji = false, label }) {
             radius={[0, 4, 4, 0]}
             isAnimationActive={false}
           >
-            {/* Value at the bar tip, in ink colour. Few bars, so all are labelled. */}
-            <LabelList dataKey="count" position="right" fill={INK.secondary} fontSize={13} />
+            {/* Value at the bar tip, in ink. Few bars, so all are labelled. */}
+            <LabelList dataKey="count" position="right" fill={INK.primary} fontSize={13} fontFamily="Bungee, sans-serif" />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

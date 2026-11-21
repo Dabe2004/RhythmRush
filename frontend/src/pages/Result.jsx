@@ -9,22 +9,27 @@
 //
 // All kiosk rules (baseline, countdown, pause, dismiss) live in the pure
 // reducer kioskState.js; this file only sends events and draws the state.
+//
+// Look: a tent-red stage with marquee bulbs; the result "prints" as a paper
+// prize ticket. Sized to be read from about 2 metres on a 1080p TV.
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { getLatestSession, getLeaderboard } from "../api"
+import ArcadeButtons from "../components/ArcadeButtons"
+import { Confetti, MarqueeBulbs } from "../components/Decor"
 import NicknameForm from "../components/NicknameForm"
+import PlayerName from "../components/PlayerName"
 import ResultCard from "../components/ResultCard"
+import ScoreCounter from "../components/ScoreCounter"
 import StatusMessage from "../components/StatusMessage"
-import { formatScore } from "../format"
 import {
   INITIAL_KIOSK_STATE,
   POLL_MS,
   RESULT_SECONDS,
   nextKioskState,
 } from "../kioskState"
-import { ARCADE_COLORS } from "../theme"
 import usePolling from "../usePolling"
 import useSession from "../useSession"
 
@@ -36,6 +41,29 @@ export default function Result() {
   const { sessionId } = useParams()
 
   return sessionId ? <SingleResult sessionId={sessionId} /> : <KioskResult />
+}
+
+// The red stage. It grows to fill the screen (no cream gap on the kiosk TV);
+// the header above already has a bulb rail, so the stage only has one at the
+// bottom. --notch-bg makes ticket notches show the stage colour.
+// backdrop (optional) is drawn BEHIND the content, e.g. the win confetti:
+// it shows on the red stage around the ticket but never over any text.
+function Stage({ children, backdrop = null }) {
+  return (
+    <section className="stage relative isolate flex flex-1 flex-col overflow-hidden border-b-[3px] border-ink">
+      {backdrop}
+      {/* Content is centred vertically, so a short screen (idle) does not
+          leave a dead area under it on a big TV. */}
+      <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-1 flex-col justify-center px-4 py-8 sm:px-8 lg:py-10">
+        <div>{children}</div>
+      </div>
+      <MarqueeBulbs className="relative z-10" />
+    </section>
+  )
+}
+
+function WinConfetti({ game }) {
+  return game.data?.session.outcome === "win" ? <Confetti /> : null
 }
 
 // ---------------------------------------------------------------------------
@@ -114,77 +142,79 @@ function KioskActive({ sessionId, secondsLeft, paused, dispatch }) {
   const nickname = game.data?.session.nickname ?? savedName
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-6 sm:px-6 lg:py-8">
+    <Stage backdrop={<WinConfetti game={game} />}>
       {/* On top, so the countdown and Close are visible without scrolling
           on a TV even when the nickname form makes the page tall. */}
       <Countdown secondsLeft={secondsLeft} paused={paused} onClose={dismiss} />
 
-      {game.data ? (
-        <ResultCard detail={game.data} nickname={nickname}>
-          {game.data.session.nickname === null ? (
-            <NicknameForm
-              sessionId={sessionId}
-              onActivity={pauseWhileTyping}
-              onIdle={resume}
-              onSkip={dismiss}
-              onSaved={(name) => {
-                setSavedName(name)
-                resume()
-              }}
-            />
-          ) : null}
-        </ResultCard>
-      ) : (
-        <ResultLoading error={game.error} />
-      )}
-    </section>
+      <div className="mt-8">
+        {game.data ? (
+          <ResultCard detail={game.data} nickname={nickname}>
+            {game.data.session.nickname === null ? (
+              <NicknameForm
+                sessionId={sessionId}
+                onActivity={pauseWhileTyping}
+                onIdle={resume}
+                onSkip={dismiss}
+                onSaved={(name) => {
+                  setSavedName(name)
+                  resume()
+                }}
+              />
+            ) : null}
+          </ResultCard>
+        ) : (
+          <ResultLoading error={game.error} />
+        )}
+      </div>
+    </Stage>
   )
 }
 
 function ResultLoading({ error }) {
   return (
-    <div className="py-20 text-center" role="status">
-      <p className="text-5xl font-black text-white sm:text-6xl">New result!</p>
-      <p className="mt-4 text-2xl text-slate-400">
-        {error ? "Still loading the result, retrying..." : "Loading the result..."}
+    <div className="flex flex-col items-start gap-6 py-16" role="status">
+      <p className="painted text-5xl text-paint-yellow sm:text-7xl">New result!</p>
+      <ArcadeButtons sequence size="3rem" labelTone="cream" />
+      <p className="text-2xl font-extrabold text-cream">
+        {error ? "Still loading the result, retrying..." : "Printing your ticket..."}
       </p>
     </div>
   )
 }
 
+// A fuse that burns down from right to left, plus the text and Close sign.
 function Countdown({ secondsLeft, paused, onClose }) {
   const percent = Math.max(0, Math.min(100, (secondsLeft / RESULT_SECONDS) * 100))
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-3">
-      <div
-        className="h-4 w-full overflow-hidden rounded-full bg-slate-800"
-        role="progressbar"
-        aria-label="Time left on this screen"
-        aria-valuemin={0}
-        aria-valuemax={RESULT_SECONDS}
-        aria-valuenow={secondsLeft}
-      >
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div className="min-w-[14rem] flex-1">
         <div
-          className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
-            paused ? "bg-slate-500" : "bg-gradient-to-r from-indigo-400 to-fuchsia-400"
-          }`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xl text-slate-300">
-          Back to the leaderboard in {secondsLeft}s
-          {paused ? <span className="text-slate-500"> (paused while you type)</span> : null}
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl border border-slate-600 px-6 py-3 text-xl font-semibold text-slate-200 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className={`fuse-track ${paused ? "fuse-paused" : ""}`}
+          role="progressbar"
+          aria-label="Time left on this screen"
+          aria-valuemin={0}
+          aria-valuemax={RESULT_SECONDS}
+          aria-valuenow={secondsLeft}
         >
-          Close
-        </button>
+          {/* The unburnt rope; only transform changes. */}
+          <div className="fuse-rope" style={{ transform: `translateX(${percent - 100}%)` }}>
+            <span className="fuse-spark" />
+          </div>
+        </div>
+        <p className="mt-2 text-xl font-extrabold text-cream">
+          Back to the leaderboard in <span className="font-sign">{secondsLeft}</span>s
+          {paused ? <span className="text-cream"> (paused while you type)</span> : null}
+        </p>
       </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="sign min-h-[52px] rotate-1 bg-ticket px-6 py-2 text-lg text-ink transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+      >
+        Close
+      </button>
     </div>
   )
 }
@@ -194,37 +224,39 @@ function Countdown({ secondsLeft, paused, onClose }) {
 // ---------------------------------------------------------------------------
 function IdleScreen({ connectionLost }) {
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-col items-center gap-12 px-4 py-16 text-center sm:px-6">
-      <div>
-        <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">
-          Waiting for the next player...
-        </h1>
-        <p className="mt-4 text-2xl text-slate-400">Press Start on the device to play.</p>
-      </div>
+    <Stage>
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-14">
+        <div className="pt-2 lg:pt-8">
+          <h1 className="painted -rotate-2 text-[clamp(3rem,8vw,7.5rem)] leading-[0.95] text-paint-yellow">
+            Step right up!
+          </h1>
+          <p className="mt-6 text-[clamp(1.5rem,2.6vw,2.5rem)] font-extrabold leading-tight text-cream">
+            Waiting for the next player...
+          </p>
+          <p className="mt-2 text-xl text-cream sm:text-2xl">Press Start on the device to play.</p>
 
-      {/* Six pulsing dots in the arcade button colours. */}
-      <div className="flex items-center gap-4 sm:gap-6" aria-hidden="true">
-        {ARCADE_COLORS.map((color, index) => (
-          <span
-            key={color.name}
-            className="arcade-dot h-8 w-8 rounded-full sm:h-12 sm:w-12"
-            style={{
-              backgroundColor: color.hex,
-              boxShadow: `0 0 24px ${color.hex}`,
-              animationDelay: `${index * 0.15}s`,
-            }}
+          {/* The six buttons light up one after another, like the game. */}
+          <ArcadeButtons
+            sequence
+            size="clamp(2.75rem, 6vw, 5.5rem)"
+            labelTone="cream"
+            labelClassName="text-base sm:text-xl"
+            className="mt-10"
           />
-        ))}
+
+          {connectionLost ? (
+            <p
+              role="status"
+              className="mt-8 inline-block -rotate-1 border-[3px] border-ink bg-paint-yellow px-4 py-2 text-lg font-extrabold text-ink shadow-hard"
+            >
+              Cannot reach the server. Retrying...
+            </p>
+          ) : null}
+        </div>
+
+        <TopFive />
       </div>
-
-      {connectionLost ? (
-        <p role="status" className="text-xl font-semibold text-red-300">
-          Cannot reach the server. Retrying...
-        </p>
-      ) : null}
-
-      <TopFive />
-    </section>
+    </Stage>
   )
 }
 
@@ -235,30 +267,28 @@ function TopFive() {
   // Nothing useful to show yet (first load, empty database, or no server).
   if (entries.length === 0) {
     return error ? null : (
-      <p className="text-xl text-slate-500">Be the first on the leaderboard!</p>
+      <p className="ticket rotate-2 self-start px-6 py-5 text-xl font-extrabold">
+        Be the first on the leaderboard!
+      </p>
     )
   }
 
   return (
-    <div className="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 text-left">
-      <h2 className="mb-4 text-center text-lg font-bold uppercase tracking-[0.3em] text-slate-400">
-        Top 5
-      </h2>
-      <ol className="space-y-2">
+    <div className="ticket rotate-[1.5deg] px-5 pb-5 pt-4 sm:px-7">
+      <h2 className="font-sign text-2xl text-tent sm:text-3xl">Hall of Fame</h2>
+      <ol className="mt-3">
         {entries.map((entry) => (
           <li
             key={entry.session_id}
-            className="flex items-center justify-between gap-4 rounded-xl bg-slate-950/50 px-4 py-3 text-2xl"
+            className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-t-0"
           >
-            <span className="flex min-w-0 items-center gap-4">
-              <span className="w-10 text-center font-black text-indigo-300">{entry.rank}</span>
-              <span className="truncate font-semibold text-white">
-                {entry.nickname || <span className="text-slate-500">Anonymous</span>}
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="font-sign w-9 shrink-0 text-2xl text-tent lg:text-3xl">{entry.rank}</span>
+              <span className="truncate text-xl font-extrabold sm:text-2xl xl:text-3xl">
+                <PlayerName nickname={entry.nickname} />
               </span>
             </span>
-            <span className="font-black tabular-nums text-amber-300">
-              {formatScore(entry.final_score)}
-            </span>
+            <ScoreCounter value={entry.final_score} className="shrink-0 text-lg sm:text-xl xl:text-2xl" />
           </li>
         ))}
       </ol>
@@ -276,37 +306,43 @@ function SingleResult({ sessionId }) {
 
   if (game.notFound) {
     return (
-      <section className="mx-auto w-full max-w-3xl px-4 py-20 text-center sm:px-6">
-        <h1 className="text-4xl font-black text-white sm:text-5xl">Game not found</h1>
-        <p className="mt-4 text-lg text-slate-400">
-          There is no game with this id. It may have been removed.
-        </p>
-        <BackLink />
-      </section>
+      <Stage>
+        <div className="ticket ticket-notched max-w-2xl -rotate-1 px-8 py-10 sm:px-12">
+          <h1 className="font-sign text-4xl sm:text-5xl">Game not found</h1>
+          <p className="mt-4 text-lg text-muted">
+            There is no game with this id. It may have been removed.
+          </p>
+          <BackLink />
+        </div>
+      </Stage>
     )
   }
 
   if (game.error && !game.data) {
     return (
-      <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
+      <Stage>
         <StatusMessage
           variant="error"
           error={game.error}
           onRetry={game.retry}
           title="Could not load this game"
         />
-      </section>
+      </Stage>
     )
   }
 
   if (!game.data) {
-    return <ResultLoading error={null} />
+    return (
+      <Stage>
+        <ResultLoading error={null} />
+      </Stage>
+    )
   }
 
   const nickname = game.data.session.nickname ?? savedName
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
+    <Stage backdrop={<WinConfetti game={game} />}>
       <ResultCard detail={game.data} nickname={nickname}>
         {game.data.session.nickname === null && !skipped ? (
           <NicknameForm
@@ -316,10 +352,8 @@ function SingleResult({ sessionId }) {
           />
         ) : null}
       </ResultCard>
-      <div className="text-center">
-        <BackLink />
-      </div>
-    </section>
+      <BackLink />
+    </Stage>
   )
 }
 
@@ -327,7 +361,7 @@ function BackLink() {
   return (
     <Link
       to="/"
-      className="mt-8 inline-block rounded-xl bg-indigo-500 px-6 py-3 text-lg font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
+      className="sign mt-8 inline-flex min-h-[48px] items-center bg-ticket px-5 py-2 text-base text-ink transition-transform hover:-translate-y-0.5"
     >
       Back to the leaderboard
     </Link>

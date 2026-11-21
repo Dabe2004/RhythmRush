@@ -1,8 +1,57 @@
 @import "tailwindcss";
 
-/* Dark arcade base. Individual components use Tailwind utilities. */
+/* ==========================================================================
+   Rhythm Rush - carnival midway booth theme. See docs/DESIGN.md.
+   Flat paint, one ink for text and outlines, hard offset shadows, no glow.
+   ========================================================================== */
+
+@theme {
+  /* One ink, one cream, one accent (tent red) */
+  --color-ink: #1d1a2f;
+  --color-cream: #f6ecd6;
+  --color-ticket: #fffaee;
+  --color-muted: #5c5468;
+  --color-tent: #b3261e;
+  --color-tent-dark: #8f1d17;
+  --color-midnight: #1c2541;
+  --color-tag: #f1d49b;
+  --color-rule: #d8c9a6;
+
+  /* The six game buttons (flat paint; never put text on red or blue) */
+  --color-paint-red: #e2412f;
+  --color-paint-orange: #f0892b;
+  --color-paint-yellow: #f6c522;
+  --color-paint-green: #2f9e57;
+  --color-paint-blue: #2f6fde;
+  --color-paint-purple: #7c4dcc;
+
+  /* Prize ribbons and skill stamps */
+  --color-gold: #f2b630;
+  --color-silver: #c9ccd4;
+  --color-bronze: #c77c3c;
+  --color-stamp-green: #1e6b3c;
+  --color-stamp-blue: #1f4f9e;
+  --color-stamp-purple: #5a2c9c;
+
+  --color-danger: #a3201a;
+  --color-ok: #1e6b3c;
+
+  /* "Mystery Player": 11.42:1 on ticket, 10.14:1 on cream, 8.29:1 on tag */
+  --color-mystery: #3a3448;
+
+  --font-sign: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  /* Hard offset shadows only */
+  --shadow-hard-sm: 2px 2px 0 #1d1a2f;
+  --shadow-hard: 4px 4px 0 #1d1a2f;
+  --shadow-hard-lg: 6px 6px 0 #1d1a2f;
+}
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  /* Paper grain: a 160 px tile of SVG noise, well under 1 kB. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .11 0 0 0 0 .1 0 0 0 0 .18 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 html,
@@ -13,47 +62,529 @@ body,
 
 body {
   margin: 0;
-  background: #070a16;
-  color: #e2e8f0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    sans-serif;
+  background-color: var(--color-cream);
+  background-image: var(--grain);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Idle kiosk screen: the six arcade dots pulse one after another
-   (each dot gets its own animation-delay in Result.jsx). */
-@keyframes arcade-pulse {
-  0%,
-  100% {
-    transform: scale(0.8);
-    opacity: 0.45;
+/* Focus: a thick ink ring with a yellow halo, visible on cream AND on the
+   red stage (unlayered, so no utility class can remove it by accident). */
+:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 8px var(--color-paint-yellow);
+}
+
+/* Everything below, up to "Motion rules", is in the components layer, so a
+   Tailwind utility on the same element (inline-flex, rotate-1, ...) always
+   wins over these defaults. */
+@layer components {
+
+/* ==========================================================================
+   Signs, tickets, stamps
+   ========================================================================== */
+
+/* A painted plywood sign board. */
+.sign {
+  display: inline-block;
+  border: 3px solid var(--color-ink);
+  border-radius: 6px;
+  box-shadow: var(--shadow-hard);
+  font-family: var(--font-sign);
+  line-height: 1.15;
+}
+
+/* Painted letters: ink outline drawn with hard (0-blur) shadows. */
+.painted {
+  font-family: var(--font-sign);
+  text-shadow:
+    -3px -3px 0 var(--color-ink),
+    3px -3px 0 var(--color-ink),
+    -3px 3px 0 var(--color-ink),
+    3px 3px 0 var(--color-ink),
+    0 -3px 0 var(--color-ink),
+    0 3px 0 var(--color-ink),
+    -3px 0 0 var(--color-ink),
+    3px 0 0 var(--color-ink),
+    7px 7px 0 var(--color-ink);
+}
+
+/* Paper ticket. Add .ticket-notched for the two side notches. */
+.ticket {
+  --notch-bg: var(--color-cream);
+  position: relative;
+  background: var(--color-ticket);
+  border: 3px solid var(--color-ink);
+  border-radius: 6px;
+  box-shadow: var(--shadow-hard);
+}
+
+.ticket-notched::before,
+.ticket-notched::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+  background: var(--notch-bg);
+  border: 3px solid var(--color-ink);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Only the half of each circle that lies INSIDE the ticket is shown, so it
+   looks punched out of the paper. */
+.ticket-notched::before {
+  left: -16.5px;
+  clip-path: inset(-4px -4px -4px 50%);
+}
+
+.ticket-notched::after {
+  right: -16.5px;
+  clip-path: inset(-4px 50% -4px -4px);
+}
+
+/* "Mystery Player": dark, but regular weight and smaller than real names. */
+.mystery-player {
+  color: var(--color-mystery);
+  font-weight: 400;
+  font-size: 0.86em;
+}
+
+/* Top 10: a one-time slide-in when the page first shows its tickets.
+   Only while .lb-intro is on the wrapper (removed after 1.5 s), so a ticket
+   that moves during a later refresh never animates again. */
+.lb-intro .lb-enter {
+  animation: lb-enter 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: var(--enter-delay, 0s);
+}
+
+@keyframes lb-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
   }
-  50% {
-    transform: scale(1.15);
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Notches sit at --notch-top (default: halfway down). */
+.ticket-notched::before,
+.ticket-notched::after {
+  top: var(--notch-top, 50%);
+}
+
+/* Leaderboard ticket: stacked on phones, one long stub from 768 px. */
+.lb-ticket {
+  --notch-top: 4.9rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "rank name"
+    "tear tear"
+    "score score"
+    "meta meta";
+}
+
+.lb-rank { grid-area: rank; }
+.lb-name { grid-area: name; }
+.lb-score { grid-area: score; }
+.lb-meta { grid-area: meta; }
+.lb-tear { grid-area: tear; }
+.lb-tear-a,
+.lb-tear-b { display: none; }
+
+@media (min-width: 768px) {
+  .lb-ticket {
+    --notch-top: 50%;
+    grid-template-columns: 7rem auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "rank tearA name tearB score"
+      "rank tearA meta tearB score";
+  }
+
+  .lb-tear { display: none; }
+  .lb-tear-a { display: block; grid-area: tearA; }
+  .lb-tear-b { display: block; grid-area: tearB; }
+}
+
+/* Perforated tear lines. */
+.tear-v {
+  border-left: 3px dashed var(--color-ink);
+}
+
+.tear-h {
+  border-top: 3px dashed var(--color-ink);
+}
+
+/* Rubber stamp (skill). Not a pill: square-ish, double ink border, tilted. */
+.stamp {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border: 4px double currentColor;
+  border-radius: 4px;
+  font-family: var(--font-sign);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  rotate: -5deg;
+  white-space: nowrap;
+}
+
+/* Mechanical score counter: one box per digit. */
+.counter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.1em;
+  font-family: var(--font-sign);
+  line-height: 1;
+}
+
+.counter-digit {
+  position: relative;
+  display: inline-block;
+  min-width: 0.95em;
+  padding: 0.12em 0.1em 0.1em;
+  border: 2px solid var(--color-ink);
+  border-radius: 0.14em;
+  text-align: center;
+}
+
+.counter-dark .counter-digit {
+  background: var(--color-ink);
+  color: var(--color-ticket);
+}
+
+.counter-light .counter-digit {
+  background: var(--color-ticket);
+  color: var(--color-ink);
+}
+
+/* The split line of a mechanical drum. */
+.counter-digit::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.18;
+}
+
+.counter-sep {
+  padding: 0 0.02em 0.04em;
+}
+
+/* Small hanging prize tag. */
+.prize-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 1.5rem;
+  background: var(--color-tag);
+  border: 2px solid var(--color-ink);
+  border-radius: 4px 10px 10px 4px;
+  box-shadow: var(--shadow-hard-sm);
+  rotate: 1deg;
+}
+
+/* The punched hole of the tag. */
+.prize-tag::before {
+  content: "";
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-top: -0.3rem;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+  background: var(--color-cream);
+}
+
+/* ==========================================================================
+   Awning, bulbs, bunting
+   ========================================================================== */
+
+.awning {
+  background-color: var(--color-tent);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-tent) 0 56px,
+    var(--color-ticket) 56px 112px
+  );
+}
+
+/* Dark rail that carries the marquee bulbs. */
+.bulb-rail {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  height: 20px;
+  padding: 0 9px;
+  overflow: hidden;
+  background: var(--color-ink);
+}
+
+.bulb {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b5320;
+}
+
+.bulb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #ffe27a;
+  animation: bulb-chase 1.2s steps(1, end) infinite;
+}
+
+.bulb:nth-child(3n + 2)::after {
+  animation-delay: -0.4s;
+}
+
+.bulb:nth-child(3n)::after {
+  animation-delay: -0.8s;
+}
+
+@keyframes bulb-chase {
+  0% {
     opacity: 1;
   }
-}
-
-.arcade-dot {
-  animation: arcade-pulse 1.4s ease-in-out infinite;
-}
-
-/* Respect the "reduce motion" setting of the operating system. */
-@media (prefers-reduced-motion: reduce) {
-  .arcade-dot {
-    animation: none;
-    opacity: 0.9;
+  33.33% {
+    opacity: 0.12;
   }
 }
 
-/* Soft neon glow plus a faint grid, used behind the page content. */
-.arcade-grid {
-  background-image:
-    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.22), transparent 55%),
-    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    48px 48px,
-    48px 48px;
+/* ==========================================================================
+   The six arcade buttons
+   ========================================================================== */
+
+.arcade-btn {
+  position: relative;
+  display: block;
+  width: var(--btn-size, 3rem);
+  height: var(--btn-size, 3rem);
+  border: 3px solid var(--color-ink);
+  border-radius: 50%;
+  /* Unlit paint: the button colour, darkened a little with ink (still
+     recognisably orange, yellow, ... when it is not lit). See the
+     @supports fallback below for old tablet browsers. */
+  background: color-mix(in srgb, var(--paint) 68%, var(--color-ink));
+  box-shadow: 0 5px 0 var(--color-ink);
+}
+
+/* Old browsers (e.g. Android Chrome < 111) without color-mix(): plain paint,
+   so the unlit buttons are never invisible. */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .arcade-btn {
+    background: var(--paint);
+  }
+}
+
+.arcade-btn-lit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--paint);
+}
+
+/* Flat highlight: the "glossy" plastic, without any gradient. */
+.arcade-btn-lit::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 36%;
+  height: 22%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  rotate: -28deg;
+}
+
+/* Sequence mode: the buttons light up one after another, like the game. */
+.arcade-sequence .arcade-btn {
+  animation: btn-press 3.6s steps(1, end) infinite;
+  animation-delay: calc(var(--i) * 0.6s);
+}
+
+.arcade-sequence .arcade-btn-lit {
+  opacity: 0;
+  animation: btn-light 3.6s steps(1, end) infinite;
+  animation-delay: calc(var(--i) * 0.6s);
+}
+
+@keyframes btn-light {
+  0% {
+    opacity: 1;
+  }
+  16.66% {
+    opacity: 0;
+  }
+}
+
+@keyframes btn-press {
+  0% {
+    transform: translateY(4px);
+  }
+  16.66% {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Kiosk: stage, ticket print, fuse, confetti
+   ========================================================================== */
+
+.stage {
+  --notch-bg: var(--color-tent);
+  background-color: var(--color-tent);
+  background-image: var(--grain),
+    repeating-linear-gradient(90deg, var(--color-tent) 0 72px, #a3221b 72px 144px);
+}
+
+.ticket-print {
+  animation: ticket-print 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+@keyframes ticket-print {
+  from {
+    opacity: 0;
+    transform: translateY(-56px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Fuse countdown: a rope that burns from right to left. */
+.fuse-track {
+  position: relative;
+  height: 22px;
+  overflow: hidden;
+  border: 3px solid var(--color-ink);
+  border-radius: 999px;
+  background: #4a2a22;
+}
+
+.fuse-rope {
+  position: absolute;
+  inset: 0;
+  background-color: #d9a85b;
+  background-image: repeating-linear-gradient(
+    -55deg,
+    #d9a85b 0 7px,
+    #b9853f 7px 12px
+  );
+  transition: transform 1s linear;
+}
+
+.fuse-spark {
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+  background: var(--color-paint-yellow);
+  animation: spark 0.4s steps(2, end) infinite;
+}
+
+@keyframes spark {
+  50% {
+    transform: scale(0.7);
+  }
+}
+
+.fuse-paused .fuse-spark {
+  animation: none;
+  background: var(--color-silver);
+}
+
+/* Confetti is a BACKDROP layer of the stage: it falls behind the result
+   ticket and behind the countdown text, never over any text. */
+.confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -28px;
+  left: var(--x);
+  width: 12px;
+  height: 18px;
+  border: 2px solid var(--color-ink);
+  background: var(--c);
+  opacity: 0;
+  animation: confetti-fall var(--d) cubic-bezier(0.3, 0.55, 0.6, 1) var(--delay) 1 forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), 108vh, 0) rotate(var(--spin));
+  }
+}
+
+} /* end of @layer components */
+
+/* ==========================================================================
+   Motion rules (unlayered on purpose: they must win)
+   ========================================================================== */
+
+/* main.jsx sets data-tab-hidden on <html> while the tab is hidden. */
+[data-tab-hidden] *,
+[data-tab-hidden] *::before,
+[data-tab-hidden] *::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bulb::after,
+  .arcade-sequence .arcade-btn,
+  .arcade-sequence .arcade-btn-lit,
+  .ticket-print,
+  .fuse-spark,
+  .lb-intro .lb-enter {
+    animation: none !important;
+  }
+
+  /* Everything lit and still. */
+  .arcade-sequence .arcade-btn-lit {
+    opacity: 1;
+  }
+
+  .confetti {
+    display: none;
+  }
+
+  .fuse-rope {
+    transition: none;
+  }
 }

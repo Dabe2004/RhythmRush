@@ -1,8 +1,7 @@
 // frontend/src/components/ResultCard.jsx
-// The big "your result" block, shared by the kiosk screen (/result) and the
-// single-game screen (/result/:sessionId).
-//
-// Sized to be readable from about 2 metres away on a TV or monitor.
+// The result "prize ticket", shared by the kiosk screen (/result) and the
+// single-game screen (/result/:sessionId). It slides in like a ticket coming
+// out of the machine. Sized to be readable from about 2 metres on a TV.
 // Everything is rendered as React text, never as HTML.
 
 import { useEffect, useState } from "react"
@@ -11,11 +10,12 @@ import { getLeaderboard } from "../api"
 import {
   animalArticle,
   findRank,
-  formatScore,
   levelReached,
   outcomeTitle,
 } from "../format"
-import { animalEmoji } from "../theme"
+import AnimalIcon from "./animals/AnimalIcon"
+import RankBadge from "./RankBadge"
+import ScoreCounter from "./ScoreCounter"
 import SkillBadge from "./SkillBadge"
 
 // Rank of this game in the top 100.
@@ -45,49 +45,61 @@ function useRank(sessionId) {
   return rank.id === sessionId ? rank : { status: "loading", value: null }
 }
 
-function RankLine({ rank }) {
+function RankBlock({ rank }) {
   // If the leaderboard request failed, the rank is simply not shown.
   if (rank.status === "error") return null
 
   if (rank.status === "loading") {
-    return <p className="text-3xl font-bold text-slate-500 sm:text-4xl">Rank ...</p>
+    return <p className="font-sign text-2xl text-muted">Rank ...</p>
   }
 
   if (rank.value === null) {
     return (
-      <p className="text-3xl font-bold text-slate-300 sm:text-4xl">
-        Outside the top 100
-      </p>
+      <p className="sign rotate-2 bg-cream px-4 py-2 text-xl sm:text-2xl">Outside the top 100</p>
     )
   }
 
+  // A ribbon only for the podium; otherwise the number alone (a small stub
+  // next to a huge "Rank #6" just repeated the number).
+  const podium = rank.value <= 3
+
   return (
-    <p className="text-4xl font-black text-indigo-200 sm:text-5xl">Rank #{rank.value}</p>
+    <div className="flex items-center gap-3">
+      {podium ? <RankBadge rank={rank.value} size={76} /> : null}
+      <p className="font-sign text-3xl sm:text-5xl">Rank #{rank.value}</p>
+    </div>
   )
 }
 
-function AnimalBlock({ prediction }) {
-  if (!prediction || !prediction.animal) {
-    return (
-      <div className="rounded-2xl border border-slate-700 bg-slate-900/60 px-6 py-5 text-center">
-        <p className="text-2xl text-slate-400">Fun result not available for this game</p>
-      </div>
-    )
-  }
-
-  const { animal, animal_iq: iq } = prediction
+function PrizeBlock({ prediction }) {
+  const hasPrize = Boolean(prediction?.animal)
 
   return (
-    <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-6 py-5 text-center">
-      <p className="text-3xl font-bold text-amber-100 sm:text-4xl">
-        You played like {animalArticle(animal)}{" "}
-        <span aria-hidden="true" className="text-5xl align-middle sm:text-6xl">
-          {animalEmoji(animal)}
-        </span>{" "}
-        {animal}
-        {typeof iq === "number" ? `, IQ ${iq}` : ""}!
-      </p>
-      <p className="mt-2 text-lg text-amber-200/70">Just for fun, not a real IQ test.</p>
+    <div className="relative rotate-1 rounded-[6px] border-[3px] border-ink bg-tag px-5 pb-5 pt-4 shadow-hard sm:px-7">
+      <p className="font-sign text-base">Your prize</p>
+      {hasPrize ? (
+        <>
+          <div className="mt-2 flex items-center gap-4 sm:gap-6">
+            <AnimalIcon animal={prediction.animal} size={112} className="shrink-0" />
+            <div>
+              <p className="text-[clamp(1.6rem,2.6vw,2.5rem)] font-extrabold leading-tight">
+                You played like {animalArticle(prediction.animal)} {prediction.animal}!
+              </p>
+              {typeof prediction.animal_iq === "number" ? (
+                <p className="mt-1 font-sign text-[clamp(1.75rem,3vw,3rem)]">
+                  IQ {prediction.animal_iq}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <p className="mt-3 text-lg font-extrabold">Just for fun, not a real IQ test.</p>
+        </>
+      ) : (
+        <div className="mt-2 flex items-center gap-4">
+          <AnimalIcon animal={null} size={72} />
+          <p className="text-2xl font-extrabold">Fun result not available for this game</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -96,7 +108,7 @@ function AnimalBlock({ prediction }) {
  * @param {object} props
  * @param {object} props.detail    GET /api/game-sessions/:id response
  * @param {string|null} props.nickname  nickname to show (may come from a save)
- * @param {import("react").ReactNode} [props.children] nickname form, buttons...
+ * @param {import("react").ReactNode} [props.children] the guest book form
  */
 export default function ResultCard({ detail, nickname, children }) {
   const session = detail.session
@@ -105,47 +117,58 @@ export default function ResultCard({ detail, nickname, children }) {
   const won = session.outcome === "win"
 
   return (
-    <article className="mx-auto w-full max-w-4xl space-y-6 text-center">
-      <h1
-        className={`text-6xl font-black tracking-tight sm:text-8xl ${
-          won
-            ? "bg-gradient-to-r from-yellow-200 via-amber-300 to-orange-400 bg-clip-text text-transparent"
-            : "text-rose-300"
-        }`}
-      >
-        {outcomeTitle(session.outcome)}
-      </h1>
+    <article className="ticket ticket-notched ticket-print w-full px-6 py-8 shadow-hard-lg sm:px-10 lg:px-12 lg:py-10">
+      {/* The win confetti is drawn by the stage behind this ticket
+          (Result.jsx), so it never covers the text. */}
 
-      {nickname ? (
-        <p className="text-3xl font-bold text-white sm:text-4xl">{nickname}</p>
-      ) : null}
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] xl:gap-0">
+        <div className="xl:pr-10">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-5">
+            <h1
+              className={`sign -rotate-2 px-5 py-2 text-[clamp(2.5rem,6vw,5.25rem)] ${
+                won ? "bg-paint-yellow text-ink" : "bg-tent text-cream"
+              }`}
+            >
+              {outcomeTitle(session.outcome)}
+            </h1>
+            <RankBlock rank={rank} />
+          </div>
 
-      <div>
-        <p className="text-7xl font-black tabular-nums text-amber-300 sm:text-9xl">
-          {formatScore(session.final_score)}
-        </p>
-        <p className="mt-1 text-xl font-semibold uppercase tracking-[0.3em] text-slate-400">
-          points
-        </p>
-      </div>
+          {nickname ? (
+            <p className="mt-6 truncate text-3xl font-extrabold sm:text-4xl">{nickname}</p>
+          ) : null}
 
-      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-        {level !== null ? (
-          <p className="text-4xl font-bold text-white sm:text-5xl">Level {level} reached</p>
-        ) : null}
-        <RankLine rank={rank} />
-      </div>
+          <div className="mt-6">
+            <ScoreCounter
+              value={session.final_score}
+              tone="dark"
+              className="text-[clamp(2.75rem,6.5vw,6.5rem)]"
+            />
+            <p className="mt-2 text-base font-extrabold uppercase tracking-[0.3em] text-muted">
+              points
+            </p>
+          </div>
 
-      {detail.prediction?.skill_rank ? (
-        <div className="flex items-center justify-center gap-4">
-          <span className="text-2xl text-slate-400">Skill</span>
-          <SkillBadge value={detail.prediction.skill_rank} size="lg" />
+          <div className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-6">
+            {level !== null ? (
+              <p className="sign -rotate-1 bg-cream px-4 py-2 text-2xl sm:text-3xl">
+                Level {level} reached
+              </p>
+            ) : null}
+            {detail.prediction?.skill_rank ? (
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-extrabold text-muted">Skill</span>
+                <SkillBadge value={detail.prediction.skill_rank} size="lg" />
+              </div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
 
-      <AnimalBlock prediction={detail.prediction} />
-
-      {children}
+        <div className="border-t-[3px] border-dashed border-ink pt-8 xl:border-l-[3px] xl:border-t-0 xl:pl-10 xl:pt-0">
+          <PrizeBlock prediction={detail.prediction} />
+          {children}
+        </div>
+      </div>
     </article>
   )
 }

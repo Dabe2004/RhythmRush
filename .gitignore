@@ -29,6 +29,9 @@ coverage/
 .env.*
 !.env.example
 
+# Design review screenshots (~60 MB of PNGs, local only; see docs/DESIGN.md)
+docs/screenshots/
+
 # Firmware secrets (Wi-Fi password, device API key); config.h.example is committed
 firmware/**/config.h
 *.pem
