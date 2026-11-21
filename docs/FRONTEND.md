@@ -88,7 +88,7 @@ link of the current page is highlighted. The admin page is never linked.
 | 0 entries | the closed-booth empty state ("Step right up! No games yet. Press Start on the device!") |
 
 - **Podium = every entry ranked 1-3** (`splitPodium`). Rank 1: the biggest
-  ticket, a painted "Champion" sign, 72 px gold ribbon, 96 px animal, big
+  ticket, a painted "First Place" sign, 72 px gold ribbon, 96 px animal, big
   counter. Ranks 2-3: smaller tickets side by side under it (stacked on
   phones), 72 px animal.
 - **List = ranks 4-10**: slim tickets, one line when the list is at least

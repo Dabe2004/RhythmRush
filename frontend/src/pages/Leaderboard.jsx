@@ -2,7 +2,7 @@
 // Public Top 10, refreshed every 10 seconds.
 //
 // Layout (see docs/FRONTEND.md):
-//   - ranks 1-3: the WINNERS PODIUM (rank 1 = the big "Champion" ticket,
+//   - ranks 1-3: the WINNERS PODIUM (rank 1 = the big "First Place" ticket,
 //     ranks 2 and 3 side by side under it)
 //   - ranks 4-10: a COMPACT LIST of slim ticket rows
 //   - from 1024 px: podium left (about 5/12), list right (about 7/12)
@@ -74,7 +74,7 @@ function ChampionCard({ entry, index }) {
         className="ticket ticket-notched block -rotate-[0.6deg] px-5 pb-4 pt-5 shadow-hard-lg transition-transform hover:-translate-y-1 sm:px-6"
       >
         <span className="sign absolute -top-4 left-5 -rotate-2 bg-paint-yellow px-3 py-0.5 text-sm text-ink">
-          Champion
+          First Place
         </span>
 
         <div className="flex items-center gap-4">

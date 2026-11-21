@@ -307,7 +307,7 @@ top 5 and the result page's top-100 rank lookup are unchanged).
 - **From 1024 px:** two panes, podium left (`5fr`), list right (`7fr`),
   together capped at **1200 px** so tickets never run edge to edge.
 - **Below 1024 px:** one column, podium first.
-- **Podium:** rank 1 is the biggest ticket with a painted **"Champion"** sign,
+- **Podium:** rank 1 is the biggest ticket with a painted **"First Place"** sign,
   a 72 px ribbon, the 96 px animal and a 3xl score counter; ranks 2 and 3 are
   smaller tickets **side by side under it** (48 px ribbon, 72 px animal, xl
   counter), stacked on phones. Tilts stay within -0.6deg to +0.6deg.
