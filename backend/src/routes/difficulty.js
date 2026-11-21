@@ -32,22 +32,7 @@ function formatIssues(error) {
   }));
 }
 
-// The ESP32 asks for difficulty between levels, so this request is a good
-// "the device is alive" signal for the admin page (online badge). A failure
-// here must never block gameplay, so it is only logged.
-function markDeviceSeen(deviceId) {
-  try {
-    db.prepare("UPDATE devices SET last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ?").run(
-      deviceId
-    );
-  } catch (err) {
-    console.error(`Could not update last_seen_at for ${deviceId}: ${err.message}`);
-  }
-}
-
 router.post("/next", requireDeviceApiKey(db), (req, res, next) => {
-  markDeviceSeen(req.device.device_id);
-
   const parsed = bodySchema.safeParse(req.body);
 
   if (!parsed.success) {

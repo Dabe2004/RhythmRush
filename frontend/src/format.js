@@ -2,6 +2,8 @@
 // Small display helpers shared by the pages. Pure functions, unit tested in
 // format.test.js.
 
+import { visitorText } from "./content/visitorText"
+
 // 12442 -> "12,442". Anything that is not a number -> "-".
 export function formatScore(score) {
   return typeof score === "number" && Number.isFinite(score)
@@ -11,7 +13,7 @@ export function formatScore(score) {
 
 // Big headline on the result screen.
 export function outcomeTitle(outcome) {
-  return outcome === "win" ? "You Win!" : "Game Over"
+  return outcome === "win" ? visitorText.outcome.win : visitorText.outcome.over
 }
 
 // The level the player got to, i.e. the level of the LAST attempt.
@@ -58,14 +60,21 @@ export function formatSeconds(ms) {
   return `${(ms / 1000).toFixed(2)} s`
 }
 
-// 90 -> "1 min 30 s".
+// 90 -> "1 minute 30 seconds" (visitors read whole words, never "min" or "s").
+const unit = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`
 export function formatDuration(seconds) {
   if (!isNumber(seconds)) return "-"
-  if (seconds < 60) return `${Math.round(seconds)} s`
+  if (seconds < 60) return unit(Math.round(seconds), "second")
 
   const minutes = Math.floor(seconds / 60)
   const rest = Math.round(seconds - minutes * 60)
-  return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`
+  return rest === 0 ? unit(minutes, "minute") : `${unit(minutes, "minute")} ${unit(rest, "second")}`
+}
+
+// The booth is in the Philippines: Manila time, 12-hour clock ("8:27:05 PM").
+const MANILA = { timeZone: "Asia/Manila", hour12: true }
+export function formatClock(date) {
+  return date.toLocaleTimeString("en-PH", { ...MANILA, hour: "numeric", minute: "2-digit", second: "2-digit" })
 }
 
 // SQLite CURRENT_TIMESTAMP text ("2026-11-21 09:30:45") is UTC without a
@@ -78,39 +87,17 @@ export function parseServerTime(text) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-// Local date and time for tables, e.g. "21 Nov 2026, 17:30:45".
+// Date and Manila time for the game page, e.g. "Nov 21, 2026, 8:27:05 PM".
 export function formatDateTime(text) {
   const date = parseServerTime(text)
   if (!date) return "-"
-  return date.toLocaleString("en-GB", {
+  return date.toLocaleString("en-PH", {
+    ...MANILA,
     day: "numeric",
     month: "short",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false,
   })
-}
-
-// "5 min ago". `now` is a parameter so tests do not depend on the clock.
-export function formatRelative(text, now = new Date()) {
-  const date = parseServerTime(text)
-  if (!date) return "never"
-
-  const seconds = Math.max(0, (now.getTime() - date.getTime()) / 1000)
-  if (seconds < 60) return "just now"
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`
-
-  const days = Math.floor(seconds / 86400)
-  return days === 1 ? "1 day ago" : `${days} days ago`
-}
-
-// 339504 -> "331.5 KB".
-export function formatBytes(bytes) {
-  if (!isNumber(bytes)) return "-"
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }

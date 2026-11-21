@@ -24,6 +24,10 @@ The exact JSON it builds for the example game was checked against
 a resend, 401 with a wrong key). It has **not yet run on a real board**: see
 "What you must check on the hardware" below.
 
+Live events (below) were added later and **compiled** with the same tools,
+both with `RR_LIVE_EVENTS 1` (990,908 bytes flash, 48,544 bytes RAM) and
+`0` (988,688 / 48,536): 0 warnings. **Compiled but not run on a board.**
+
 ## Setup in the Arduino IDE (no PlatformIO)
 
 1. Install **Arduino IDE 2.x** from arduino.cc.
@@ -143,6 +147,90 @@ last queued game.
 - **Serial log.** Every event is printed with the prefix `[rr]`, including
   hints: 401 = API key mismatch, 403 = wrong DEVICE_ID, 400 = JSON bug.
 
+## Live events (web mirror on `/live`)
+
+Optional (`#define RR_LIVE_EVENTS 1` in `config.h`, on by default): while a
+game runs, the sketch sends small live events so the web page `/live` can
+mirror the panel. The full contract is `docs/LIVE_PROTOCOL.md`; it is
+**PROPOSED** and needs your agreement.
+
+The game must never wait for the network:
+
+- every `live...()` function only **enqueues** into a bounded FreeRTOS queue
+  (32 items, O(1), never blocks);
+- **one** separate task (core 0, low priority) sends batches of up to 20
+  events about every 250 ms with an 800 ms timeout; `control_pressed`,
+  `countdown_started`, `playback_started` and `game_finished` are sent at
+  once;
+- queue full: the **oldest** event is dropped; a failed batch is **never
+  retried**; Wi-Fi down: nothing is sent and the queue is emptied.
+
+Calls from the game code (all non-blocking):
+
+```cpp
+liveNewGame();                       // new game_id, BEFORE the START press event
+liveControlPressed("start");         // or "reset"
+liveCountdown(3, 1000);              // also again when RESET restarts it
+liveGameStarted(3, 1);               // after the countdown (GO!)
+livePlayback(level, attempt, seq, len, 500, 200);   // ONE call per playback
+liveInputStarted(level, deadlineMs, len);
+livePress(index, button, expected, ok);
+liveAttemptResult(level, RR_PASS, lives, score, points, bonus);
+String id = rrReserveSessionId();    // game over / win
+liveGameFinished(win, score, highestLevel, id);
+rrQueueSession(session);             // uploads with the SAME id
+liveReset();                         // RESET abandoned or restarted the game
+```
+
+An abandoned game (RESET mid-game) is **not** uploaded: do not call
+`rrQueueSession()` for it. After `liveReset()` call `liveNewGame()` for the
+next game (a RESET during the countdown keeps the same game: just send
+`liveCountdown()` again). Serial test: `l` sends START + countdown, so `/live`
+shows 3-2-1.
+
+### Proposed control logic (for the game code, needs agreement)
+
+- **START** begins a game from idle or after a finished game; ignored during a
+  game or the countdown.
+- **RESET** (debounced) = restart / play again:
+  - during a game (watch or input phase): only a **~1 s hold** counts
+    (`RESET_HOLD_MS`); it abandons the game and starts a fresh one with the
+    countdown. A short tap mid-game does **nothing**;
+  - idle, after game over or a win: a short **tap** starts a fresh game;
+  - during the countdown: a tap restarts the countdown from 3 (never two
+    countdowns at once).
+  - After RESET show "RESTARTING..." (or "PLAY AGAIN!" after a finished game)
+    for `RESTART_MS` = 500 ms, then the countdown.
+- **Countdown** 3-2-1 (`COUNTDOWN_STEP_MS` = 1 s each) + "GO!" (600 ms) before
+  **every new game** only. The six game buttons are ignored during it.
+- **No countdown** for a retry after a failed attempt ("SAME SEQUENCE AGAIN",
+  1 s) or for the next level after a pass ("NICE!", 1 s). Optional 300-400 ms
+  "get ready" pause before every playback.
+- The reaction timer starts when playback ends, so the countdown never
+  changes scoring.
+
+All these times are in `ml/game_rules.py` (exported to `docs/game_rules.json`).
+
+### Live events: hardware checklist
+
+- [ ] **Timing unchanged.** Measure the reaction timing (e.g. log
+      `millis()` at playback end and at each press) for 5 games with
+      `RR_LIVE_EVENTS 1` and 5 with `0`: the numbers must match.
+- [ ] **Unplug Wi-Fi mid-game.** The game continues without a stutter; the
+      web shows "Reconnecting..." or goes idle after 90 s; the finished game
+      is still uploaded later (offline queue).
+- [ ] **Power-cycle** mid-game and after a game: no crash, new game ids keep
+      counting up (`RR01-L-...`).
+- [ ] **10 games in a row** with `/live` open: every game is mirrored, every
+      upload arrives once, the result screen appears after each game.
+- [ ] **RESET held ~1 s mid-game** restarts with a countdown (the abandoned
+      game is NOT on the leaderboard). **A short tap mid-game does nothing.**
+- [ ] **RESET during the countdown** restarts it at 3 (web too).
+- [ ] **RESET after game over** starts a new game ("PLAY AGAIN!", countdown).
+- [ ] **Film the panel and the web side by side** in slow motion and count
+      the frames between a lit LED ring and the lit button on screen. Write
+      the delay into `docs/NOTES.md` (it is unmeasured until then).
+
 ## HTTPS note
 
 The sketch uses **plain HTTP** (`WiFiClient`). That is acceptable **only on
@@ -159,12 +247,12 @@ tick:
 - [ ] **Boot log.** `[rr] Queue: 0 game(s) waiting from before`, then
       `Wi-Fi connected, IP ...`. If LittleFS fails, check the partition scheme.
 - [ ] **Upload.** `f` → `Queued RR01-000001`, then `Uploaded ... -> HTTP 201`;
-      the game appears on the laptop's `/result` screen and admin page.
+      the game appears on the laptop's `/result` screen and in `moderate.js list`.
 - [ ] **Ids after reboot.** Press `f`, reset the board, press `f` again: the
       second id is higher (`RR01-000002`), never a repeat.
 - [ ] **Offline queue.** Stop the server (or unplug the router), press `f`
       three times: the uploads fail and the files stay (`q`). Start the
-      server again: all three arrive **once each** (check the admin page).
+      server again: all three arrive **once each** (check `moderate.js list`).
 - [ ] **Reboot while offline.** Queue a game offline, reset the board, bring
       the server back: the game is still uploaded.
 - [ ] **Wrong key.** Change `API_KEY`, upload: `HTTP 401 (kept in the

@@ -1,4 +1,5 @@
 // backend/src/routes/sessions.js
+// GET   /api/game-sessions/recent         - newest games, public
 // GET   /api/game-sessions/:id            - full session, public
 // PATCH /api/game-sessions/:id/nickname   - set the nickname once, public
 //
@@ -10,11 +11,11 @@ const rateLimit = require("express-rate-limit");
 const { z } = require("zod");
 
 const db = require("../db");
-const { getLatestSession, getSessionDetail, setNickname } = require("../services/queries");
+const { getLatestSession, getRecentSessions, getSessionDetail, setNickname } = require("../services/queries");
 const { nicknameField } = require("../services/nickname");
 
-// Nickname rules: trimmed, 1-16 chars, letters/numbers/space/dash/underscore.
-// The rule itself lives in services/nickname.js (shared with the admin route).
+// Nickname rules: trimmed, 1-16 chars, letters/numbers/space/dash/underscore,
+// no blocklisted word. The rule itself lives in services/nickname.js.
 const nicknameSchema = z.object({
   nickname: nicknameField,
 });
@@ -47,6 +48,21 @@ function createSessionsRouter(options = {}) {
   router.get("/latest", (req, res, next) => {
     try {
       return res.status(200).json({ session: getLatestSession(db) });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // GET /api/game-sessions/recent?limit=5  (the "Last results" list on /live)
+  // -------------------------------------------------------------------------
+  router.get("/recent", (req, res, next) => {
+    const limit = Number(req.query.limit ?? 5);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
+      return res.status(400).json({ error: "invalid_limit" });
+    }
+    try {
+      return res.status(200).json({ sessions: getRecentSessions(db, limit) });
     } catch (err) {
       return next(err);
     }

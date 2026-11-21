@@ -1,5 +1,5 @@
 // frontend/src/components/RankBadge.jsx
-// Rank 1-3: a flat painted prize ribbon (gold, silver, bronze) with the number.
+// Place 1-3: a flat painted ribbon (gold, silver, bronze) with the number.
 // Every other rank: a small numbered ticket stub. The number is always there,
 // so the colour is never the only signal. Equal scores share a rank.
 
@@ -11,17 +11,19 @@ const PETALS = Array.from({ length: 12 }, (_, index) => {
   return { cx: 32 + Math.cos(angle) * 17, cy: 26 + Math.sin(angle) * 17 }
 })
 
+import { visitorText } from "../content/visitorText"
+
 export default function RankBadge({ rank, size = 56 }) {
   const color = ribbonColor(rank)
 
   if (!color) {
     return (
       <span
-        aria-label={`Rank ${rank}`}
+        aria-label={visitorText.leaderboard.place(rank)}
         className="inline-flex min-w-[3.25rem] flex-col items-center rounded-[4px] border-2 border-ink bg-cream px-2 py-1 leading-none shadow-hard-sm"
       >
         <span aria-hidden="true" className="text-[0.65rem] font-extrabold uppercase tracking-wider text-muted">
-          No.
+          {visitorText.leaderboard.placeShort}
         </span>
         <span aria-hidden="true" className="font-sign text-xl">
           {rank}
@@ -36,7 +38,7 @@ export default function RankBadge({ rank, size = 56 }) {
       width={size}
       height={(size * 72) / 64}
       role="img"
-      aria-label={`Rank ${rank}, ${ribbonName(rank)} ribbon`}
+      aria-label={visitorText.leaderboard.ribbon(rank, ribbonName(rank))}
     >
       <g stroke="#1d1a2f" strokeWidth="3" strokeLinejoin="round">
         <path d="M20 38L12 68l10-6 6 9 8-31z" fill={color} />

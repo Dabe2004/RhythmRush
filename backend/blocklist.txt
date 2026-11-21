@@ -1,0 +1,57 @@
+# Nicknames containing one of these words are refused (HTTP 400 invalid_nickname).
+# One lowercase word per line; lines starting with # are ignored.
+# Words of 5+ letters match anywhere in the nickname; 4 letters or fewer only
+# as a whole word. Add longer forms ("fuckboy") when a short word is not enough.
+# Add words with: node tools/moderate.js block-add <word>
+# English
+fuck
+fucker
+fucking
+fuckyou
+shit
+bullshit
+bitch
+cunt
+dick
+cock
+pussy
+ass
+asshole
+bastard
+slut
+whore
+nigger
+nigga
+faggot
+fag
+retard
+porn
+penis
+dildo
+wanker
+twat
+rape
+rapist
+# Filipino
+putangina
+tangina
+puta
+gago
+bobo
+tanga
+ulol
+ulul
+tarantado
+kupal
+pakyu
+pakshet
+leche
+kantot
+jakol
+titi
+tite
+puke
+burat
+betlog
+hindot
+punyeta

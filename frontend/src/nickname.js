@@ -5,20 +5,24 @@
 // Keeping it in a pure function makes it easy to test and keeps the React
 // component focused on the form.
 
+import { visitorText } from "./content/visitorText"
+
+const T = visitorText.nickname
+
 const ALLOWED = /^[A-Za-z0-9 _-]+$/
 
 export function validateNickname(text) {
   const value = typeof text === "string" ? text.trim() : ""
 
   if (value.length === 0) {
-    return { ok: false, value, message: "Enter a nickname." }
+    return { ok: false, value, message: T.empty }
   }
 
   if (value.length > 16) {
     return {
       ok: false,
       value,
-      message: "Use 16 characters or fewer.",
+      message: T.tooLong,
     }
   }
 
@@ -26,7 +30,7 @@ export function validateNickname(text) {
     return {
       ok: false,
       value,
-      message: "Use only letters, numbers, spaces, - or _.",
+      message: T.badCharacters,
     }
   }
 
@@ -36,10 +40,10 @@ export function validateNickname(text) {
 // What the player sees when PATCH /api/game-sessions/:id/nickname fails.
 // status is the HTTP status from api.js (0 = network error or timeout).
 export function nicknameErrorMessage(status) {
-  if (status === 409) return "This game already has a nickname."
+  if (status === 409) return T.taken
   if (status === 400) {
-    return "That nickname isn't allowed. Use letters, numbers, spaces, - or _."
+    return T.notAllowed
   }
-  if (status === 429) return "Too many tries. Wait a minute."
-  return "Could not save. Try again."
+  if (status === 429) return T.tooMany
+  return T.failed
 }

@@ -2,6 +2,8 @@
 // Pure helpers that turn API data into chart rows (tested in
 // chartData.test.js). No React and no Recharts here.
 
+import { visitorText } from "./content/visitorText"
+
 // ---------------------------------------------------------------------------
 // Game rules mirror
 // ---------------------------------------------------------------------------
@@ -31,9 +33,9 @@ export function deadlineSeconds(level) {
 // only signal: every result also has its text label (legend, tooltip, table),
 // and timeouts are drawn hollow with a "Timeout" label.
 export const RESULT_STYLES = {
-  pass: { label: "Pass", color: "#199e70" },
-  wrong: { label: "Wrong", color: "#d95926" },
-  timeout: { label: "Timeout", color: "#3987e5" },
+  pass: { label: visitorText.chart.results.pass, color: "#199e70" },
+  wrong: { label: visitorText.chart.results.wrong, color: "#d95926" },
+  timeout: { label: visitorText.chart.results.timeout, color: "#3987e5" },
 }
 
 // One chart/table row per attempt.
@@ -64,27 +66,4 @@ export function toAttemptRows(attempts) {
       }
     })
     .sort((a, b) => a.attemptNo - b.attemptNo)
-}
-
-// ---------------------------------------------------------------------------
-// Admin charts
-// ---------------------------------------------------------------------------
-function compact(points) {
-  return points === 0 ? "0" : `${points / 1000}K`
-}
-
-// /api/stats/summary score_histogram -> [{label:"1K", range:"1,000-1,999", count}]
-export function histogramRows(bins) {
-  if (!Array.isArray(bins)) return []
-
-  return bins.map((bin) => ({
-    label: compact(bin.min),
-    range: `${bin.min.toLocaleString("en-US")}-${bin.max.toLocaleString("en-US")}`,
-    count: bin.count,
-  }))
-}
-
-// {"Pro":4} + ["Beginner","Intermediate","Pro"] -> rows in that fixed order.
-export function countsToRows(counts, order) {
-  return order.map((name) => ({ name, count: Number(counts?.[name]) || 0 }))
 }

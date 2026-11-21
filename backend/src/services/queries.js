@@ -40,20 +40,24 @@ function getLeaderboard(db, limit) {
 }
 
 // ---------------------------------------------------------------------------
-// Latest finished game
+// Latest finished games (newest first)
 // ---------------------------------------------------------------------------
 // rowid breaks ties when two rows share the same received_at (SQLite timestamps
 // have one-second precision), so the most recently inserted row wins.
-function getLatestSession(db) {
+function getRecentSessions(db, limit) {
   return db
     .prepare(`
       SELECT session_id, nickname, final_score, highest_level_completed,
              outcome, received_at
       FROM game_sessions
       ORDER BY received_at DESC, rowid DESC
-      LIMIT 1
+      LIMIT ?
     `)
-    .get() ?? null;
+    .all(limit);
+}
+
+function getLatestSession(db) {
+  return getRecentSessions(db, 1)[0] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +133,8 @@ function setNickname(db, sessionId, nickname) {
       return { status: "not_found" };
     }
 
-    // A nickname can only be set once; later edits belong to the admin.
+    // A nickname can only be set once; only tools/moderate.js (on the laptop)
+    // can clear it.
     if (row.nickname !== null) {
       return { status: "already_set", nickname: row.nickname };
     }
@@ -246,6 +251,7 @@ function getStatsSummary(db) {
 module.exports = {
   getLeaderboard,
   getLatestSession,
+  getRecentSessions,
   getSessionDetail,
   setNickname,
   getStatsSummary,

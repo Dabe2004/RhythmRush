@@ -5,9 +5,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   RESULT_STYLES,
-  countsToRows,
   deadlineSeconds,
-  histogramRows,
   sequenceLength,
   toAttemptRows,
 } from "./chartData"
@@ -91,41 +89,5 @@ describe("toAttemptRows", () => {
   it("returns an empty list for missing input", () => {
     expect(toAttemptRows(null)).toEqual([])
     expect(toAttemptRows(undefined)).toEqual([])
-  })
-})
-
-describe("histogramRows", () => {
-  it("labels bins compactly and keeps the counts", () => {
-    const rows = histogramRows([
-      { min: 0, max: 999, count: 2 },
-      { min: 1000, max: 1999, count: 0 },
-      { min: 12000, max: 12999, count: 5 },
-    ])
-
-    expect(rows).toEqual([
-      { label: "0", range: "0-999", count: 2 },
-      { label: "1K", range: "1,000-1,999", count: 0 },
-      { label: "12K", range: "12,000-12,999", count: 5 },
-    ])
-  })
-
-  it("handles a missing histogram", () => {
-    expect(histogramRows(undefined)).toEqual([])
-  })
-})
-
-describe("countsToRows", () => {
-  it("keeps the given order and fills missing labels with 0", () => {
-    const rows = countsToRows({ Pro: 4, Beginner: 1 }, ["Beginner", "Intermediate", "Pro"])
-
-    expect(rows).toEqual([
-      { name: "Beginner", count: 1 },
-      { name: "Intermediate", count: 0 },
-      { name: "Pro", count: 4 },
-    ])
-  })
-
-  it("handles missing counts", () => {
-    expect(countsToRows(null, ["A"])).toEqual([{ name: "A", count: 0 }])
   })
 })

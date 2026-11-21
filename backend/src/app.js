@@ -15,14 +15,12 @@ const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 
-const db = require("./db");
-const { artifactsDir } = require("./services/ml");
 const gameSessionsRouter = require("./routes/gameSessions");
 const createSessionsRouter = require("./routes/sessions");
 const leaderboardRouter = require("./routes/leaderboard");
 const difficultyRouter = require("./routes/difficulty");
 const statsRouter = require("./routes/stats");
-const createAdminRouter = require("./routes/admin");
+const createLiveRouter = require("./routes/live");
 
 // Origins of the Vite dev server (npm run dev) and preview (npm run preview).
 // Used when ALLOWED_ORIGINS is empty. The website served by Express itself is
@@ -44,12 +42,6 @@ function parseAllowedOrigins(text) {
     .filter(Boolean);
 
   return list.length > 0 ? list : null;
-}
-
-// Admin answers must never be stored by a browser or a proxy.
-function noStore(req, res, next) {
-  res.set("Cache-Control", "no-store");
-  next();
 }
 
 function isApiPath(urlPath) {
@@ -75,7 +67,7 @@ function corsOptionsFor(allowedOrigins) {
 
 // Serve the built React app (frontend/dist) when it exists:
 //   /assets/*  hashed files, cached for a year
-//   /, /result, /session/:id, /admin ...  -> index.html (the React router
+//   /, /live, /result, /session/:id ...  -> index.html (the React router
 //   decides what to show). /api/* and missing files stay JSON 404s.
 // Returns false when there is nothing to serve.
 function serveFrontend(app, staticDir) {
@@ -112,11 +104,8 @@ function serveFrontend(app, staticDir) {
  *
  * @param {object} [options]
  * @param {{windowMs?: number, limit?: number}} [options.nicknameRateLimit]
- * @param {string} [options.adminPassword]  default: process.env.ADMIN_PASSWORD
- * @param {string} [options.nodeEnv]        default: process.env.NODE_ENV
- * @param {{windowMs?: number, limit?: number}} [options.adminRateLimit]
- *        wrong admin passwords allowed per IP and window (default 10 / 15 min)
- * @param {string} [options.artifactsDir]   default: backend/artifacts
+ * @param {object} [options.live]  live mirror options (routes/live.js): now,
+ *        abandonMs, maxClients, heartbeatMs, rateLimit
  * @param {string} [options.staticDir]      built frontend to serve (server.js
  *        passes frontend/dist); none = API only
  * @param {string[]} [options.allowedOrigins] default: ALLOWED_ORIGINS from the
@@ -143,8 +132,10 @@ function createApp(options = {}) {
   );
   app.use(cors(corsOptionsFor(allowedOrigins)));
 
-  // Before the JSON parser, so even a broken admin body gets no-store.
-  app.use("/api/admin", noStore);
+  // Live mirror: before the JSON parser, because it has its own 8 kb limit.
+  const liveRouter = createLiveRouter(options.live);
+  app.locals.live = liveRouter;
+  app.use("/api/live", liveRouter);
 
   // JSON bodies only, capped at 100kb. A game session is a few hundred bytes.
   app.use(express.json({ limit: "100kb" }));
@@ -164,17 +155,6 @@ function createApp(options = {}) {
   app.use("/api/leaderboard", leaderboardRouter);
   app.use("/api/difficulty", difficultyRouter);
   app.use("/api/stats", statsRouter);
-
-  app.use(
-    "/api/admin",
-    createAdminRouter({
-      db,
-      password: "adminPassword" in options ? options.adminPassword : process.env.ADMIN_PASSWORD,
-      nodeEnv: options.nodeEnv ?? process.env.NODE_ENV,
-      artifactsDir: options.artifactsDir ?? artifactsDir(),
-      rateLimit: options.adminRateLimit,
-    })
-  );
 
   // The website (production build), after the API so /api always wins.
   serveFrontend(app, options.staticDir);

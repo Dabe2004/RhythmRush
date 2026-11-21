@@ -31,9 +31,13 @@
 // Session ids are "<DEVICE_ID>-<counter>" and the counter is kept in flash.
 // A FULL flash erase resets it, and the server would then ignore new games as
 // duplicates of old ones. After a full erase, set this above the highest
-// counter already on the server (see the admin page), e.g. 5000.
+// counter already on the server (node tools/moderate.js list), e.g. 5000.
 #define SESSION_COUNTER_START 0
 
 // 1 = type single-letter test commands in the Serial Monitor (h = help).
 // Set to 0 in the final game firmware.
 #define RR_DEMO_SERIAL_COMMANDS 1
+
+// 1 = send live events for the web mirror (/live). Set 0 to measure that
+// reaction timing is the same with live events off.
+#define RR_LIVE_EVENTS 1

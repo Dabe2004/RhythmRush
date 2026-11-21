@@ -1,7 +1,7 @@
 import AnimalSvg from "./AnimalSvg"
 
-// Fallback for an unknown animal: a plain prize ticket.
-export default function PrizeTicket({ label = "Prize ticket", ...props }) {
+// Fallback when there is no animal: a plain blank ticket.
+export default function MysteryTicket({ label = "No animal yet", ...props }) {
   return (
     <AnimalSvg label={label} {...props}>
       <path d="M5 18h54v9a5 5 0 0 0 0 10v9H5v-9a5 5 0 0 0 0-10z" fill="#f1d49b" />

@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "fake": "node ../tools/fake_esp32.js",
     "fake:clear": "node ../tools/clear_fake.js",
+    "moderate": "node ../tools/moderate.js",
     "test": "vitest run"
   },
   "keywords": [],

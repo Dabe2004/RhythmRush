@@ -18,9 +18,11 @@ Rhythm Rush is a 6-button musical memory game. This document is the report for t
 - Phase I adds the **fake ESP32 uploader** (device SIM01) and a cleanup script, so the backend can be exercised without hardware.
 - Phase J1 adds the **React frontend** (Vite + Tailwind v4) with the public leaderboard; see `docs/FRONTEND.md`.
 - Phase J2 adds the **live result / kiosk screen** (`/result`, `/result/:sessionId`); see the Phase J2 section below.
-- Phase K adds the **admin API** (`/api/admin`), the **session detail page** with a chart, and the **admin dashboard** (`/admin`).
+- Phase K adds the **session detail page** with a chart (its back-office page was later removed, see "Admin removed").
 - Phase L makes **one `npm start` serve API + website**, hardens CORS/headers/seed, adds root scripts, `README.md` and `docs/DEMO.md`, and verifies everything with a fresh-clone test and an end-to-end run.
 - Phase M adds the **ESP32 network client** (`firmware/rhythm_rush_client`): Wi-Fi, offline queue, uploads, difficulty call. It compiles for the ESP32; it has not run on hardware yet.
+- Later: a visitor **"How to play" brochure** (`/how-to-play`, prints with a QR code) and plain visitor wording; the site opens on the live game. See "How to play brochure and visitor wording".
+- Later: the **admin side was removed** (one-day event; `tools/moderate.js` + a nickname blocklist instead) and the **live game mirror** was added (`/live`, live events over SSE, `tools/fake_live_game.js`); see "Admin removed" and "Live game mirror".
 - The ESP32 hardware/firmware is **not finished**, so there is no real gameplay data yet.
 - Python is used **only for offline training**. Production will have no Python. Express will read exported JSON from `/backend/artifacts`.
 - The later database is **SQLite** via the `better-sqlite3` package. It uses a local database file, not a database server.
@@ -429,7 +431,7 @@ An earlier attempt at J2 left `kioskState.js`, `nickname.js` and their tests, bu
 ### Decisions
 
 1. **Baseline flag.** The state has an explicit `hasBaseline`. The first `latest` answer always sets the baseline, **including `null`** (empty database). After that a `null` id is ignored. This differs from the literal spec ("null id ignored") only for the very first answer, and it is what makes the first game of the day appear. Unit tested.
-2. **Older games are never shown.** `latest` events also carry `received_at`. If an id is older than the baseline (the newest game was deleted on the admin page), it quietly becomes the new baseline instead of popping up as a "new" result. SQLite `YYYY-MM-DD HH:MM:SS` text compares correctly as a string.
+2. **Older games are never shown.** `latest` events also carry `received_at`. If an id is older than the baseline (the newest game was deleted with `tools/moderate.js`), it quietly becomes the new baseline instead of popping up as a "new" result. SQLite `YYYY-MM-DD HH:MM:SS` text compares correctly as a string.
 3. **"Level N reached"** is the level of the **last attempt** (`final_sequence_length - 2`), not `highest_level_completed`: a player who cleared level 1 and died on level 2 reached level 2. A game that failed level 1 three times shows "Level 1 reached". The leaderboard column keeps showing `highest_level_completed`.
 4. **Article.** The animal sentence uses "an" before Elephant and Orangutan ("You played like an 🐘 Elephant, IQ 74!"); the spec wrote "a" everywhere.
 5. **Pause rules.** Focusing or typing in the nickname box pauses; leaving the box, saving, or **15 seconds without a key press** resumes. Without the 15-second rule, a player who walks away with the box focused would freeze the kiosk on their result. `pause` is ignored on the idle screen; a new game always starts unpaused.
@@ -448,58 +450,38 @@ An earlier attempt at J2 left `kioskState.js`, `nickname.js` and their tests, bu
 
 1. **Offline-queue uploads appear as new results.** `received_at` is the server's receive time. When the ESP32 comes back online and sends queued games, the newest of them is shown as if it were just played.
 2. **Two games inside one poll interval show only the newest.** The kiosk polls every 2 seconds and asks only for the latest game; the other one is on the leaderboard but never gets its own result screen.
-3. **Session ids are guessable.** Ids look like `RR01-000127`, and the nickname route has no auth (by design, the kiosk has no key). Anyone on the network can set a nickname on any game that has none yet. The set-once rule, the rate limit, and the admin "Clear nickname" button (Phase K) limit the damage. Run the exhibition on a trusted network.
+3. **Session ids are guessable.** Ids look like `RR01-000127`, and the nickname route has no auth (by design, the kiosk has no key). Anyone on the network can set a nickname on any game that has none yet. The set-once rule, the blocklist, the rate limit, and `tools/moderate.js clear-nickname` limit the damage. Run the exhibition on a trusted network.
 4. **Several kiosk screens** each show the same result independently; that is fine, but whoever types first sets the nickname.
 5. **Clock.** The countdown is driven by `setInterval`, so it can drift by a fraction of a second; that is acceptable for a 30-second screen.
 6. **Git Bash and a lowercase drive letter.** When the current directory is `c:\...` (lowercase), vitest 5 loads itself twice and every frontend test file fails with `Cannot read properties of undefined (reading 'config')`. PowerShell and cmd always use `C:\...`, where the tests pass. If you see that error, `cd` into the folder with a capital `C:`.
 
-## Session detail and admin (Phase K)
+## Session detail (Phase K)
 
-Backend: an admin API under `/api/admin` (full reference with PowerShell examples in `docs/API.md`, "Admin API"). Frontend: `/session/:id` with a Recharts chart and `/admin` (details and a manual checklist in `docs/FRONTEND.md`).
-
-### Files
-
-| File | Purpose |
-|---|---|
-| `backend/src/routes/admin.js` | admin router: disabled check, rate limit, password, routes |
-| `backend/src/services/admin.js` | admin SQL (devices, counts, recent, deletes) and model-file metadata |
-| `backend/src/services/nickname.js` | the one nickname rule, shared by the public and admin routes |
-| `backend/src/services/auth.js` | + `adminPasswordMatches`, `adminConfigProblem`, `requireAdminPassword` |
-| `backend/tests/admin.test.js` | 46 tests for every admin route |
-| `frontend/src/pages/SessionDetail.jsx`, `Admin.jsx` | the two pages, lazy-loaded |
-| `frontend/src/components/Charts.jsx` | the Recharts charts |
-| `frontend/src/chartData.js`, `adminAuth.js` (+ tests) | pure helpers |
+Frontend: `/session/:id` with a Recharts chart (details and a manual checklist in `docs/FRONTEND.md`).
 
 ### Decisions
 
-1. **Password check.** `X-Admin-Password` and `ADMIN_PASSWORD` are both SHA-256 hashed, then compared with `crypto.timingSafeEqual`, so the comparison time does not depend on the password and buffers of different lengths never throw.
-2. **Unsafe configuration switches the admin API off** (`503 admin_disabled`): an empty `ADMIN_PASSWORD` in **any** environment, or `change-me` when `NODE_ENV=production`. In development `change-me` still works, and `server.js` prints a warning (never the password). The public API is unaffected.
-3. **Rate limit counts only wrong passwords.** `express-rate-limit` with `skipSuccessfulRequests` and "successful = not 401": 10 wrong passwords per IP per 15 minutes, then everything (even the right password) is `429` until the window ends. The dashboard's 15-second refreshes never count. Configurable with `createApp({adminRateLimit:{limit,windowMs}})`.
-4. **`Cache-Control: no-store`** is set by app-level middleware on `/api/admin` **before** the JSON parser, so even 400/401/429/503 answers carry it.
-5. **Login** is `POST /api/admin/login` with the password in the same header as every other admin call (no body).
-6. **Synthetic vs real.** Uploads never set `is_synthetic` (fake games come in through the normal upload route), so "synthetic" means `device_id = 'SIM01'` **or** `is_synthetic = 1`. Documented in the API.
-7. **Online = seen in the last 10 minutes** (`last_seen_at >= datetime('now','-10 minutes')`, both UTC). `POST /api/difficulty/next` now also updates `last_seen_at`, because the ESP32 calls it between levels; the upload already did. It is **not** done in the shared device-auth middleware, because an existing test requires that a **duplicate** upload leaves `last_seen_at` alone. A device that sits idle for 10 minutes shows as offline; there is no heartbeat endpoint.
-8. **Bulk delete protection is wider than asked.** The spec protected `RR01` (needs `confirm=RR01`). The rule implemented is "every device except `SIM01` needs `confirm=<same id>`", so a future `RR02` is protected too. A repeated `?device=` (array) is refused. The bulk delete also resets `last_seen_at`, the same as `tools/clear_fake.js`.
-9. **Admin nickname** uses the same zod rule as the public route (moved to `services/nickname.js`, no behaviour change for the public route); `null` clears it, after which the player can set a new one.
-10. **`/api/admin/models`** never returns the 2,000 reference rows, only their count and the tiers. The parsed summary is cached per file until its size or modification time changes, so the 15-second refresh does not re-parse the 340 kB `animal.json`. Missing or broken files are reported per model with `error`, and the request still answers 200.
-11. **Chart colours were validated, not guessed.** The first choice (green/red/amber status colours) failed the colour-blind check (deutan ΔE 4.1, minimum 6). The chart uses three palette slots that pass every check on the app's dark surfaces: pass `#199e70`, wrong `#d95926`, timeout `#3987e5`, plus text labels everywhere and a hollow style for timeouts.
-12. **Game rule mirror in the frontend.** AGENTS.md says the formulas live in `ml/game_rules.py` and must be imported, not copied. The browser cannot import Python, so `chartData.js` mirrors `sequence_length` and `deadline_seconds` (needed to draw a timeout at its time limit). The unit test pins the values printed by `game_rules.py` for all 15 levels, so a change in the Python rules makes the test fail.
-13. **Bundle size.** Session and admin pages are `React.lazy` chunks. Recharts lives in its own chunk (≈420 kB, 120 kB gzipped), so the main bundle grew only from 283 kB to 288 kB.
+1. **Chart colours were validated, not guessed.** The first choice (green/red/amber status colours) failed the colour-blind check (deutan ΔE 4.1, minimum 6). The chart uses three palette slots that pass every check on the app's dark surfaces: pass `#199e70`, wrong `#d95926`, timeout `#3987e5`, plus text labels everywhere and a hollow style for timeouts.
+2. **Game rule mirror in the frontend.** AGENTS.md says the formulas live in `ml/game_rules.py` and must be imported, not copied. The browser cannot import Python, so `chartData.js` mirrors `sequence_length` and `deadline_seconds` (needed to draw a timeout at its time limit). The unit test pins the values printed by `game_rules.py` for all 15 levels, so a change in the Python rules makes the test fail.
+3. **Bundle size.** The session page is a `React.lazy` chunk with Recharts inside (≈425 kB, 121 kB gzipped), so the main bundle stays small.
 
-### Verification (real runs)
+### Admin removed (one-day event)
 
-- Backend `npm test`: 8 files, **126 passed** (80 old, untouched, + 46 admin).
-- Frontend `npm test`: 5 files, **80 passed**; `npm run build` and `npm run lint` pass.
-- Headless Chrome against a throwaway database (backend with a test-only `ADMIN_PASSWORD` from the environment, Vite proxy): **37/37** checks, including row click → session page, 7 bars for 7 attempts, the timeout bar hollow and tallest with its label, hover tooltip, "Game not found", wrong password message, password only in sessionStorage, three admin charts, models with 2,000 reference rows, cancelled confirm deletes nothing, Clear nickname and Delete reflected in SQLite, "Remove simulated games" only after typing `SIM01` and RR01 kept, logout and stale-password (401) both clear the password, no sideways scroll at 390 px, no console errors.
+Phase K also built a password-protected admin page and API. The exhibition lasts **one day**, so they were removed completely: the routes, the password check and its rate limiter, `ADMIN_PASSWORD`, the page and its tests (backend 146 -> 100 tests: `admin.test.js`, 46; frontend 90 -> 77: `adminAuth.test.js` 5 and 8 tests of admin-only chart/format helpers). What replaced it:
 
-### Assumptions and limitations
+- **`tools/moderate.js`**, a command line tool that only works **on the laptop** (it opens the database file directly, nothing is exposed on the network): `list`, `clear-nickname`, `delete-game` (a real game needs `--yes` and `--confirm <id>`), `block-add`, `block-list`. Destructive commands are dry runs without `--yes`.
+- **A nickname blocklist** (`backend/blocklist.txt`) checked by the nickname route itself, so rude names are refused before they reach the screen.
+- `tools/clear_fake.js` (wipe SIM01 games) and "delete the database file, then migrate + seed" (reset before the event), documented in README and DEMO.
 
-1. **One shared admin password**, no user accounts and no audit log. Anyone who knows it can delete games. Keep it off screens and change it after the event.
-2. **The rate limiter is in memory** (like the nickname limiter): a restart resets it, and an attacker who changes IP addresses gets new attempts. Good enough for a trusted classroom network, not for the internet.
-3. **The password travels in plain HTTP** on the LAN. Anyone sniffing the Wi-Fi could read it. Use HTTPS (a reverse proxy) for anything beyond an isolated network.
-4. **sessionStorage is readable by any script on the page.** There is no third-party script, and all text is rendered by React (no HTML injection), which keeps this risk low.
-5. **Online status depends on activity.** An ESP32 that is switched on but idle for 10 minutes shows "Offline".
-6. **Deletes are permanent.** There is no undo or trash; the confirm dialogs and the typed `SIM01` confirmation are the only safety nets. Back up `backend/data/rhythm.db` before the event if the data matters.
+The production guard for public example API keys in `db/seed.js` stays.
+
+### Nickname blocklist
+
+1. **Normalization.** Lowercase; `0`->`o`, `3`->`e`, `4`->`a`, `5`->`s`, `@`->`a`, and `1` is tried as both `i` and `l`; spaces, `-` and `_` split words. Every letter of a blocked word may repeat (`fuuuck`). The nickname character rule (`A-Z a-z 0-9 space - _`) runs first, so `@` never actually arrives.
+2. **Word boundaries.** Words of 5+ letters match anywhere (`MotherFucker` hits `fucker`). Words of 4 letters or fewer only match a whole word or the whole nickname with separators removed (`f-u-c-k`), so `Class`, `Bass`, `Peacock`, `Scunthorpe`, `Petite` pass. **Tradeoff:** a short word glued to another (`fuckboy`) passes unless its longer form is on the list, and a short word used as a real name (`Dick`) is refused. List longer forms when needed.
+3. **Same answer as before.** A blocked nickname gets the existing `400 invalid_nickname`, so the kiosk message is unchanged (and it does not tell people which word was caught).
+4. **Live reload.** The file is read at startup and again when its modification time changes, so `moderate.js block-add` works without a restart. Earlier nicknames are not re-checked.
+5. **The starting list is short** (common English and Filipino profanity). It is meant to be extended by the team before the event.
 
 ## Integration, hardening, README (Phase L)
 
@@ -530,9 +512,9 @@ Backend: an admin API under `/api/admin` (full reference with PowerShell example
 
 - Helmet on (see above); `X-Powered-By` absent; JSON bodies capped at 100 kb (`413`).
 - No stack traces or error text reach clients: body-parser errors, 4xx errors and 500s all answer short JSON codes; details only go to the server log.
-- No secret is printed: `grep` over `backend/src`, `db`, `tools` finds only messages that name `ADMIN_PASSWORD`, never a value. `fake_esp32.js` never prints its key.
+- No secret is printed: `grep` over `backend/src`, `db`, `tools` finds no printed key or password value. `fake_esp32.js` never prints its key.
 - `.gitignore` checked with `git check-ignore`: `backend/.env`, `frontend/.env`, `backend/data/*.db*`, `ml/data/`, all `node_modules/`, `frontend/dist/`, `__pycache__/` are ignored; `backend/artifacts/*.json`, both `.env.example` files, `backend/.npmrc` and `package.json` are tracked.
-- `.env.example` now lists every variable the code reads: `NODE_ENV`, `PORT`, `DB_PATH`, `DEVICE_API_KEY`, `SIM_API_KEY`, `ADMIN_PASSWORD`, `ALLOWED_ORIGINS` (plus `ARTIFACTS_DIR`, a test-only override that is documented in `ml.js`, not in the example).
+- `.env.example` now lists every variable the code reads: `NODE_ENV`, `PORT`, `DB_PATH`, `DEVICE_API_KEY`, `SIM_API_KEY`, `ALLOWED_ORIGINS` (plus `ARTIFACTS_DIR`, a test-only override that is documented in `ml.js`, not in the example).
 
 ### Fresh-clone test (real run)
 
@@ -546,7 +528,7 @@ A copy of the project without `node_modules`, `backend/data`, `ml/data`, `fronte
 | `npm run migrate`, `npm run seed` | OK (`apply 001_init.sql`; RR01, SIM01, animal_tiers inserted; the development warning about example keys printed) |
 | `npm run build` | OK |
 | `npm start` | OK: listening on 3000, LAN address printed, "website: served from frontend/dist", change-me warning |
-| `/api/health`, `/`, `/result`, `/admin`, `/session/X`, `http://192.168.1.5:3000/result` | all 200 (HTML for pages) |
+| `/api/health`, `/`, `/result`, `/session/X`, `http://192.168.1.5:3000/result` | all 200 (HTML for pages) |
 | `npm run simulate` | OK; the 3 CSVs are byte-identical to the originals and match the SHA-256 values above |
 | Kiosk scenario in headless Chrome against the production build over the LAN IP | 34/34 |
 | `npm run test-all` | backend 146 passed, frontend 80 passed, lint clean, game_rules self-check passed, `ALL CHECKS PASSED` |
@@ -570,8 +552,7 @@ Run inside that copy, so that the real `ml/data`, `backend/artifacts` and test f
 | offline upload | send while the server is unreachable: not delivered (curl exit 7); retry: `201 saved`; retry again (lost reply): `200 duplicate`; **1 row** |
 | wrong/timeout stored | `3:L3:wrong:1800 ... 6:L5:timeout:0 7:L5:wrong:2600` |
 | scores consistent | uploaded 1290 = stored 1290 = leaderboard 1290; stats `31 / 12479` = SQL `31 / 12479` |
-| admin | no password `401`; delete `200 {"deleted":1}`, then `GET` `404`, 0 attempts/features/predictions left; RR01 bulk without confirm `400 confirm_required`; overview `{"real":1,"synthetic":29}` |
-| website | `/`, `/result`, `/admin` served as HTML by the same process |
+| website | `/`, `/result` served as HTML by the same process |
 
 ### Conflicts and resolutions
 
@@ -585,7 +566,7 @@ Run inside that copy, so that the real `ml/data`, `backend/artifacts` and test f
 2. **`ignore-scripts=true`** also skips install scripts of future backend dependencies. If a new dependency really needs one, run `npm rebuild <package>` once, or remove the setting.
 3. **The SPA fallback treats any non-`/api` path without a file extension as a page** (`/whatever` returns the app, which shows its own "Page not found").
 4. **Root scripts call `python`.** On macOS/Linux that is often `python3`; run the Python commands directly there.
-5. **CORS is not authentication.** It only limits what *browsers* on other origins can read; anything that is not a browser ignores it. Device keys and the admin password are the real access control.
+5. **CORS is not authentication.** It only limits what *browsers* on other origins can read; anything that is not a browser ignores it. Device keys are the real access control.
 
 ## ESP32 network client (Phase M)
 
@@ -625,6 +606,211 @@ Run inside that copy, so that the real `ml/data`, `backend/artifacts` and test f
 ### Process note
 
 AGENTS.md says "do ONE phase at a time". In this session the user explicitly asked for J2, K, L and M in order, each finished and tested before the next. That instruction wins; each phase still ends with passing tests, this report, and an AGENTS.md status update before the next one starts.
+
+## Live game mirror
+
+While a game runs on the ESP32, the web page `/live` mirrors the control panel
+in real time. Contract: `docs/LIVE_PROTOCOL.md` (PROPOSED, needs agreement
+with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
+`docs/FRONTEND.md`, "Live game mirror".
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `ml/game_rules.py` | + hardware timing constants (cue 500 / gap 200 ms, countdown 3 x 1000 ms, GO 600, pauses, RESET hold) |
+| `ml/export_rules.py` -> `docs/game_rules.json` | rules for JavaScript tools, incl. the speed bonus as a step table per level |
+| `backend/src/services/liveState.js` | pure `reduceLive` + in-memory store (per device, ring buffer of 200) |
+| `backend/src/routes/live.js` | `POST /api/live/events`, `GET /api/live/state`, `GET /api/live/stream` (SSE) |
+| `backend/src/routes/sessions.js` | + `GET /api/game-sessions/recent` (Last results) |
+| `backend/tests/live.test.js` | 20 tests |
+| `tools/fake_live_game.js` | simulated device in real time, then the normal upload |
+| `frontend/src/live/*`, `LivePanel.jsx`, `LiveIndicator.jsx` | reducer, timelines, stream, panel, header sign |
+| `firmware/rhythm_rush_client` | + LiveEvents module (compiled, not run) |
+
+### Decisions
+
+1. **Server-Sent Events, not WebSockets.** Data flows one way (server to
+   browser); `EventSource` is built into every browser, reconnects by itself
+   and sends `Last-Event-ID`; no new dependency on either side.
+2. **Memory only, no tables.** Live data is best-effort and ephemeral; the
+   upload stays the source of truth. A server restart loses the live state:
+   the mirror comes back at the next `playback_started` (accepted even from
+   idle), and score/lives show as dashes until the next attempt result.
+3. **One playback event with the whole sequence** (not one per cue). The
+   browser replays it on its own clock, so network jitter never makes the
+   cues uneven. Late (arrived after the whole playback) = WATCH only; never
+   sped up; a duplicate (same game, level, attempt) never replays.
+4. **No clock sync.** The server stamps `receivedAt`; snapshots carry `now`,
+   so the browser works with ages, never with the server's clock. `t_ms`
+   from the device is informational only.
+5. **Stale and new games.** A new `game_id` switches the device's game; ids
+   seen before (last 50) are ignored, so a late batch from an abandoned game
+   cannot overwrite the new one.
+6. **RESET timing in the protocol.** After RESET the device shows
+   "RESTARTING..." / "PLAY AGAIN!" for 500 ms and only then sends
+   `countdown_started`, so the web's reverse flash and the device stay in
+   step. If both arrive together, the countdown wins.
+7. **No formula copied into JavaScript.** `fake_live_game.js` reads deadlines,
+   sequence lengths and base points from `docs/game_rules.json`, and the speed
+   bonus from a per-level step table that `export_rules.py` computes with
+   `game_rules.speed_bonus` (and self-checks). This also keeps Python's
+   round-half-to-even exactly.
+8. **LCD is 20 x 4.** "PRESS RESET TO PLAY AGAIN" has 25 characters, so it is
+   split over lines 3 and 4 ("PRESS RESET TO" / "PLAY AGAIN").
+9. **"Last results" needed a newest-first list**, so `GET
+   /api/game-sessions/recent?limit=5` was added (the leaderboard is by
+   score). It replaces the kiosk's old "Hall of Fame" top 5 on `/live`.
+10. **"Device offline"** (connection chip) means this screen lost the server:
+    the stream AND the polling fallback fail. The ESP32 sends nothing between
+    games, so the server cannot tell "device idle" from "device off".
+11. **Per-device rate limit** 600 requests/minute (express-rate-limit keyed by
+    the authenticated device; batching every 250 ms needs about 240).
+12. **Panel colours** come from the written description in the task (the
+    reference image was not visible to the assistant): red `#d9434d`, orange
+    `#ef8a2f`, yellow `#e0b932`, green `#4aab72`, blue `#3b78c4`, purple
+    `#8e55b8`, panel `#f1f4f5`, border `#3e5a6e`, LCD `#172d3b`. A lit button
+    gets a lighter fill, a thicker ring, scale 1.06 AND a hard outer ring in
+    its own colour (the first version only got lighter and read as "faded").
+
+### Verification (real runs, copy database `backend/data/live_test.db`, port 3100, deleted afterwards)
+
+- Backend `npm test`: 9 files, **123 passed** (100 kept + 3 blocklist + 20 live).
+  Frontend `npm test`: 8 files, **114 passed** (77 kept + 37 live). Build and
+  lint clean.
+- `fake_live_game.js` scenarios, 3 SSE "tabs" open the whole time: fast
+  (win, 12,558), sloppy, `--reset-at 3`, `--reset-during-countdown`,
+  `--play-again` (2 games), `--latency-ms 300 --spike`. **8 games, 508
+  events, every tab received all 508.** Checked per game from the captured
+  stream: no `countdown_started` after `game_started` (retries and level-ups
+  never count down), every `game_finished` has exactly one DB row with the
+  same score, the abandoned game (RESET mid-game) has none, RESET during the
+  countdown gives one restart (`CD RESET CD`), 7 new rows for 7 finished games.
+- **Abandon:** a game left silent for 95 s was broadcast as `abandoned`.
+- **Reconnect:** the server was killed mid-game: the chip showed
+  "Reconnecting...", the stream reconnected after the restart, and the
+  mirror continued with the right level and score. (Chrome's offline
+  emulation does not cut an open stream, so a real kill was used.) This test
+  found a bug in the fake device: a failed batch stopped all later ones; it
+  now drops the batch and goes on, like the firmware.
+- **Latency (server only, localhost):** POST to SSE delivery over 200
+  events: **median 3.07 ms, p95 5.27 ms, max 70.18 ms**. Real Wi-Fi latency is
+  unmeasured until the hardware test (film the panel and the TV).
+- **Screens:** headless Chrome at 360x740, 768x1024, 1280x720 and 1920x1080,
+  live and demo mode, 22 states each; 0 console errors, no sideways scroll.
+  Final: LCD text 32.2 px and labels 34.4 px on 1920; the panel ends at 716
+  px on 1280x720; the panel never moves between states. Screenshots (local,
+  gitignored): `docs/screenshots/live/before-revision/` and
+  `docs/screenshots/live/final/` (with `report.json`).
+- **moderate.js** on the copy database: list, clear-nickname (dry run, then
+  `--yes`), block-add (the running server refused "Pangit Ako" right away),
+  delete-game on a real RR01 game refused without and with a wrong
+  `--confirm`, deleted with the exact id; friendly errors with exit 1. The
+  blocklist missed "B1g F-u-c-k" (single letters inside a longer name); fixed
+  by joining runs of single letters, and tested.
+- **Firmware** compiled (arduino-cli 1.5.1, esp32 core 3.3.12) with live
+  events on (990,908 bytes flash) and off (988,688), 0 warnings. Not run.
+
+### Assumptions and limitations
+
+1. **Not run on hardware.** The ESP32 live module, the real Wi-Fi latency and
+   the real TV were not tested (checklist in the firmware README).
+2. **One mirror.** With several devices sending at once, `/live` follows the
+   device that sent the newest event.
+3. **Browsers allow about 6 connections per host over HTTP/1.1**; every open
+   `/live`-capable tab of the site holds one for the stream. One kiosk tab is
+   fine; dozens of tabs in ONE browser would stall that browser.
+4. **Rate limiter and live state are per server process** (memory).
+5. **Demo mode is a script**: its numbers are what a device would send, not
+   computed rules.
+6. **Sound** plays only after a click on the page (browser autoplay rules) and
+   is off by default; the hardware plays its own sound.
+
+## How to play brochure and visitor wording
+
+`/how-to-play` explains the game, the rank and the animal for event visitors;
+every visitor string now lives in `frontend/src/content/visitorText.js` or
+`howToPlay.js` and follows plain-language rules (docs/FRONTEND.md "Visitor
+text"). Frontend only; no backend, API or model change.
+
+### Facts verified against the code (the brochure reads them at build time)
+
+| Fact in the brochure | Value | Source |
+|---|---|---|
+| Lives | 3 | `ml/game_rules.py` START_LIVES -> `docs/game_rules.json` |
+| Levels | 15 | MAX_LEVEL |
+| Points per cleared level | 100 x level | POINTS_PER_LEVEL, `points_for_pass` |
+| Bonus maximum | 50 | MAX_SPEED_BONUS (and the exported bonus table) |
+| Time per button | 3 seconds at level 1, 1.5 seconds from level 9 | `deadline_seconds` = max(1.5, 3.0 - 0.2 x (level - 1)) |
+| Pattern grows one step per level | level + 2 | `sequence_length` |
+| Worked example | level 1, 3 lights, 4.5 seconds: 25 bonus, 125 points | `speed_bonus_steps` of level 1 in `game_rules.json` |
+| Animal groups | top 10% Chimpanzee 90-100, next 15% Dolphin 80-90, next 20% Elephant 70-80, next 25% Orangutan 60-70, rest Pig 50-60 | `backend/artifacts/animal.json` "tiers" (same as `IQ_RANGES` in `ml.js`) |
+| How the animal is found | the closest earlier game (2,000 practice games + real games); that game's score compared with the practice games picks the group | `matchAnimal` in `backend/src/services/ml.js` |
+| What decides the rank | **only how fast you press** right now | `skill.json`: every split that changes the answer is on `avg_reaction_sec`; the one `final_score` split has "Pro" on both sides |
+| Rank speed ranges | Pro: about 0.67 seconds or less per button; Intermediate: about 0.67 to 0.84; Beginner: slower | thresholds 0.6645 / 0.8375 s in `skill.json`, derived by `frontend/gameFacts.mjs` |
+| RESET during a game: hold about one second | proposed | `docs/LIVE_PROTOCOL.md` (PROPOSED, needs the firmware owner) |
+
+**Where the code disagrees with the task text:** the task suggested "we check
+how fast you press, how long a pattern you remembered and how many you got
+right". The trained model (`skill.json`) uses only speed, so the brochure says
+"Right now, how fast you press matters most" and gives the speed ranges. If
+the model is retrained, `gameFacts.mjs` re-derives the ranges, or gives no
+numbers when speed alone no longer decides.
+
+### Decisions
+
+1. **Numbers come from a Vite virtual module** (`virtual:game-facts`, built by
+   `frontend/gameFacts.mjs` from the JSON files), so the 340 kB `animal.json`
+   never reaches the browser and nothing is typed twice. A content test
+   compares the brochure with the files.
+2. **"prize" was removed** from every visitor text, component, class and doc
+   (there is no real prize at this event): "Your prize" -> "Your animal", "No
+   prize" -> "No animal yet", `PrizeTicket` -> `MysteryTicket`, `.prize-tag`
+   -> `.animal-tag`, "prize ribbon" -> "ribbon". The word stays only in the
+   banned list of `wordingRules.js`.
+3. **Rank vs place:** Beginner / Intermediate / Pro is the "rank" (stamp, with
+   a "?" link); the leaderboard position is now "Place #N" / "Place".
+4. **Leaderboard "?" links once, in the title row**, not on every ticket:
+   each ticket is a link (a link inside a link is invalid HTML), and 20 extra
+   44 px targets would break the Top 10 fit on 1920x1080.
+5. **The site opens on the live game** (`/` redirects to `/live`); the
+   leaderboard moved to `/leaderboard`. Nav: Live game, Leaderboard, How to play.
+6. **Philippine time, 12-hour clock** for "Updated" and the game page date
+   (`Asia/Manila`, e.g. "8:27:05 PM").
+7. **Panel and footer buttons show colours only** (no C4 ... A4 notes).
+8. **A stall found and fixed:** after full page loads, each old page kept its
+   live stream open for a while (back/forward cache), so every ~5th page load
+   waited about 4 seconds for a free connection. The stream now closes on
+   `pagehide` (and reopens on `pageshow`): no stall in 12 timed loads.
+9. **QR only on paper**, encoded in the browser by `lean-qr/nano` (about 4 kB,
+   error correction H, no network). Address: `VITE_PUBLIC_URL`, else the
+   page's own origin unless it is localhost.
+
+### Verification (copy database, port 3100, deleted afterwards)
+
+- Frontend `npm test`: **138 passed** (114 before + 24: brochure facts,
+  wording, QR rule, nav, anchors, "?" links, print-only QR, Manila clock, one
+  print button, the A4 `@page` rule, black print dots, Wi-Fi lines);
+  build and lint clean. Backend unchanged: 123 passed.
+- Headless Chrome at 360, 768, 1280x720, 1920x1080: no sideways scroll, body
+  text 18 px, tap targets 44 px, sticky contents at the top and focus moved to
+  the panel, both "?" links on the result and game pages, only the LAN host
+  requested, 0 console errors. Print to PDF (portrait A4, the only layout):
+  **1 page** (LAN and localhost); the printed QR decodes to
+  `http://192.168.1.5:3100/how-to-play`.
+- Bundle: main JS 322.52 -> 328.89 kB (103.48 kB gzip) (visitor text module, "?" links, Manila
+  clock); the brochure is a lazy 20 kB chunk (8 kB gzip) including the QR
+  encoder.
+
+### Limitations
+
+1. The Filipino text **needs review by a native speaker**.
+2. The panel's 20 x 4 display still uses the console's words ("WATCH
+   SEQUENCE", "SAME SEQUENCE AGAIN"); changing them needs the firmware owner
+   (`docs/LIVE_PROTOCOL.md`) and the live reducer.
+3. Reading ease is a Flesch estimate with a simple syllable counter.
+4. The QR depends on the laptop keeping its IP; phones on mobile data cannot
+   open it.
 
 ## Synthetic data (how it was made)
 

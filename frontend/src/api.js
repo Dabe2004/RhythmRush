@@ -4,6 +4,8 @@
 // VITE_API_URL is empty by default, which means "same origin". In development
 // the Vite proxy (vite.config.js) forwards /api to http://localhost:3000.
 
+import { visitorText } from "./content/visitorText"
+
 const BASE_URL = import.meta.env.VITE_API_URL || ""
 const TIMEOUT_MS = 8000
 
@@ -56,10 +58,10 @@ async function request(path, options = {}) {
     if (typeof error.status === "number") throw error
 
     if (error.name === "AbortError") {
-      throw makeError("The server took too long to answer. Please try again.", 0)
+      throw makeError(visitorText.common.slow, 0)
     }
 
-    throw makeError("Cannot reach the server. Is the backend running?", 0)
+    throw makeError(visitorText.common.unreachable, 0)
   } finally {
     clearTimeout(timer)
   }
@@ -84,45 +86,12 @@ export function setNickname(id, nickname) {
   })
 }
 
-// ---------------------------------------------------------------------------
-// Admin API (Phase K). The password travels only in this header.
-// ---------------------------------------------------------------------------
-function adminRequest(password, path, options = {}) {
-  return request(path, {
-    ...options,
-    headers: { "X-Admin-Password": password, ...options.headers },
-  })
+export function getRecentSessions(limit = 5) {
+  return request(`/api/game-sessions/recent?limit=${encodeURIComponent(limit)}`)
 }
 
-export function adminLogin(password) {
-  return adminRequest(password, "/api/admin/login", { method: "POST" })
+export function getLiveState() {
+  return request("/api/live/state")
 }
 
-export function getAdminOverview(password) {
-  return adminRequest(password, "/api/admin/overview")
-}
-
-export function getAdminModels(password) {
-  return adminRequest(password, "/api/admin/models")
-}
-
-// nickname: a string to overwrite, or null to clear.
-export function adminSetNickname(password, id, nickname) {
-  return adminRequest(password, `/api/admin/game-sessions/${encodeURIComponent(id)}/nickname`, {
-    method: "PATCH",
-    body: JSON.stringify({ nickname }),
-  })
-}
-
-export function adminDeleteSession(password, id) {
-  return adminRequest(password, `/api/admin/game-sessions/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  })
-}
-
-// Every game of one device. Real devices also need confirm=<same id>.
-export function adminDeleteDeviceGames(password, device, confirm) {
-  const query = new URLSearchParams({ device })
-  if (confirm) query.set("confirm", confirm)
-  return adminRequest(password, `/api/admin/game-sessions?${query}`, { method: "DELETE" })
-}
+export const LIVE_STREAM_URL = `${BASE_URL}/api/live/stream`

@@ -12,20 +12,11 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env"), quiet: true });
 
 const { createApp } = require("./app");
-const { adminConfigProblem } = require("./services/auth");
 
 const PORT = Number(process.env.PORT) || 3000;
 const FRONTEND_DIST = path.join(__dirname, "..", "..", "frontend", "dist");
 
 const app = createApp({ staticDir: FRONTEND_DIST });
-
-// Tell the operator about the admin password WITHOUT printing it.
-const adminProblem = adminConfigProblem(process.env.ADMIN_PASSWORD, process.env.NODE_ENV);
-if (adminProblem) {
-  console.warn(`Admin API is OFF (${adminProblem}). Set ADMIN_PASSWORD in backend/.env.`);
-} else if (process.env.ADMIN_PASSWORD === "change-me") {
-  console.warn('Admin password is still the example "change-me". Change it before the exhibition.');
-}
 
 // IPv4 addresses of this computer, e.g. 192.168.1.5. The ESP32, the kiosk
 // screen and phones use one of these instead of "localhost".
@@ -44,7 +35,7 @@ app.listen(PORT, () => {
   }
 
   if (require("fs").existsSync(path.join(FRONTEND_DIST, "index.html"))) {
-    console.log("  website: served from frontend/dist (/, /result, /admin)");
+    console.log("  website: served from frontend/dist (/, /live, /result)");
   } else {
     console.log("  website: NOT built - only the API is served. Run: npm run build (in /frontend)");
   }

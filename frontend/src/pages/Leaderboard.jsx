@@ -17,9 +17,13 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { getLeaderboard } from "../api"
+import { visitorText } from "../content/visitorText"
+import HelpLink from "../components/HelpLink"
+import { formatClock } from "../format"
 import AnimalIcon from "../components/animals/AnimalIcon"
 import AnimalTag from "../components/AnimalTag"
 import LevelSign from "../components/LevelSign"
+import { LiveBanner } from "../components/LiveIndicator"
 import PlayerName from "../components/PlayerName"
 import RankBadge from "../components/RankBadge"
 import ScoreCounter from "../components/ScoreCounter"
@@ -27,6 +31,8 @@ import SkillBadge from "../components/SkillBadge"
 import StatusMessage from "../components/StatusMessage"
 import { LEADERBOARD_LIMIT, leaderboardSubtitle, splitPodium } from "../leaderboard"
 import usePolling from "../usePolling"
+
+const L = visitorText.leaderboard
 
 function sessionPath(sessionId) {
   return `/session/${encodeURIComponent(sessionId)}`
@@ -37,13 +43,13 @@ function enterDelay(index) {
   return { "--enter-delay": `${index * 0.04}s` }
 }
 
-// Animal drawing + name + IQ. A game without a prediction shows "No prize".
-function PrizeBlurb({ animal, iq, size }) {
+// Animal drawing + name + fun IQ number. A game without one shows "No animal yet".
+function AnimalBlurb({ animal, iq, size }) {
   if (!animal) {
     return (
       <div className="flex items-center gap-3">
         <AnimalIcon animal={null} size={size} className="shrink-0 opacity-60" />
-        <p className="font-extrabold text-muted">No prize</p>
+        <p className="font-extrabold text-muted">{L.noAnimal}</p>
       </div>
     )
   }
@@ -55,7 +61,7 @@ function PrizeBlurb({ animal, iq, size }) {
         <p className="truncate font-extrabold">{animal}</p>
         {typeof iq === "number" ? (
           <p className="mt-1 inline-block rounded-[3px] border-2 border-ink bg-tag px-1.5 font-sign text-sm">
-            IQ {iq}
+            {visitorText.result.iq(iq)}
           </p>
         ) : null}
       </div>
@@ -74,7 +80,7 @@ function ChampionCard({ entry, index }) {
         className="ticket ticket-notched block -rotate-[0.6deg] px-5 pb-4 pt-5 shadow-hard-lg transition-transform hover:-translate-y-1 sm:px-6"
       >
         <span className="sign absolute -top-4 left-5 -rotate-2 bg-paint-yellow px-3 py-0.5 text-sm text-ink">
-          First Place
+          {L.firstPlace}
         </span>
 
         <div className="flex items-center gap-4">
@@ -94,9 +100,9 @@ function ChampionCard({ entry, index }) {
 
         <div aria-hidden="true" className="my-2.5 border-t-[3px] border-dashed border-ink" />
 
-        {/* Prize and score share one line from 640 px (wraps on phones). */}
+        {/* Animal and score share one line from 640 px (wraps on phones). */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:flex-nowrap">
-          <PrizeBlurb animal={entry.animal} iq={entry.animal_iq} size={96} />
+          <AnimalBlurb animal={entry.animal} iq={entry.animal_iq} size={96} />
           <div className="shrink-0 text-right">
             <ScoreCounter value={entry.final_score} tone="dark" className="text-3xl" />
             <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.25em] text-muted">points</p>
@@ -116,7 +122,7 @@ function RunnerUpCard({ entry, index }) {
       style={enterDelay(index)}
     >
       {/* Compact two-tier ticket: ribbon + name, level + stamp, tear line,
-          then the 72 px prize drawing with its name, IQ and the score. */}
+          then the 72 px animal drawing with its name, fun IQ number and the score. */}
       <Link
         to={sessionPath(entry.session_id)}
         className={`ticket ticket-notched block h-full ${tilt} px-4 pb-3 pt-3 transition-transform hover:-translate-y-1`}
@@ -149,10 +155,10 @@ function RunnerUpCard({ entry, index }) {
           )}
           <div className="min-w-0 flex-1 leading-tight">
             {/* Long names ("Bottlenose Dolphin") may use two lines. */}
-            <p className="line-clamp-2 text-sm font-extrabold">{entry.animal || "No prize"}</p>
+            <p className="line-clamp-2 text-sm font-extrabold">{entry.animal || L.noAnimal}</p>
             {typeof entry.animal_iq === "number" ? (
               <p className="mt-0.5 inline-block rounded-[3px] border-2 border-ink bg-tag px-1.5 font-sign text-xs">
-                IQ {entry.animal_iq}
+                {visitorText.result.iq(entry.animal_iq)}
               </p>
             ) : null}
           </div>
@@ -171,7 +177,7 @@ function RunnerUpCard({ entry, index }) {
 // Compact list (ranks 4-10)
 // ---------------------------------------------------------------------------
 // One line when the list is wide enough (container query), otherwise two
-// tidy lines: rank, name + level, score / stamp, prize.
+// tidy lines: place, name + level, score / stamp, animal.
 function ListRow({ entry, index }) {
   const tilt = index % 2 === 0 ? "-rotate-[0.25deg]" : "rotate-[0.25deg]"
 
@@ -186,7 +192,7 @@ function ListRow({ entry, index }) {
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-extrabold" title={entry.nickname || "Mystery Player"}>
+          <p className="truncate text-lg font-extrabold" title={entry.nickname || visitorText.common.mysteryPlayer}>
             <PlayerName nickname={entry.nickname} />
           </p>
           <p className="mt-0.5 font-sign text-xs text-muted">Level {entry.highest_level_completed}</p>
@@ -196,7 +202,7 @@ function ListRow({ entry, index }) {
             row to row; on the second line of a narrow row they shrink to fit
             (a phone row is only about 300 px wide). */}
         <div className="order-last flex w-full items-center gap-3 border-t-2 border-dashed border-rule pt-2 @min-[600px]:order-none @min-[600px]:w-auto @min-[600px]:border-t-0 @min-[600px]:pt-0">
-          <span className="shrink-0 text-center @min-[600px]:w-[8.25rem]">
+          <span className="shrink-0 text-center @min-[600px]:w-[8rem]">
             <SkillBadge value={entry.skill_rank} size="xs" />
           </span>
           <AnimalTag
@@ -237,27 +243,25 @@ export default function Leaderboard() {
     return () => clearTimeout(timer)
   }, [hasRows])
 
-  const updated = lastUpdated
-    ? lastUpdated.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      })
-    : "--:--:--"
+  // Philippine time, 12-hour clock.
+  const updated = lastUpdated ? formatClock(lastUpdated) : "--:--"
 
   return (
     <section className="mx-auto w-full max-w-[1200px] px-4 pb-12 pt-6 sm:px-6 lg:pt-3">
+      <LiveBanner />
       {/* Title row: the sign, the subtitle (full remaining width), the time. */}
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 lg:mb-3 lg:flex-nowrap">
         <h1 className="sign shrink-0 -rotate-1 bg-tent px-4 py-1.5 text-3xl text-cream sm:text-4xl lg:text-3xl">
-          Top 10
+          {L.title}
         </h1>
         <p className="order-last min-h-[1.75rem] w-full text-lg lg:order-none lg:w-auto lg:flex-1">
           {leaderboardSubtitle(entries.length)}
         </p>
         <p className="ml-auto shrink-0 rotate-1 rounded-[4px] border-2 border-ink bg-ticket px-3 py-1.5 text-sm font-extrabold shadow-hard-sm lg:ml-0">
-          Updated <span className="font-sign">{updated}</span>
+          {L.updated} <span className="font-sign">{updated}</span>
+        </p>
+        <p className="flex shrink-0 items-center text-sm font-extrabold">
+          {L.rankHelp} <HelpLink topic="rank" /> {L.animalHelp} <HelpLink topic="animal" />
         </p>
       </div>
 
@@ -283,7 +287,7 @@ export default function Leaderboard() {
                 compact
                 error={error}
                 onRetry={retry}
-                title="Could not refresh. Showing the last known scores."
+                title={L.refreshError}
               />
             </div>
           ) : null}
@@ -297,7 +301,7 @@ export default function Leaderboard() {
           >
             <section aria-labelledby="podium-title">
               <h2 id="podium-title" className="sr-only">
-                Winners podium
+                {L.podium}
               </h2>
               <ol className="flex flex-wrap justify-center gap-3 pt-3">
                 {champions.map((entry, index) => (
@@ -316,7 +320,7 @@ export default function Leaderboard() {
             {showList ? (
               <section aria-labelledby="list-title">
                 <h2 id="list-title" className="sr-only">
-                  Ranks 4 to {LEADERBOARD_LIMIT}
+                  {L.list}
                 </h2>
                 <ol className="space-y-2.5 lg:pt-3">
                   {rest.map((entry, index) => (

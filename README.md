@@ -12,7 +12,7 @@ This repository is the **software side**:
   adaptive difficulty, skill level, and a "which animal did you play like"
   fun result,
 - a **React website**: leaderboard, a live **kiosk screen** that shows each
-  new result by itself, a page per game with a chart, and an admin page,
+  new result by itself, and a page per game with a chart,
 - a **fake ESP32** uploader so everything can be demonstrated without
   hardware,
 - the **network layer for the ESP32 firmware** (`/firmware`).
@@ -44,10 +44,8 @@ flowchart LR
 
   WEB --> KIOSK["Kiosk screen /result<br/>(polls latest game)"]
   WEB --> BOARD["Leaderboard /"]
-  WEB --> ADMIN["Admin /admin"]
   KIOSK -.-> API
   BOARD -.-> API
-  ADMIN -. "X-Admin-Password" .-> API
 
   subgraph OFFLINE["Offline, on a developer PC (Python)"]
     SIMU["ml/simulate_games.py"] --> CSV["ml/data/*.csv"]
@@ -63,16 +61,17 @@ One `npm start` serves both the API and the website.
 
 | Folder / file | What is in it |
 |---|---|
-| `ml/` | `game_rules.py` (all game constants and formulas), `simulate_games.py`, `train_skill.py`, `train_animal.py`, `train_difficulty.py`, `check_exports.py`, `export_test_vectors.py`. `ml/data/` (generated CSVs) is gitignored. |
-| `backend/src/` | Express app (`app.js`, `server.js`), routes, services (`ml.js` runs the models, `queries.js`/`admin.js` hold the SQL). |
+| `ml/` | `game_rules.py` (all game constants and formulas), `simulate_games.py`, `train_skill.py`, `train_animal.py`, `train_difficulty.py`, `check_exports.py`, `export_test_vectors.py`, `export_rules.py` (writes `docs/game_rules.json`). `ml/data/` (generated CSVs) is gitignored. |
+| `backend/src/` | Express app (`app.js`, `server.js`), routes, services (`ml.js` runs the models, `queries.js` holds the SQL). |
 | `backend/artifacts/` | The three exported models (`difficulty.json`, `skill.json`, `animal.json`). Tracked in git. |
 | `backend/tests/` | vitest + supertest tests (in-memory SQLite). |
 | `backend/data/` | The SQLite database file. Gitignored. |
 | `db/` | `migrations/001_init.sql`, `migrate.js`, `seed.js`. |
 | `frontend/` | React + Vite + Tailwind + Recharts website. |
-| `tools/` | `fake_esp32.js` (fake uploader, device SIM01), `clear_fake.js`. |
+| `tools/` | `fake_esp32.js` (fake uploader, device SIM01), `fake_live_game.js` (fake device playing live, SIM01), `clear_fake.js`, `moderate.js` (laptop-only moderation). |
+| `backend/blocklist.txt` | Words refused in nicknames (one per line). |
 | `firmware/rhythm_rush_client/` | Arduino sketch: Wi-Fi, offline queue, uploads, difficulty call (network layer only). |
-| `docs/` | `NOTES.md` (all decisions, metrics, limitations), `API.md`, `FRONTEND.md`, `DEMO.md` (exhibition checklist), `session.schema.json`. |
+| `docs/` | `NOTES.md` (all decisions, metrics, limitations), `API.md`, `FRONTEND.md`, `DEMO.md` (exhibition checklist), `LIVE_PROTOCOL.md` (live events contract for the firmware), `session.schema.json`, `game_rules.json` (generated). |
 | `package.json` | Convenience scripts for the whole project (below). |
 
 ## Prerequisites
@@ -122,17 +121,20 @@ devices on the network, for example `http://192.168.1.5:3000`.
 
 For development the example `.env` values work as they are. **For the
 exhibition**, follow [docs/DEMO.md](docs/DEMO.md): `NODE_ENV=production` and
-real random values for `DEVICE_API_KEY`, `SIM_API_KEY` and `ADMIN_PASSWORD`.
+real random values for `DEVICE_API_KEY` and `SIM_API_KEY`.
 
 ### Pages
 
 | URL | Page |
 |---|---|
-| `/` | Leaderboard (top 20, refreshes every 10 s); click a row for details |
-| `/result` | **Kiosk screen**: shows every new game for 30 s, nickname entry, then back to waiting |
+| `/` | Opens the live game (`/live`) |
+| `/leaderboard` | Leaderboard (Top 10, refreshes every 10 s); click a ticket for details |
+| `/how-to-play` | Visitor brochure: how to play, scoring, rank and animal; prints on one A4 page with a QR code |
+| `/live` | **Live game** (kiosk screen): mirrors the device's panel while a game runs, then shows the result for 30 s with nickname entry |
+| `/result` | Same as `/live` (old address, still works) |
+| `/live?demo=1` | Demo game played in the browser, no device or server needed (`&auto=1` loops it) |
 | `/result/<session id>` | The result screen of one game |
 | `/session/<session id>` | One game: facts, ML results, response-time chart, attempts table |
-| `/admin` | Admin dashboard (password = `ADMIN_PASSWORD`); not linked anywhere |
 
 ### Project scripts (run in the project folder)
 
@@ -169,10 +171,50 @@ node tools/fake_esp32.js --count 30 --duplicate        # 30 games + a resent dup
 node tools/fake_esp32.js --help                        # all options
 ```
 
+**Live mirror:** open <http://localhost:3000/live> and let a simulated device
+play in real time (live events, then the normal upload):
+
+```powershell
+node tools/fake_live_game.js --skill average --speed 2   # one game, twice as fast
+node tools/fake_live_game.js --play-again --skill sloppy  # RESET after game over starts game 2
+node tools/fake_live_game.js --reset-at 3                 # RESET mid-game: abandoned, not uploaded
+node tools/fake_live_game.js --latency-ms 300 --spike     # a slow, jittery network
+node tools/fake_live_game.js --help                       # all options
+```
+
+No server at all? <http://localhost:5173/live?demo=1> (or the built site)
+plays a scripted game in the browser.
+
 If you changed `SIM_API_KEY` in `backend/.env`, add `--key <that value>`.
-Remove fake games on the admin page ("Remove simulated games") or with
-`node tools/clear_fake.js` (dry run) and `node tools/clear_fake.js --yes`
-(run from `backend/`).
+Remove fake games with `node tools/clear_fake.js` (dry run) and
+`node tools/clear_fake.js --yes` (run from `backend/`).
+
+## Moderation (laptop only)
+
+There is no back-office web page: the event lasts one day, so moderation is a command
+line tool that opens the database directly. It has no network side, so only
+someone at the laptop can use it. Run it from `backend/` (PowerShell):
+
+```powershell
+node ../tools/moderate.js list                                   # latest 20 games: id, nickname, score, device
+node ../tools/moderate.js clear-nickname RR01-000127              # dry run: shows what would change
+node ../tools/moderate.js clear-nickname RR01-000127 --yes        # clear it (the player may set a new one)
+node ../tools/moderate.js delete-game SIM01-301245001 --yes       # delete a fake game
+node ../tools/moderate.js delete-game RR01-000127 --yes --confirm RR01-000127   # a real game: type the id twice
+node ../tools/moderate.js block-add pangit                        # refuse nicknames with this word from now on
+node ../tools/moderate.js block-list
+```
+
+- **Wipe the SIM01 test games:** `node ../tools/clear_fake.js` (dry run), then
+  `node ../tools/clear_fake.js --yes`.
+- **Reset the whole database before the event:** stop the server, delete
+  `backend/data/rhythm.db`, `rhythm.db-wal` and `rhythm.db-shm`, then
+  `npm run migrate` and `npm run seed` (both in `backend/`). Every game is gone;
+  the devices get the keys from `backend/.env` again.
+
+New blocklist words work at once (the server re-reads `blocklist.txt` when it
+changes). Nicknames saved earlier are not re-checked: use `list` and
+`clear-nickname`.
 
 ## How the ESP32 connects
 
@@ -202,7 +244,7 @@ Remove fake games on the admin page ("Remove simulated games") or with
 Windows blocks incoming connections by default, so the ESP32 and the kiosk
 screen cannot reach the laptop until port 3000 is allowed. Set the Wi-Fi to
 **Private** (Settings > Network & Internet > Wi-Fi > your network), then in an
-**administrator** PowerShell:
+**elevated** PowerShell (right-click PowerShell, run with elevated rights):
 
 ```powershell
 New-NetFirewallRule -DisplayName "Rhythm Rush 3000" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private
@@ -233,11 +275,12 @@ The models were trained on synthetic games. To retrain on real games:
    the progression you actually want.
 3. Keep a copy of the old `backend/artifacts` (git has it), then run
    `npm run retrain` (the three `train_*.py` scripts and `check_exports.py`).
+   If you changed a game rule or timing in `ml/game_rules.py`, also run
+   `python ml/export_rules.py` (updates `docs/game_rules.json`).
    Do **not** run `npm run simulate` afterwards: it overwrites `ml/data`.
 4. Optionally run `python ml/export_test_vectors.py` and `npm --prefix
    backend test` so the JavaScript models are checked against Python again.
-5. **Restart** the server (`npm start`); models are loaded once at start. The
-   admin page's Models section shows the new file dates.
+5. **Restart** the server (`npm start`); models are loaded once at start.
 
 ## Troubleshooting
 
@@ -249,8 +292,6 @@ The models were trained on synthetic games. To retrain on real games:
 | Upload answers `403 device_mismatch` | `device_id` in the JSON is not the device that owns the key. |
 | Website shows "Cannot reach the server" | The backend is not running, or the page was opened from another port. |
 | `npm start` prints "website: NOT built" | Run `npm run build`. |
-| `/admin` says the admin API is switched off | `ADMIN_PASSWORD` is empty, or still `change-me` with `NODE_ENV=production`. Set a real one, restart. |
-| `/admin` says "Too many wrong passwords" | Wait 15 minutes or restart the server. |
 | `npm run seed` refuses the keys | `NODE_ENV=production` with example keys. Put real random keys in `backend/.env`. |
 | `fake_esp32.js` cannot find `games.csv` | Run `npm run simulate` once. |
 | `fake_esp32.js` gets `401` | `SIM_API_KEY` was changed: pass `--key <value>`. |
@@ -272,6 +313,11 @@ frontend unit tests, the frontend lint, the game-rules self-check, and
 
 ## Limitations
 
+- **The live mirror is best-effort.** Live events are kept in memory only; a
+  lost event never affects the score (the upload is the truth). The web page
+  cannot control the device. Real Wi-Fi delay is unmeasured until the
+  hardware test (`docs/LIVE_PROTOCOL.md`).
+
 - **Synthetic-data models.** All three models were trained on 2,000 simulated
   games. Their scores say how well they learned the simulator, not how well
   they judge real players.
@@ -282,9 +328,9 @@ frontend unit tests, the frontend lint, the game-rules self-check, and
 - **Animal IQ is just for fun**, not a real IQ test.
 - **The nickname route is public** (the kiosk has no key) and session ids are
   guessable: anyone on the network can name a game that has no nickname yet.
-  The set-once rule, a rate limit and the admin "Clear nickname" button limit
-  the damage. Run it on a **trusted network**.
-- **Plain HTTP on the LAN.** API keys and the admin password travel
+  The set-once rule, the word blocklist, a rate limit and
+  `tools/moderate.js clear-nickname` limit the damage. Run it on a **trusted network**.
+- **Plain HTTP on the LAN.** API keys travel
   unencrypted. Fine on an isolated classroom network, not on the internet
   (that needs HTTPS and certificate checking on the ESP32).
 - **Rate limiters keep their counters in memory**: a restart resets them, and

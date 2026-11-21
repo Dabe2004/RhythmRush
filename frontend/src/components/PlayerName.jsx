@@ -3,7 +3,9 @@
 // dark enough to read easily (11.4:1 on ticket paper) but stays secondary to
 // real names: regular weight and a little smaller, never a pale grey.
 
+import { visitorText } from "../content/visitorText"
+
 export default function PlayerName({ nickname }) {
   if (nickname) return nickname
-  return <span className="mystery-player">Mystery Player</span>
+  return <span className="mystery-player">{visitorText.common.mysteryPlayer}</span>
 }

@@ -62,47 +62,8 @@ function requireDeviceApiKey(db) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Admin password (Phase K)
-// ---------------------------------------------------------------------------
-// Both values are hashed with SHA-256 first, so the two buffers always have
-// the same length (32 bytes) and timingSafeEqual never throws. The comparison
-// time therefore does not depend on how many characters were right.
-function adminPasswordMatches(given, expected) {
-  if (typeof given !== "string" || given.length === 0) return false;
-  if (typeof expected !== "string" || expected.length === 0) return false;
-
-  return crypto.timingSafeEqual(hashApiKey(given), hashApiKey(expected));
-}
-
-// Returns a reason why the admin API must stay OFF, or null when it is safe.
-//   - an empty password is never accepted (every environment)
-//   - the example value "change-me" is refused when NODE_ENV=production
-function adminConfigProblem(password, nodeEnv) {
-  if (typeof password !== "string" || password.length === 0) {
-    return "ADMIN_PASSWORD is empty";
-  }
-  if (nodeEnv === "production" && password === "change-me") {
-    return 'ADMIN_PASSWORD is still "change-me" while NODE_ENV=production';
-  }
-  return null;
-}
-
-// Express middleware: 401 unless X-Admin-Password is the admin password.
-function requireAdminPassword(expected) {
-  return (req, res, next) => {
-    if (!adminPasswordMatches(req.get("X-Admin-Password"), expected)) {
-      return res.status(401).json({ error: "unauthorized" });
-    }
-    return next();
-  };
-}
-
 module.exports = {
   hashApiKey,
   findDeviceByApiKey,
   requireDeviceApiKey,
-  adminPasswordMatches,
-  adminConfigProblem,
-  requireAdminPassword,
 };

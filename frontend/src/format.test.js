@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest"
 import {
   animalArticle,
   findRank,
-  formatBytes,
+  formatClock,
+  formatDateTime,
   formatDuration,
   formatPercent,
-  formatRelative,
   formatSeconds,
   formatScore,
   levelReached,
@@ -43,9 +43,10 @@ describe("formatSeconds", () => {
 
 describe("formatDuration", () => {
   it("uses seconds below a minute and minutes above", () => {
-    expect(formatDuration(42)).toBe("42 s")
-    expect(formatDuration(90)).toBe("1 min 30 s")
-    expect(formatDuration(120)).toBe("2 min")
+    expect(formatDuration(42)).toBe("42 seconds")
+    expect(formatDuration(90)).toBe("1 minute 30 seconds")
+    expect(formatDuration(120)).toBe("2 minutes")
+    expect(formatDuration(61)).toBe("1 minute 1 second")
   })
 
   it("shows a dash for missing values", () => {
@@ -63,35 +64,6 @@ describe("parseServerTime", () => {
   it("returns null for missing or broken text", () => {
     expect(parseServerTime(null)).toBeNull()
     expect(parseServerTime("yesterday")).toBeNull()
-  })
-})
-
-describe("formatRelative", () => {
-  const now = new Date("2026-11-21T10:00:00Z")
-
-  it("describes how long ago a server time was", () => {
-    expect(formatRelative("2026-11-21 09:59:30", now)).toBe("just now")
-    expect(formatRelative("2026-11-21 09:55:00", now)).toBe("5 min ago")
-    expect(formatRelative("2026-11-21 07:00:00", now)).toBe("3 h ago")
-    expect(formatRelative("2026-11-19 10:00:00", now)).toBe("2 days ago")
-    expect(formatRelative("2026-11-20 09:00:00", now)).toBe("1 day ago")
-  })
-
-  it("says never for a missing time", () => {
-    expect(formatRelative(null, now)).toBe("never")
-  })
-})
-
-describe("formatBytes", () => {
-  it("uses B, KB and MB", () => {
-    expect(formatBytes(193)).toBe("193 B")
-    expect(formatBytes(1510)).toBe("1.5 KB")
-    expect(formatBytes(339504)).toBe("331.5 KB")
-    expect(formatBytes(2 * 1024 * 1024)).toBe("2.0 MB")
-  })
-
-  it("shows a dash for missing values", () => {
-    expect(formatBytes(undefined)).toBe("-")
   })
 })
 
@@ -180,5 +152,14 @@ describe("animalArticle", () => {
     expect(animalArticle("Bottlenose Dolphin")).toBe("a")
     expect(animalArticle("Pig")).toBe("a")
     expect(animalArticle("")).toBe("a")
+  })
+})
+
+describe("Philippine time, 12-hour clock", () => {
+  it("shows Manila time with AM/PM, never a 24-hour clock", () => {
+    expect(formatClock(new Date("2026-11-21T12:27:05Z"))).toBe("8:27:05 PM")
+    expect(formatClock(new Date("2026-11-21T00:05:00Z"))).toBe("8:05:00 AM")
+    expect(formatDateTime("2026-11-21 12:27:05")).toBe("Nov 21, 2026, 8:27:05 PM")
+    expect(formatDateTime("not a time")).toBe("-")
   })
 })

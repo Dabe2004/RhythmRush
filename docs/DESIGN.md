@@ -7,7 +7,7 @@ redesign was coded; the critique and iteration notes are at the end.
 
 **A traveling carnival midway at night, seen as a hand-painted arcade game
 booth.** The website is the booth: a striped tent awning with marquee bulbs
-on top, painted wooden signs, paper tickets and prize tags on the counter,
+on top, painted wooden signs, paper tickets and animal tags on the counter,
 bunting along the bottom.
 
 - Warm, tactile, slightly imperfect: things are a degree or two off-square,
@@ -42,7 +42,7 @@ One ink, one cream, one accent, plus the six button paints. All flat.
 | `paint-green` | `#2f9e57` | button 4 (F4) |
 | `paint-blue` | `#2f6fde` | button 5 (G4). **Never under text** |
 | `paint-purple` | `#7c4dcc` | button 6 (A4) |
-| `gold` / `silver` / `bronze` | `#f2b630` / `#c9ccd4` / `#c77c3c` | prize ribbons for rank 1-3 |
+| `gold` / `silver` / `bronze` | `#f2b630` / `#c9ccd4` / `#c77c3c` | place ribbons for rank 1-3 |
 | `stamp-green` / `stamp-blue` / `stamp-purple` | `#1e6b3c` / `#1f4f9e` / `#5a2c9c` | skill stamps: Beginner / Intermediate / Pro |
 | `danger` | `#a3201a` | error text, delete buttons |
 | `ok` | `#1e6b3c` | success text |
@@ -57,7 +57,7 @@ One ink, one cream, one accent, plus the six button paints. All flat.
 | muted | ticket | **6.90:1** | secondary text on tickets |
 | mystery `#3a3448` | ticket `#fffaee` | **11.42:1** | "Mystery Player" on tickets (was muted, 6.90:1) |
 | mystery | cream | **10.14:1** | "Mystery Player" on the page |
-| mystery | tag `#f1d49b` | **8.29:1** | on a prize tag |
+| mystery | tag `#f1d49b` | **8.29:1** | on a animal tag |
 | cream | tent | **5.57:1** | text on the kiosk stage / awning |
 | ticket | tent | **6.28:1** | text on the kiosk stage |
 | cream | tent-dark | **7.59:1** | text on dark stage stripes |
@@ -121,7 +121,7 @@ sections 48-64. Generous gutters: 16 px on phones, 24 px on tablets.
 ## Shape language
 
 - **Ink outlines:** 3 px on signs, tickets and buttons (2 px on small
-  elements and in the admin back office).
+  elements).
 - **Hard offset shadows only:** `4px 4px 0 ink` (6 px on the big kiosk
   ticket, 2-3 px on small things). Never a blurred shadow, never a glow.
 - **Slight rotations:** -2deg to 2deg on signs, stamps, tags and alternating
@@ -169,16 +169,15 @@ sections 48-64. Generous gutters: 16 px on phones, 24 px on tablets.
 | `MarqueeBulbs` | header rail, kiosk stage |
 | Ticket (notches + tear line) | leaderboard rows, Hall of Fame, result printout, session page |
 | `ScoreCounter`: boxed Bungee digits | leaderboard, result, session |
-| `PrizeRibbon` (gold/silver/bronze rosette) and numbered stub | ranks |
+| `RankBadge` ribbon (gold/silver/bronze rosette) and numbered stub | ranks |
 | `SkillBadge` as a rubber stamp (rotated, double ink border) | everywhere skill appears |
-| `AnimalTag` as a prize tag with the custom SVG animal | leaderboard, result, session |
-| `animals/`: Chimpanzee, Bottlenose Dolphin, Elephant, Orangutan, Pig, PrizeTicket fallback | prize tags, admin chart |
+| `AnimalTag` as a animal tag with the custom SVG animal | leaderboard, result, session |
+| `animals/`: Chimpanzee, Bottlenose Dolphin, Elephant, Orangutan, Pig, MysteryTicket fallback | animal tags |
 | Level sign | leaderboard, result |
 | Fuse countdown | kiosk |
 | Guest book (nickname form) | kiosk, one-game result |
 | CSS confetti | kiosk win |
 | Status signs: loading (buttons), "Out of order" (error), closed booth (empty) | all pages |
-| Back-office ledger variant (calmer: no rotation, 2 px lines, denser) | admin |
 
 ---
 
@@ -209,7 +208,7 @@ for animals, gradient text on "You Win!", gradient progress bar and rank
 circles, system font everywhere. Competent, and exactly what the banned list
 describes.
 
-**Pass 1 (first build).** The concept landed: awning, tickets, stamps, prize
+**Pass 1 (first build).** The concept landed: awning, tickets, stamps, animal
 tags, counter digits, the red stage. Problems found:
 
 1. *Too many competing effects on the kiosk:* the header's bulb rail and the
@@ -219,7 +218,7 @@ tags, counter digits, the red stage. Problems found:
    brown and yellow into olive).
 4. *Bungee has no lowercase,* so "29s" became "29S", chart ticks read "16 S",
    receipt values "1.26 S".
-5. *Leaderboard stamps and prize-tag IQ were too small* to scan.
+5. *Leaderboard stamps and animal-tag fun IQ number were too small* to scan.
 6. *A real bug:* my component classes were unlayered CSS, so they beat
    Tailwind utilities; `.sign` forced `display: inline-block` and broke every
    `inline-flex` sign (the session back-link put its arrow above the text).
@@ -239,7 +238,8 @@ stamps and tag text (5). Critique of pass 2:
 **Pass 3.** Ribbon only for the podium, the number alone otherwise (7);
 stage content centred vertically (8); larger Hall of Fame names and counters
 on wide screens (9). Then the automated checks found one more real issue: the
-admin game-id links were 16 px tall (fixed to a 44 px hit area).
+game-id links of the back-office page (since removed) were 16 px tall (fixed
+to a 44 px hit area).
 
 **What still feels generic or weak (honest):**
 
@@ -247,15 +247,14 @@ admin game-id links were 16 px tall (fixed to a 44 px hit area).
   alternating tilt help, but the long list is still repetitive.
 - The confetti falls *over* the result for about 4 s and briefly covers text
   on a win. Kept on purpose (it is short and festive), but it is a trade-off.
-- The admin back office is clean but plain; it is the least "carnival" page,
-  which is intended (clarity first).
 - The notch on the phone-sized session header sits at mid-height rather than
   exactly on its tear line.
 
 ## Banned-list check (final build)
 
 Checked by eye on every screenshot **and** by a script that walks every
-element of `/`, `/result`, `/session/:id`, `/admin` and the 404 page:
+element of `/`, `/result`, `/session/:id`, the back-office page (since
+removed) and the 404 page:
 
 | Banned | Result |
 |---|---|
@@ -288,8 +287,8 @@ element of `/`, `/result`, `/session/:id`, `/admin` and the 404 page:
 - **Functionality unchanged:** the Phase J2 kiosk scenario (34 checks: empty
   DB baseline, countdown, pause while typing, save, 409, Close/Skip, newer
   game replaces, 404, phone width) and the Phase K scenario (37 checks: row
-  click, chart bars and hollow timeout, tooltip, admin login, delete, clear
-  nickname, remove simulated, logout, 401) pass on the redesigned build; only
+  click, chart bars and hollow timeout, tooltip, and the back-office actions
+  that were removed later) pass on the redesigned build; only
   their selectors and expected copy were updated.
 - **Sizes:** see `docs/FRONTEND.md` ("Design").
 
@@ -312,16 +311,16 @@ top 5 and the result page's top-100 rank lookup are unchanged).
   smaller tickets **side by side under it** (48 px ribbon, 72 px animal, xl
   counter), stacked on phones. Tilts stay within -0.6deg to +0.6deg.
 - **List rows** (one link each, at least 44 px tall): rank stub, name and
-  level, a small stamp, the prize tag with a 44 px drawing, the score. One
+  level, a small stamp, the animal tag with a 44 px drawing, the score. One
   line when the list is at least 600 px wide (container query), otherwise two
-  tidy lines (name and score / stamp and prize).
+  tidy lines (name and score / stamp and animal).
 - **Ties** keep the shared number (RANK()) and are never merged: the podium
   holds every entry ranked 1-3 in API order (`splitPodium` in
   `src/leaderboard.js`), so a tie at 2 shows two "2" tickets with silver
   ribbons, and a tie for first gives two Champion tickets.
 - **Fewer than 4 entries:** the podium alone, centred (max 36 rem), no empty
   list pane. **0 entries:** the empty state, unchanged.
-- **No prediction:** "No prize" with a faded prize-ticket drawing.
+- **No prediction:** "No animal yet" with a faded blank-ticket drawing.
 - **Stability:** tickets are keyed by `session_id`, the page structure does
   not change during the 10-second refresh, and the "Out of order" sign is
   laid over the board (absolute) instead of pushing it down. The one-time
@@ -340,7 +339,7 @@ at 1280x720 in every test case.
 
 Was `muted` `#5c5468` (6.90:1, it looked too pale next to real names). Now
 `mystery` `#3a3448`: **11.42:1 on ticket paper, 10.14:1 on cream, 8.29:1 on a
-prize tag**. It stays secondary by being **regular weight (400) and 0.86 em**
+animal tag**. It stays secondary by being **regular weight (400) and 0.86 em**
 while nicknames are 800 weight, not by being light. One component
 (`PlayerName`) is used on the leaderboard, the kiosk Hall of Fame and the
 session page.
@@ -367,12 +366,12 @@ Champion ticket first (biggest card, the sign, the largest counter), and
 1920x1080 showed all 10 entries. Problems:
 
 1. At 1280x720 the podium ended at **803-883 px**: the Champion card wrapped
-   its score under the prize and the #2/#3 cards were about 320 px tall and
+   its score under the animal and the #2/#3 cards were about 320 px tall and
    half empty.
-2. In the list, the stamp column clipped "INTERMEDIATE" under the prize tag.
+2. In the list, the stamp column clipped "INTERMEDIATE" under the animal tag.
 3. At 1280 px, long animal names squeezed player names to "Mys...".
 
-**Revision 1.** Champion counter on the prize line (3xl), #2/#3 cards rebuilt
+**Revision 1.** Champion counter on the animal line (3xl), #2/#3 cards rebuilt
 compact (48 px ribbon, xs stamp, small level sign), small stamp size and fixed
 column widths in the list. New problems found in the screenshots:
 
@@ -392,7 +391,7 @@ line, so every #2/#3 card has the same height: the podium bottom is **698 px
 at 1280x720 in every case**. Then the 360 px screenshot showed:
 
 7. On phones the fixed list column widths (meant for one-line rows) pushed the
-   prize tag **out of the ticket**. My "no sideways scroll" check had not
+   animal tag **out of the ticket**. My "no sideways scroll" check had not
    caught it (the tag stayed inside the page), so I added a check that no
    element sticks out of its ticket. The fixed widths now apply only in
    one-line mode, and the new check passes for every case at all four sizes.
@@ -418,7 +417,7 @@ at 1280x720 in every case**. Then the 360 px screenshot showed:
   subtitle text, 1200 px cap, Champion sign, drawings >= 44 px (podium
   97/73/73 px), list rows >= 44 px (78 px), podium fully visible at 1280x720
   (698 px), all 10 inside 1920x1080 (list ends at 804 px), the tie shows two
-  rank-2 tickets in API order, "No prize" for the game without a prediction,
+  rank-2 tickets in API order, "No animal yet" for the game without a prediction,
   no sideways scroll at 360 px, nothing sticks out of a ticket.
 - Refresh stability: after a real 10-second refresh the same 10 ticket
   elements are still in the page and none moved.
@@ -426,3 +425,135 @@ at 1280x720 in every case**. Then the 360 px screenshot showed:
 - Confetti: 60 text sample points, **0 covered**; layer `z-index 0`; longest
   piece 3.72 s; after 4 s all 36 animations are finished and invisible.
 - No request to another host. The kiosk scenario (34 checks) still passes.
+
+---
+
+## Live game panel (`/live`)
+
+The one place that does **not** use the carnival look: the panel copies the
+real control panel (the reference image was not visible to the assistant, so
+the written description and its colours were used). Around it, everything
+stays carnival: the red stage, the awning, the "Last results" ticket.
+
+- **Layout:** no title in the panel. Top row START | LCD | RESET, vertically
+  centred; below, the six buttons in two rows (1 Red, 2 Orange, 3 Yellow /
+  4 Green, 5 Blue, 6 Purple) with uppercase colour names only (no notes); a speaker
+  grille at the bottom. Phones (panel narrower than 470 px): the LCD goes on
+  top with START and RESET side by side under it.
+- **Look:** panel `#f1f4f5` with a 6 px `#3e5a6e` border and 32 px radius, a
+  hard 6 px ink shadow like every carnival ticket; LCD `#172d3b` with a
+  lighter slate border and pale mint monospaced text in a 20 x 4 grid; round
+  buttons with a white inner ring, a flat white highlight ellipse and a bold
+  white number. Flat fills only: no glow, blur or gradient.
+- **Contrast (WCAG):** LCD text 11.69:1, labels 12.10:1, START text 6.31:1,
+  RESET text 10.78:1, countdown numeral 14.24:1. The white numbers inside the
+  buttons are **below AA** on orange (2.52), yellow (1.88) and green (2.85),
+  as on the real panel. They are decoration (the grid is `aria-hidden`); the
+  dark label under each button ("YELLOW E4", 12.10:1) carries the meaning.
+- **States are never colour alone:** lit = lighter fill + thicker white ring
+  + scale 1.06 + a hard outer ring in the button's colour; pressed = press
+  animation + ripple; wrong = shake + "OOPS!" on the LCD; spent lives are
+  grey AND crossed out; the connection chip has text and a different shape
+  per state.
+
+### Critique and revisions (screenshots in `docs/screenshots/live/`, local only)
+
+**Round 1** (`before-revision/`), honest problems found by looking and by the
+layout script:
+
+1. A lit button only got lighter: on the TV it read as "faded", the
+   opposite of "lit".
+2. Button labels were 31.3 px on 1920 (target >= 32 for 2 m).
+3. The panel did not fit 1280x720 (ended at 865 px); "Final score...,
+   saving..." and the connection chip were below the fold even on 1080p.
+4. The countdown numeral and the pills were small next to the LCD.
+
+**Round 2:** outer ring on lit buttons; labels `min(4.2cqi, 3.4vh)`; button
+size and gaps also capped by the screen height; status and "Last results" in
+the right column; bigger numeral and pills. New problems:
+
+5. The panel moved between states: the LIVE sign appeared in the header and
+   wrapped the nav on phones and tablets, the stage centred its content
+   vertically, and the fuse bar and progress dots only existed during input.
+6. On 768 px the first LCD line touched the LCD border (the font followed the
+   panel width, not the LCD width).
+7. The DEMO sign was below the panel on phones.
+
+**Round 3 (final, `final/`):** the LIVE sign sits next to the brand and keeps
+its space when hidden; the live stage is top-aligned; hearts and dots share
+one fixed row and the fuse track is always there; the LCD sizes its text from
+its own width (container query), so 20 columns always fit; DEMO is a sticker
+on the panel's corner. Measured: LCD 32.2 px and labels 34.4 px on 1920, the
+panel ends at 716 px on 1280x720, the same position in every state at every
+width, no sideways scroll at 360 px, 0 console errors.
+
+**Does it match the description?** Yes for layout, colours, button style,
+LCD and pills. **Is the START/LCD/RESET row balanced?** Yes on TV and
+desktop; on phones the stacked version is clearer than three squeezed items.
+**Readable from 2 m on 1920?** LCD and labels pass the 32 px target; the
+countdown numeral is very large. **Still weak:** the LCD's fourth line is
+often empty (honest to a 20 x 4 display, but it looks bottom-heavy); the
+white numbers on the light buttons are low contrast by design; a real TV
+check is still needed.
+
+---
+
+## "How to play" brochure (`/how-to-play`)
+
+A folded paper brochure laid on the booth: cream paper panels with ink
+outlines, hard offset shadows, a painted numbered header (cream number on tent
+red), at most 0.6 degrees of rotation, and the arcade colours as list markers
+(a coloured ring with the number in ink inside). Visual help instead of words:
+a flat inline strip (watch, your turn, next level) drawn with the six button
+circles, the three rank stamps, the five animal drawings. No images, no emoji,
+no glow or gradients, bundled fonts only.
+
+**Contrast (WCAG):** panel text ink on ticket 16.25:1, page text on cream
+14.41:1, step and title numbers cream on tent red 5.57:1, Pro stamp 8.86:1,
+Intermediate 7.55:1, Beginner 6.25:1, footer "How to play" cream on midnight
+12.87:1, print black on white 21:1. The coloured marker rings are decoration
+(yellow is only 1.56:1 against the paper); the number inside each ring is ink
+on paper.
+
+**Print (one portrait A4 page):** one "Print this page" button and one
+layout, `@page { size: A4 portrait; margin: 12mm; }` ("Headers and footers"
+OFF in the print dialog). Black ink on white, two flowing columns, 1.5 px
+black panel borders, body 11pt, panel titles 13pt, page title 18pt. The
+"Good to know" dots are a thick black border, so they stay solid black with
+"Background graphics" off. The QR section is a separate box with a 2.5 px
+border at the end of the column flow (bottom right): "Join the booth Wi-Fi
+first" (16pt), "Wi-Fi: <name>" or a write-in line (14pt), then the 40 mm QR
+with its quiet zone, "Scan to open on your phone" (14pt) and the address
+(12pt). Measured with headless Chrome print-to-PDF at the LAN address: 1 page.
+
+### Critique and revisions (screenshots: `docs/screenshots/how-to-play/`, local only)
+
+**Round 1:** looked at 360, 768, 1280x720 and 1920x1080 plus a print preview.
+
+1. Print: the brochure title was missing (the print rule hid every `<header>`,
+   including the brochure's own) and it took 2 A4 pages.
+2. Print: the rank stamps overlapped their sentences; grid rows stretched to
+   the tallest panel and left empty paper.
+3. Screen, desktop: the same stretched rows left a mostly empty "Step right
+   up!" panel.
+4. Result page: "FUN IQ NUMBER 55" in the big display font wrapped into two
+   heavy lines.
+
+**Round 2 (final):** only the site header and footer are hidden in print;
+panels flow down columns (screen and print) like a real leaflet; smaller
+stamps and drawings on paper; the fun IQ label is small with the number big;
+stamps stack above their sentence in a narrow panel; on a narrow panel the
+animal table uses 32 px drawings so 768 px never scrolls sideways. Measured:
+A4 1 page; the printed QR decodes to the LAN address; body text
+18 px on phones; every tap target 44 px; no sideways scroll at any size; the
+sticky contents stays at the top and moves focus to the panel; all 10 Top 10
+entries still fit 1920x1080 and the podium fits 1280x720.
+
+**Honest check:** skimmable in 20 seconds? The numbered headers and the
+contents bar make the four answers (play, score, rank, animal) easy to find;
+the full read is longer. Reading ease (Flesch, English) per panel: play 100,
+how 94, lives 95, score 81, rank 79, animal 92, good 89 (average 90). The
+hardest sentence left is "The better that game scored compared with all the
+others, the higher your animal." (15 words; it explains a comparison, which is
+hard to say more simply). The panel's 20 x 4 display still says "WATCH
+SEQUENCE" (the game console's own text, see docs/FRONTEND.md "Visitor text").

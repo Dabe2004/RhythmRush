@@ -170,3 +170,36 @@ describe("PATCH /api/game-sessions/:id/nickname", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("nickname blocklist (backend/blocklist.txt)", () => {
+  const fs = require("node:fs");
+  const { BLOCKLIST_FILE, parseBlocklist, isBlockedNickname } = require("../src/services/nickname.js");
+  const words = parseBlocklist(fs.readFileSync(BLOCKLIST_FILE, "utf8"));
+
+  it("refuses a blocked word with the usual 400 and saves nothing", async () => {
+    insertGame("RR01-000010");
+
+    const res = await patchNickname(app, "RR01-000010", "Big Fucker");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "invalid_nickname" });
+    const row = db.prepare("SELECT nickname FROM game_sessions WHERE session_id = ?").get("RR01-000010");
+    expect(row.nickname).toBeNull();
+  });
+
+  it("sees through case, separators, digit swaps and repeated letters", () => {
+    for (const name of ["SHIT", "f-u-c-k", "F_U_C_K", "p u t a", "Fuuuuck", "5h1t", "b0b0", "4ss", "Mother_Fucker", "PutangIna Mo", "G4G0 ka", "B1g F-u-c-k", "my a s s"]) {
+      expect(isBlockedNickname(name, words), name).toBe(true);
+    }
+  });
+
+  it("lets innocent words that merely contain the letters through", async () => {
+    for (const name of ["Class", "Bass Player", "Grass", "Assassin", "Peacock", "Grape", "Scunthorpe", "Shitake", "Petite", "Potato", "Cocktail"]) {
+      expect(isBlockedNickname(name, words), name).toBe(false);
+    }
+
+    insertGame("RR01-000011");
+    const res = await patchNickname(app, "RR01-000011", "Class Act");
+    expect(res.status).toBe(200);
+  });
+});

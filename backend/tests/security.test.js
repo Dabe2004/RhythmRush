@@ -45,7 +45,7 @@ describe("serving frontend/dist", () => {
   it("serves index.html for / and for client-side routes", async () => {
     const app = createApp({ staticDir: distDir });
 
-    for (const url of ["/", "/result", "/result/RR01-000127", "/session/RR01-000127", "/admin"]) {
+    for (const url of ["/", "/result", "/result/RR01-000127", "/session/RR01-000127", "/live"]) {
       const res = await request(app).get(url);
       expect(res.status, url).toBe(200);
       expect(res.headers["content-type"]).toMatch(/text\/html/);
@@ -160,16 +160,16 @@ describe("CORS", () => {
     expect(dev.headers["access-control-allow-origin"]).toBeUndefined();
   });
 
-  it("answers an allowed preflight for the admin header", async () => {
+  it("answers an allowed preflight for the JSON nickname PATCH", async () => {
     const res = await request(createApp())
-      .options("/api/admin/overview")
+      .options("/api/game-sessions/RR01-000127/nickname")
       .set("Origin", "http://localhost:5173")
-      .set("Access-Control-Request-Method", "GET")
-      .set("Access-Control-Request-Headers", "x-admin-password");
+      .set("Access-Control-Request-Method", "PATCH")
+      .set("Access-Control-Request-Headers", "content-type");
 
     expect(res.status).toBe(204);
     expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
-    expect(res.headers["access-control-allow-headers"]).toMatch(/x-admin-password/i);
+    expect(res.headers["access-control-allow-headers"]).toMatch(/content-type/i);
   });
 
   it("parses a comma-separated ALLOWED_ORIGINS value", () => {

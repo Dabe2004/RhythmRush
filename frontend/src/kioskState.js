@@ -54,7 +54,7 @@ function onLatest(state, id, receivedAt) {
   if (id === state.baselineId || id === state.activeId) return state
 
   // 4. An OLDER game than the baseline means the newest game was deleted
-  //    (admin page). It is not a new result: remember it quietly.
+  //    (tools/moderate.js delete-game). It is not a new result: remember it quietly.
   //    The SQLite timestamps compare correctly as plain strings.
   if (time !== null && state.baselineAt !== null && time < state.baselineAt) {
     return { ...state, baselineId: id, baselineAt: time }

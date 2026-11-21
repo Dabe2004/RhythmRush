@@ -135,7 +135,7 @@ describe("latest: showing new games", () => {
   })
 
   it("a game OLDER than the baseline is not shown (newest game was deleted)", () => {
-    // GAME-2 is on screen; an admin deletes it, so latest falls back to GAME-1.
+    // GAME-2 is on screen; moderate.js deletes it, so latest falls back to GAME-1.
     const state = nextKioskState(activeState(), latest("GAME-1", "2026-11-21 10:00:00"))
 
     // GAME-1 is not a new result. It becomes the new baseline quietly and

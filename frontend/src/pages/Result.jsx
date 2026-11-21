@@ -1,41 +1,51 @@
 // frontend/src/pages/Result.jsx
 // Result screen, two modes:
 //
-//   /result             KIOSK. The ESP32 cannot open a web page, so this
-//                       screen watches GET /api/game-sessions/latest every
-//                       2 seconds and shows each NEW game for 30 seconds,
-//                       then returns to the idle screen by itself.
+//   /live (= /result)   KIOSK. While a game runs on the ESP32 the LIVE MIRROR
+//                       of the control panel has priority (live/liveReducer.js,
+//                       screenMode). Otherwise it watches GET
+//                       /api/game-sessions/latest every 2 seconds and shows each
+//                       NEW game for 30 seconds (kioskState.js, unchanged).
+//                       ?demo=1 plays a scripted game in the browser (?auto=1
+//                       loops it), ?debug=1 shows timing for developers.
 //   /result/:sessionId  ONE specific game. No countdown, no auto-return.
 //
-// All kiosk rules (baseline, countdown, pause, dismiss) live in the pure
-// reducer kioskState.js; this file only sends events and draws the state.
-//
 // Look: a tent-red stage with marquee bulbs; the result "prints" as a paper
-// prize ticket. Sized to be read from about 2 metres on a 1080p TV.
+// paper ticket. Sized to be read from about 2 metres on a 1080p TV.
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 
-import { getLatestSession, getLeaderboard } from "../api"
+import { getLatestSession, getRecentSessions } from "../api"
 import ArcadeButtons from "../components/ArcadeButtons"
 import { Confetti, MarqueeBulbs } from "../components/Decor"
+import LivePanel, { ConnectionChip } from "../components/LivePanel"
 import NicknameForm from "../components/NicknameForm"
 import PlayerName from "../components/PlayerName"
 import ResultCard from "../components/ResultCard"
 import ScoreCounter from "../components/ScoreCounter"
 import StatusMessage from "../components/StatusMessage"
+import { visitorText } from "../content/visitorText"
+import { formatScore } from "../format"
 import {
   INITIAL_KIOSK_STATE,
   POLL_MS,
   RESULT_SECONDS,
   nextKioskState,
 } from "../kioskState"
+import { useDemoGame } from "../live/demoGame"
+import { screenMode } from "../live/liveReducer"
+import { useFirstCueDelay, useLiveClock, usePanelSound, usePanelView } from "../live/usePanel"
+import useLiveGame from "../live/useLiveGame"
 import usePolling from "../usePolling"
 import useSession from "../useSession"
 
 // Typing pauses the countdown. If the player walks away with the keyboard
 // focused, the countdown resumes after this many milliseconds without a key.
 const TYPING_IDLE_MS = 15000
+
+const R = visitorText.result
+const V = visitorText.live
 
 export default function Result() {
   const { sessionId } = useParams()
@@ -48,13 +58,19 @@ export default function Result() {
 // bottom. --notch-bg makes ticket notches show the stage colour.
 // backdrop (optional) is drawn BEHIND the content, e.g. the win confetti:
 // it shows on the red stage around the ticket but never over any text.
-function Stage({ children, backdrop = null }) {
+function Stage({ children, backdrop = null, compact = false }) {
   return (
     <section className="stage relative isolate flex flex-1 flex-col overflow-hidden border-b-[3px] border-ink">
       {backdrop}
       {/* Content is centred vertically, so a short screen (idle) does not
-          leave a dead area under it on a big TV. */}
-      <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-1 flex-col justify-center px-4 py-8 sm:px-8 lg:py-10">
+          leave a dead area under it on a big TV. compact (live panel): top
+          aligned, so the panel never moves when the list beside it changes,
+          and it fits a 1280x720 screen. */}
+      <div
+        className={`relative z-10 mx-auto flex w-full max-w-[1500px] flex-1 flex-col px-4 sm:px-8 ${
+          compact ? "justify-start py-5 lg:py-4" : "justify-center py-8 lg:py-10"
+        }`}
+      >
         <div>{children}</div>
       </div>
       <MarqueeBulbs className="relative z-10" />
@@ -70,7 +86,18 @@ function WinConfetti({ game }) {
 // Kiosk mode
 // ---------------------------------------------------------------------------
 function KioskResult() {
+  const [params] = useSearchParams()
+  const debug = params.get("debug") === "1"
+  if (params.get("demo") === "1") return <DemoScreen auto={params.get("auto") === "1"} debug={debug} />
+  return <LiveKiosk debug={debug} />
+}
+
+function LiveKiosk({ debug }) {
   const [state, dispatch] = useReducer(nextKioskState, INITIAL_KIOSK_STATE)
+  const live = useLiveGame()
+  // screenMode also depends on time (15 s upload wait, 90 s silence).
+  const liveBusy = live.state.phase !== "idle" || live.state.reset !== null
+  const [now] = useLiveClock(live.state, liveBusy ? 1000 : null)
 
   // usePolling skips refreshes while the tab is hidden.
   const latest = usePolling(getLatestSession, POLL_MS)
@@ -99,8 +126,8 @@ function KioskResult() {
     return () => clearInterval(timer)
   }, [state.activeId])
 
-  if (state.activeId === null) {
-    return <IdleScreen connectionLost={Boolean(latest.error)} />
+  if (screenMode(live.state, state.activeId, now) === "mirror") {
+    return <LiveStage state={live.state} connection={live.connection} label={live.label} debug={debug} />
   }
 
   // key: a new game gets a fresh form, fresh rank, fresh everything.
@@ -174,10 +201,10 @@ function KioskActive({ sessionId, secondsLeft, paused, dispatch }) {
 function ResultLoading({ error }) {
   return (
     <div className="flex flex-col items-start gap-6 py-16" role="status">
-      <p className="painted text-5xl text-paint-yellow sm:text-7xl">New result!</p>
-      <ArcadeButtons sequence size="3rem" labelTone="cream" />
+      <p className="painted text-5xl text-paint-yellow sm:text-7xl">{R.newResult}</p>
+      <ArcadeButtons sequence size="3rem" />
       <p className="text-2xl font-extrabold text-cream">
-        {error ? "Still loading the result, retrying..." : "Printing your ticket..."}
+        {error ? R.stillLoading : R.printing}
       </p>
     </div>
   )
@@ -193,7 +220,7 @@ function Countdown({ secondsLeft, paused, onClose }) {
         <div
           className={`fuse-track ${paused ? "fuse-paused" : ""}`}
           role="progressbar"
-          aria-label="Time left on this screen"
+          aria-label={R.timeLeft}
           aria-valuemin={0}
           aria-valuemax={RESULT_SECONDS}
           aria-valuenow={secondsLeft}
@@ -204,8 +231,8 @@ function Countdown({ secondsLeft, paused, onClose }) {
           </div>
         </div>
         <p className="mt-2 text-xl font-extrabold text-cream">
-          Back to the leaderboard in <span className="font-sign">{secondsLeft}</span>s
-          {paused ? <span className="text-cream"> (paused while you type)</span> : null}
+          {R.countdownBefore} <span className="font-sign">{secondsLeft}</span> {R.countdownAfter}
+          {paused ? <span className="text-cream"> {R.paused}</span> : null}
         </p>
       </div>
       <button
@@ -213,85 +240,134 @@ function Countdown({ secondsLeft, paused, onClose }) {
         onClick={onClose}
         className="sign min-h-[52px] rotate-1 bg-ticket px-6 py-2 text-lg text-ink transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
       >
-        Close
+        {visitorText.common.close}
       </button>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Idle screen: waiting for the next game
+// Live mirror: the control panel left, "Last results" right (phones: panel first)
 // ---------------------------------------------------------------------------
-function IdleScreen({ connectionLost }) {
+const SOUND_KEY = "rhythmRushSound"
+
+// Off by default and remembered. Audio starts only after a click on this page.
+function useSoundSetting() {
+  const [on, setOn] = useState(() => {
+    try {
+      return localStorage.getItem(SOUND_KEY) === "on"
+    } catch {
+      return false
+    }
+  })
+  const [clicked, setClicked] = useState(false)
+  useEffect(() => {
+    const unlock = () => setClicked(true)
+    document.addEventListener("pointerdown", unlock, { once: true })
+    return () => document.removeEventListener("pointerdown", unlock)
+  }, [])
+  const toggle = () => {
+    setClicked(true)
+    setOn((value) => {
+      try {
+        localStorage.setItem(SOUND_KEY, value ? "off" : "on")
+      } catch {
+        // Private mode: the setting is just not remembered.
+      }
+      return !value
+    })
+  }
+  return { on, playing: on && clicked, toggle }
+}
+
+function LiveStage({ state, connection, label, debug, demo = null }) {
+  const view = usePanelView(state)
+  const sound = useSoundSetting()
+  usePanelSound(view, sound.playing)
+  const firstCue = useFirstCueDelay(state, view)
+
   return (
-    <Stage>
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-14">
-        <div className="pt-2 lg:pt-8">
-          <h1 className="painted -rotate-2 text-[clamp(3rem,8vw,7.5rem)] leading-[0.95] text-paint-yellow">
-            Step right up!
-          </h1>
-          <p className="mt-6 text-[clamp(1.5rem,2.6vw,2.5rem)] font-extrabold leading-tight text-cream">
-            Waiting for the next player...
-          </p>
-          <p className="mt-2 text-xl text-cream sm:text-2xl">Press Start on the device to play.</p>
-
-          {/* The six buttons light up one after another, like the game. */}
-          <ArcadeButtons
-            sequence
-            size="clamp(2.75rem, 6vw, 5.5rem)"
-            labelTone="cream"
-            labelClassName="text-base sm:text-xl"
-            className="mt-10"
-          />
-
-          {connectionLost ? (
-            <p
-              role="status"
-              className="mt-8 inline-block -rotate-1 border-[3px] border-ink bg-paint-yellow px-4 py-2 text-lg font-extrabold text-ink shadow-hard"
-            >
-              Cannot reach the server. Retrying...
-            </p>
+    <Stage compact>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] lg:gap-10">
+        <div className="relative min-w-0">
+          {/* A sticker on the corner: always in view, adds no height. */}
+          {demo ? (
+            <p className="sign absolute -top-4 left-6 z-20 -rotate-3 bg-paint-yellow px-4 py-0.5 text-xl text-ink">{V.demo}</p>
           ) : null}
+          <LivePanel view={view} interactive={Boolean(demo)} onStart={demo?.start} onReset={demo?.reset} />
+          <p className="sr-only" aria-live="polite">
+            {view.announce ?? ""}
+          </p>
         </div>
 
-        <TopFive />
+        {/* Right column on TV/desktop, under the panel on phones. */}
+        <div className="flex min-w-0 flex-col gap-5">
+          {view.mode === "finished" ? (
+            <p className="painted text-3xl text-paint-yellow sm:text-4xl" role="status">
+              {V.finalScore(formatScore(state.final.final_score))}
+              {demo ? "" : V.saving}
+            </p>
+          ) : null}
+          <p className="text-lg font-extrabold text-cream sm:text-xl">
+            {demo
+              ? V.demoNote
+              : V.note}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {demo ? null : <ConnectionChip connection={connection} label={label} />}
+            <button
+              type="button"
+              aria-pressed={sound.on}
+              onClick={sound.toggle}
+              className="sign min-h-[44px] bg-ticket px-4 py-1.5 text-sm text-ink transition-transform hover:-translate-y-0.5"
+            >
+              <span aria-hidden="true">{sound.on ? "[x] " : "[ ] "}</span>{V.sound}
+            </button>
+          </div>
+          {debug ? (
+            <p className="self-start bg-ink px-3 py-1 font-mono text-sm text-cream">
+              debug: connection {connection}; playback arrival to first lit cue: {firstCue ?? "-"} ms
+            </p>
+          ) : null}
+          <LastResults />
+        </div>
       </div>
     </Stage>
   )
 }
 
-function TopFive() {
-  const { data, error } = usePolling(() => getLeaderboard(5), 10000)
-  const entries = Array.isArray(data?.entries) ? data.entries : []
+function DemoScreen({ auto, debug }) {
+  const demo = useDemoGame({ auto })
+  return <LiveStage state={demo.state} connection="live" label="Live" debug={debug} demo={demo} />
+}
 
-  // Nothing useful to show yet (first load, empty database, or no server).
-  if (entries.length === 0) {
-    return error ? null : (
-      <p className="ticket rotate-2 self-start px-6 py-5 text-xl font-extrabold">
-        Be the first on the leaderboard!
-      </p>
-    )
-  }
+function LastResults() {
+  const { data, error } = usePolling(() => getRecentSessions(5), 10000)
+  const sessions = Array.isArray(data?.sessions) ? data.sessions : []
 
   return (
     <div className="ticket rotate-[1.5deg] px-5 pb-5 pt-4 sm:px-7">
-      <h2 className="font-sign text-2xl text-tent sm:text-3xl">Hall of Fame</h2>
-      <ol className="mt-3">
-        {entries.map((entry) => (
-          <li
-            key={entry.session_id}
-            className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-t-0"
-          >
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="font-sign w-9 shrink-0 text-2xl text-tent lg:text-3xl">{entry.rank}</span>
-              <span className="truncate text-xl font-extrabold sm:text-2xl xl:text-3xl">
-                <PlayerName nickname={entry.nickname} />
-              </span>
-            </span>
-            <ScoreCounter value={entry.final_score} className="shrink-0 text-lg sm:text-xl xl:text-2xl" />
-          </li>
-        ))}
-      </ol>
+      <h2 className="font-sign text-2xl text-tent sm:text-3xl">{V.lastResults}</h2>
+      {sessions.length === 0 ? (
+        <p className="mt-3 text-xl font-extrabold">{error ? V.resultsUnavailable : V.noResults}</p>
+      ) : (
+        <ol className="mt-3">
+          {sessions.map((session) => (
+            <li
+              key={session.session_id}
+              className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-t-0"
+            >
+              <Link
+                to={`/session/${encodeURIComponent(session.session_id)}`}
+                className="min-w-0 truncate text-xl font-extrabold sm:text-2xl xl:text-3xl"
+              >
+                <PlayerName nickname={session.nickname} />
+              </Link>
+              <ScoreCounter value={session.final_score} className="shrink-0 text-lg sm:text-xl xl:text-2xl" />
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   )
 }
@@ -308,9 +384,9 @@ function SingleResult({ sessionId }) {
     return (
       <Stage>
         <div className="ticket ticket-notched max-w-2xl -rotate-1 px-8 py-10 sm:px-12">
-          <h1 className="font-sign text-4xl sm:text-5xl">Game not found</h1>
+          <h1 className="font-sign text-4xl sm:text-5xl">{R.notFoundTitle}</h1>
           <p className="mt-4 text-lg text-muted">
-            There is no game with this id. It may have been removed.
+            {R.notFoundText}
           </p>
           <BackLink />
         </div>
@@ -325,7 +401,7 @@ function SingleResult({ sessionId }) {
           variant="error"
           error={game.error}
           onRetry={game.retry}
-          title="Could not load this game"
+          title={R.loadError}
         />
       </Stage>
     )
@@ -360,10 +436,10 @@ function SingleResult({ sessionId }) {
 function BackLink() {
   return (
     <Link
-      to="/"
+      to="/leaderboard"
       className="sign mt-8 inline-flex min-h-[48px] items-center bg-ticket px-5 py-2 text-base text-ink transition-transform hover:-translate-y-0.5"
     >
-      Back to the leaderboard
+      {visitorText.common.backToLeaderboard}
     </Link>
   )
 }

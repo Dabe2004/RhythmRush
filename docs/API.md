@@ -6,8 +6,7 @@ All bodies are JSON (`Content-Type: application/json`). All errors are JSON of
 the shape `{"error":"code"}` unless noted otherwise.
 
 Device auth is the header `X-API-Key: <device key>`. The database stores only
-the SHA-256 hash of the key, in `devices.api_key_hash`. Admin auth is the
-header `X-Admin-Password: <ADMIN_PASSWORD>` (see "Admin API" below).
+the SHA-256 hash of the key, in `devices.api_key_hash`.
 
 The same server also serves the built website (`frontend/dist`) on every
 non-`/api` path, so `http://<laptop-ip>:3000/` is the leaderboard. Unknown
@@ -28,17 +27,15 @@ pain in PowerShell and is avoided on purpose.
 | `GET` | `/api/health` | none | liveness check |
 | `POST` | `/api/game-sessions` | device key | upload one finished game |
 | `GET` | `/api/game-sessions/latest` | none | newest game (small summary) |
+| `GET` | `/api/game-sessions/recent` | none | newest games (Last results) |
+| `POST` | `/api/live/events` | device key | live events from the device |
+| `GET` | `/api/live/state` | none | live snapshot |
+| `GET` | `/api/live/stream` | none | live events (SSE) |
 | `GET` | `/api/leaderboard` | none | top scores |
 | `GET` | `/api/game-sessions/:id` | none | one session with attempts, features, prediction |
 | `PATCH` | `/api/game-sessions/:id/nickname` | none | set the nickname once |
 | `POST` | `/api/difficulty/next` | device key | ask the model how many steps to add |
-| `GET` | `/api/stats/summary` | none | aggregate numbers for the dashboard |
-| `POST` | `/api/admin/login` | admin password | check the password |
-| `GET` | `/api/admin/overview` | admin password | stats + devices + recent games |
-| `GET` | `/api/admin/models` | admin password | metadata of the 3 model files |
-| `PATCH` | `/api/admin/game-sessions/:id/nickname` | admin password | overwrite or clear a nickname |
-| `DELETE` | `/api/admin/game-sessions/:id` | admin password | delete one game |
-| `DELETE` | `/api/admin/game-sessions?device=ID` | admin password | delete every game of one device |
+| `GET` | `/api/stats/summary` | none | aggregate numbers (games, averages, histogram) |
 
 ---
 
@@ -291,8 +288,11 @@ Request body:
 ```
 
 Rules: trimmed first, then 1-16 characters, only letters, numbers, spaces,
-dashes and underscores (`^[A-Za-z0-9 _-]+$`). A nickname can be set **once**;
-later edits belong to the admin (a later phase).
+dashes and underscores (`^[A-Za-z0-9 _-]+$`), and no word from
+`backend/blocklist.txt` (checked after undoing case, spaces, `-`, `_`, digit
+swaps such as `0`->`o` and repeated letters; see docs/NOTES.md). A blocked
+word gets the same `400 invalid_nickname`. A nickname can be set **once**;
+only `tools/moderate.js clear-nickname` (run on the laptop) can clear it.
 
 Response `200`:
 
@@ -420,212 +420,132 @@ curl.exe -s http://localhost:3000/api/stats/summary
 
 ---
 
-## Admin API
+## GET /api/game-sessions/recent
 
-All admin routes live under `/api/admin` and need the header
-`X-Admin-Password`. It is compared with `ADMIN_PASSWORD` from `backend/.env`
-in constant time (both values are SHA-256 hashed, then
-`crypto.timingSafeEqual`). Every admin answer, errors included, has
-`Cache-Control: no-store`.
+The newest games first (the "Last results" list on `/live`). Public.
 
-Checks, in this order:
-
-| Status | Body | When |
-|---|---|---|
-| `503` | `{"error":"admin_disabled"}` | `ADMIN_PASSWORD` is empty, or still `change-me` while `NODE_ENV=production` |
-| `429` | `{"error":"too_many_requests"}` | more than 10 **wrong** passwords from one IP in 15 minutes |
-| `401` | `{"error":"unauthorized"}` | missing or wrong `X-Admin-Password` |
-
-Only wrong passwords count toward the rate limit, so a dashboard that
-refreshes every 15 seconds is never blocked. Once the limit is reached, even
-the right password gets `429` until the window ends. The numbers can be
-changed with `createApp({adminRateLimit:{limit,windowMs}})` (the tests do
-this). The public routes keep working when the admin API is disabled.
-
-The examples assume the password is in a PowerShell variable, so it is not
-typed into the command history twice:
-
-```powershell
-$pw = Read-Host "Admin password"
-```
-
-### POST /api/admin/login
-
-No body. Lets the UI check a password before it stores it.
+Query: `limit` 1-20 (default 5); anything else is `400 {"error":"invalid_limit"}`.
 
 Response `200`:
 
 ```json
-{ "ok": true }
+{ "sessions": [
+  { "session_id": "RR01-000128", "nickname": null, "final_score": 1290,
+    "highest_level_completed": 5, "outcome": "game_over", "received_at": "2026-11-21 10:04:31" }
+] }
 ```
 
 ```powershell
-curl.exe -s -X POST http://localhost:3000/api/admin/login -H "X-Admin-Password: $pw"
+curl.exe -s "http://localhost:3000/api/game-sessions/recent?limit=5"
 ```
 
-### GET /api/admin/overview
+---
 
-Everything from `GET /api/stats/summary` (same keys, same values) plus:
+## Live game (mirror of the device)
+
+Contract and rules: [`docs/LIVE_PROTOCOL.md`](LIVE_PROTOCOL.md). Live data is
+kept **in memory only** (one state per device, the last 200 messages); the
+final `POST /api/game-sessions` stays the source of truth. The web page is
+display-only: nothing here can control the hardware.
+
+### POST /api/live/events
+
+Device auth (`X-API-Key`, like uploads). Body at most **8 KB**, 1-20 events:
 
 ```json
 {
-  "total_games": 31,
-  "average_score": 6128.4,
-  "...": "every other /api/stats/summary key",
-  "devices": [
-    {
-      "device_id": "RR01",
-      "name": "Rhythm Rush test device",
-      "last_seen_at": "2026-11-21 09:14:02",
-      "games_count": 1,
-      "is_online": false
-    },
-    {
-      "device_id": "SIM01",
-      "name": "Simulated device",
-      "last_seen_at": "2026-11-21 09:30:45",
-      "games_count": 30,
-      "is_online": true
-    }
-  ],
-  "game_counts": { "real": 1, "synthetic": 30 },
-  "recent_sessions": [
-    {
-      "session_id": "SIM01-301245001",
-      "device_id": "SIM01",
-      "final_score": 8120,
-      "nickname": null,
-      "received_at": "2026-11-21 09:30:45"
-    }
+  "device_id": "RR01",
+  "game_id": "RR01-L-000128",
+  "events": [
+    { "type": "control_pressed", "t_ms": 0, "control": "start" },
+    { "type": "countdown_started", "t_ms": 4, "seconds": 3, "step_ms": 1000 }
   ]
 }
 ```
 
-* `devices[].is_online` is `true` when `last_seen_at` is within the last
-  **10 minutes**. `last_seen_at` is updated by a new upload and by
-  `POST /api/difficulty/next` (the ESP32 calls it between levels). A device
-  that sits idle for 10 minutes shows as offline. Times are UTC
-  (SQLite `CURRENT_TIMESTAMP`).
-* `devices` never contains the API key hash.
-* `game_counts.synthetic` counts games from device `SIM01` (the fake
-  uploader) or with `is_synthetic = 1`; everything else is `real`.
-* `recent_sessions` is the newest 20 games, newest first.
+Event types and fields: see LIVE_PROTOCOL.md. Limits: sequence 1-17 buttons
+of 1-6, level 1-15, lives 0-3, countdown seconds 1-5, step_ms 500-1500.
+
+| Status | Body | When |
+|---|---|---|
+| `202` | `{"accepted": 2}` | applied events (ignored ones, e.g. a press during the countdown or a batch for an **older** `game_id`, are not counted) |
+| `400` | `{"error":"invalid_body"}` / `{"error":"invalid_json"}` | anything outside the contract |
+| `401` | `{"error":"unauthorized"}` | missing or wrong key |
+| `403` | `{"error":"device_mismatch"}` | `device_id` is not the key's device |
+| `413` | `{"error":"payload_too_large"}` | body over 8 KB |
+| `429` | `{"error":"too_many_requests"}` | per-device rate limit (default 600 requests/minute) |
+
+A new `game_id` switches the device to the new game. 90 s without events: the
+game is abandoned (state idle, an `abandoned` message is broadcast).
+
+PowerShell (save the body as a file first, then send it as-is):
 
 ```powershell
-curl.exe -s http://localhost:3000/api/admin/overview -H "X-Admin-Password: $pw"
+@'
+{"device_id":"SIM01","game_id":"SIM01-L-TEST1","events":[
+ {"type":"control_pressed","t_ms":0,"control":"start"},
+ {"type":"countdown_started","t_ms":5,"seconds":3,"step_ms":1000}]}
+'@ | Set-Content -Encoding ascii live.json
+curl.exe -s -X POST http://localhost:3000/api/live/events -H "Content-Type: application/json" -H "X-API-Key: dev-sim01-key" --data-binary "@live.json"
 ```
 
-### GET /api/admin/models
+### GET /api/live/state
 
-Metadata of the three files in `backend/artifacts`. The animal reference rows
-are **never** returned, only how many there are.
+Public. `Cache-Control: no-store`. `{"active": false, "now": ...}` when no
+device is in a game, else the newest device's state:
 
 ```json
-{
-  "models": [
-    {
-      "name": "difficulty",
-      "file": "difficulty.json",
-      "size_bytes": 193,
-      "modified_at": "2026-11-19T13:26:00.000Z",
-      "version": 1,
-      "intercept": -0.665421,
-      "weights": { "accuracy": 1.25104, "reactionRatio": -0.939677, "level": 0.121498 }
-    },
-    {
-      "name": "skill",
-      "file": "skill.json",
-      "size_bytes": 1510,
-      "modified_at": "2026-11-19T13:26:00.000Z",
-      "version": 1,
-      "features": ["final_score", "avg_reaction_sec", "highest_sequence_length", "success_rate"],
-      "node_count": 15
-    },
-    {
-      "name": "animal",
-      "file": "animal.json",
-      "size_bytes": 339504,
-      "modified_at": "2026-11-19T13:26:00.000Z",
-      "version": 1,
-      "features": ["final_score", "avg_reaction_sec", "highest_sequence_length", "success_rate"],
-      "reference_rows": 2000,
-      "tiers": [
-        { "percentile_min": 0.9, "animal": "Chimpanzee", "iq_range": "90-100" }
-      ]
-    }
-  ]
-}
+{ "active": true, "now": 1795262029228, "state": {
+  "device_id": "RR01", "game_id": "RR01-L-000128", "phase": "input",
+  "level": 3, "attempt": 1, "lives": 2, "score": 420,
+  "sequence": { "sequence": [5,1,6,3,4], "level": 3, "attempt": 1, "cue_ms": 500, "gap_ms": 200, "startedAt": 1795262020000 },
+  "input": { "expected_length": 5, "deadline_ms": 2600, "done": 2, "startedAt": 1795262024000 },
+  "lastPress": { "index": 1, "button": 1, "expected": 1, "ok": true, "at": 1795262028000 },
+  "countdown": null, "lastControl": { "control": "start", "at": 1795262010000 },
+  "lastResult": null, "final": null, "resetAt": null, "abandoned": false, "lastEventAt": 1795262028000 } }
 ```
 
-A missing file becomes `{"name":"skill","file":"skill.json","error":"missing"}`
-and unreadable JSON `{"...","error":"invalid_json"}`; the request still
-answers `200`. The server loads the models **once** on first use, so after
-retraining, restart the server to use the new files.
+`phase` is `countdown`, `watch` (also between attempts, with `lastResult`),
+`input` or `result_pending` (after `game_finished`). Times are server clock
+ms; compare them only with `now`.
 
 ```powershell
-curl.exe -s http://localhost:3000/api/admin/models -H "X-Admin-Password: $pw"
+curl.exe -s http://localhost:3000/api/live/state
 ```
 
-### PATCH /api/admin/game-sessions/:id/nickname
+### GET /api/live/stream (Server-Sent Events)
 
-Moderator version of the nickname route: it can **overwrite** an existing
-nickname or **clear** it with `null`. A string must follow the public rule
-(trimmed, 1-16 characters, letters, numbers, spaces, `-`, `_`).
+Public. Headers `Content-Type: text/event-stream`, `Cache-Control: no-cache`,
+`Connection: keep-alive`, `X-Accel-Buffering: no`; no compression. The
+stream starts with `retry: 2000`, then a snapshot, then every accepted event:
 
-```json
-{ "nickname": "Polite Name" }
+```
+retry: 2000
+
+id: 41
+event: snapshot
+data: {"active":true,"now":...,"state":{...}}
+
+id: 42
+event: live
+data: {"event":{"type":"press","t_ms":6120,"index":1,"button":4,"expected":4,"ok":true,"device_id":"RR01","game_id":"RR01-L-000128","receivedAt":1795262028000},"state":{...},"now":1795262028001}
+
+: ping
 ```
 
-```json
-{ "nickname": null }
-```
-
-Response `200`: `{"saved":true,"nickname":"Polite Name"}` or
-`{"saved":true,"nickname":null}`. After clearing, the player can set a new
-nickname on the public route again.
-
-Errors: `400 {"error":"invalid_nickname"}`, `404 {"error":"not_found"}`.
+- `: ping` every 15 s keeps proxies from closing the connection.
+- Reconnecting with `Last-Event-ID: 41` replays the missed messages from a
+  ring buffer of 200; if they are too old (or the server restarted) it sends a
+  fresh snapshot instead.
+- At most `LIVE_MAX_CLIENTS` (default 100) streams; more get
+  `503 {"error":"too_many_clients"}`.
 
 ```powershell
-Set-Content -Path clear.json -Value '{"nickname":null}' -Encoding ascii
-curl.exe -s -X PATCH http://localhost:3000/api/admin/game-sessions/RR01-000127/nickname `
-  -H "X-Admin-Password: $pw" -H "Content-Type: application/json" `
-  --data-binary "@clear.json"
+curl.exe -s -N http://localhost:3000/api/live/stream
 ```
 
-### DELETE /api/admin/game-sessions/:id
-
-Deletes one game. `ON DELETE CASCADE` also removes its attempts, features and
-prediction.
-
-Response `200`: `{"deleted":1,"session_id":"RR01-000127"}`.
-Errors: `404 {"error":"not_found"}` (also for a second delete).
-
-```powershell
-curl.exe -s -X DELETE http://localhost:3000/api/admin/game-sessions/SIM01-301245001 `
-  -H "X-Admin-Password: $pw"
-```
-
-### DELETE /api/admin/game-sessions?device=ID
-
-Deletes every game of one device (with cascade) and resets that device's
-`last_seen_at`, in one transaction. The device must be named explicitly.
-`SIM01` (the fake uploader) needs nothing else; **any other device, such as
-the real `RR01`, also needs `confirm=<same id>`**, so real games are never
-removed by a slip.
-
-| Request | Result |
-|---|---|
-| `?device=SIM01` | `200 {"deleted":30,"device_id":"SIM01"}` |
-| `?device=RR01` | `400 {"error":"confirm_required"}`, nothing deleted |
-| `?device=RR01&confirm=RR01` | `200 {"deleted":1,"device_id":"RR01"}` |
-| no `device`, empty, or repeated | `400 {"error":"device_required"}` |
-| unknown device | `404 {"error":"device_not_found"}` |
-
-```powershell
-curl.exe -s -X DELETE "http://localhost:3000/api/admin/game-sessions?device=SIM01" `
-  -H "X-Admin-Password: $pw"
-```
+Simulated device: `node tools/fake_live_game.js --help` (see "Testing without
+hardware").
 
 ---
 
@@ -649,6 +569,9 @@ node ../tools/fake_esp32.js --count 5 --delay 300 --url http://localhost:3100
 
 # show all options (count, url, key, device, delay, seed, duplicate)
 node ../tools/fake_esp32.js --help
+
+# a live game in real time (watch /live): see all options with --help
+node ../tools/fake_live_game.js --skill average --speed 2
 
 # remove only the fake games: dry run first, then for real
 node ../tools/clear_fake.js
@@ -675,7 +598,7 @@ A replayed game keeps almost the same features as its synthetic original, so its
 | `401` | `{"error":"unauthorized"}` | missing or wrong `X-API-Key` |
 | `404` | `{"error":"not_found"}` | unknown route or unknown session |
 | `413` | `{"error":"payload_too_large"}` | body over 100 kb |
-| `429` | `{"error":"too_many_requests"}` | nickname route, or too many wrong admin passwords |
-| `503` | `{"error":"admin_disabled"}` | admin routes only: unsafe `ADMIN_PASSWORD` |
+| `429` | `{"error":"too_many_requests"}` | rate limit of the nickname or live route |
+| `503` | `{"error":"too_many_clients"}` | more live streams than `LIVE_MAX_CLIENTS` |
 | `400` | `{"error":"bad_request"}` | a malformed URL, e.g. a broken `%` escape in a session id |
 | `500` | `{"error":"server_error"}` | unexpected server error (details are logged, never returned) |

@@ -2,7 +2,7 @@
 
 React + Vite (JavaScript, Tailwind CSS v4, Recharts). Pages: the public
 leaderboard (Phase J1), the live result / kiosk screen (Phase J2), and the
-session detail and admin pages (Phase K).
+session detail page (Phase K).
 
 ## How to run
 
@@ -57,21 +57,26 @@ folder is part of the project.
 
 | Route | Page | Status |
 |---|---|---|
-| `/` | Leaderboard | built (J1) |
-| `/result` | Live result screen, kiosk mode | built (J2) |
+| `/` | Opens the live game (redirects to `/live`) | built |
+| `/leaderboard` | Leaderboard (Top 10) | built (J1) |
+| `/how-to-play` | "How to play" brochure (prints with a QR code) | built |
+| `/live` | Live game: mirror of the device + kiosk result reveal | built |
+| `/result` | Same page as `/live` (old name, still works) | built (J2) |
+| `/live?demo=1` | Scripted demo game in the browser (`&auto=1` loops) | built |
 | `/result/:sessionId` | Result of one specific game | built (J2) |
 | `/session/:id` | Session detail with chart | built (K) |
-| `/admin` | Admin dashboard (password) | built (K) |
 | anything else | "Page not found" with a link back | built |
 
-The header shows **Leaderboard** (`/`) and **Live screen** (`/result`); the
-link of the current page is highlighted. The admin page is never linked.
+The header shows **Live game** (`/live`, also lit on `/result`),
+**Leaderboard** (`/leaderboard`) and **How to play** (`/how-to-play`); the link
+of the current page is highlighted. The site opens on the live game. A
+"Skip to the main content" link comes first for keyboard users. While a game runs, a
+**LIVE** sign next to the brand links to `/live`.
 
 ### Leaderboard: Top 10
 
 - Polls `GET /api/leaderboard?limit=10` every 10 seconds (`usePolling`).
-  The kiosk top 5 (`limit=5`) and the result page's rank lookup
-  (`limit=100`) are separate and unchanged.
+  The result page's rank lookup (`limit=100`) is separate and unchanged.
 - **Title:** a "Top 10" sign, the time of the last refresh, and a subtitle
   across the remaining width: 10 entries -> "The 10 best scores so far. Tap
   a ticket to see how the game went."; fewer -> "All N scores so far. Tap a
@@ -93,7 +98,7 @@ link of the current page is highlighted. The admin page is never linked.
   phones), 72 px animal.
 - **List = ranks 4-10**: slim tickets, one line when the list is at least
   600 px wide (container query), else two lines. Each row: rank stub, name +
-  level, small skill stamp, prize tag (44 px animal, name, IQ), score.
+  level, small skill stamp, animal tag (44 px animal, name, IQ), score.
 - **Ties** keep their shared number (RANK()) and are never hidden or merged:
   a tie at rank 2 shows two "2" tickets on the podium in API order; a tie for
   first shows two Champion tickets.
@@ -102,7 +107,7 @@ link of the current page is highlighted. The admin page is never linked.
   remounts or moves them.
 - Names: the nickname, or "Mystery Player" (dark `#3a3448`, 11.4:1, but
   regular weight and smaller than a real name).
-- Games without an ML prediction show "-" for skill and "No prize".
+- Games without an ML prediction show "-" for skill and "No animal yet".
 - A failed refresh keeps the old tickets (slightly faded) and lays an
   **"Out of order"** sign over the board (no layout shift), with Retry.
 - A one-time slide-in when the tickets first appear (1.5 s window), off
@@ -125,19 +130,20 @@ itself: `/result` polls `GET /api/game-sessions/latest` every 2 seconds.
 - **New game.** A different id is shown for 30 seconds, then the screen goes
   back to the idle screen by itself. A newer game replaces the one on screen
   and restarts the 30 seconds. A game older than the baseline (the newest
-  game was deleted on the admin page) is never shown.
+  game was deleted with `tools/moderate.js`) is never shown.
 - **Countdown.** A burning **fuse** (rope that shortens), "Back to the
   leaderboard in Ns" and a **Close** sign, placed at the top so they stay
   visible on a TV without scrolling. The countdown does not run while the
   browser tab is hidden.
-- **Result content.** On the red stage a paper **prize ticket** slides in:
+- **Result content.** On the red stage a paper **result ticket** slides in:
   "GAME OVER" or "YOU WIN!" on a painted sign, the score as a giant
   mechanical counter, "Level N reached" (the level of the last attempt), the
-  skill as a big stamp, "Rank #N" from the top 100 with a ribbon for the
-  podium ("Outside the top 100" otherwise, hidden if that request fails),
-  and the animal as **the prize**: "You played like a(n) <Animal>! IQ <n>"
+  rank as a big stamp with a "?" link, "Place #N" from the top 100 with a
+  ribbon for the podium ("Outside the top 100" otherwise, hidden if that
+  request fails), and the animal with a "?" link: "You played like a(n)
+  <Animal>!" and "Fun IQ number <n>"
   with its illustration and "Just for fun, not a real IQ test.". A game
-  without a prediction shows "Fun result not available for this game". A
+  without a prediction shows "No animal yet for this game". A
   **win** drops CSS confetti once: it falls on the stage **behind** the ticket
   and the countdown text (never over text) and is gone within 4 s.
 - **Nickname.** "Sign the guest book", only when the game has no nickname:
@@ -148,20 +154,139 @@ itself: `/result` polls `GET /api/game-sessions/latest` every 2 seconds.
   nickname.", 400 "That nickname isn't allowed. Use letters, numbers, spaces,
   - or _.", 429 "Too many tries. Wait a minute.", anything else "Could not
   save. Try again.". Success shows "Saved! You are <nickname>".
-- **Idle screen.** A tent-red stage with "STEP RIGHT UP!", "Waiting for the
-  next player...", the **six game buttons lighting up one after another**
-  with their notes (C4 D4 E4 F4 G4 A4), and a "Hall of Fame" ticket with the
-  top 5 (refreshed every 10 seconds). The stage fills the screen on a TV.
+- **Idle screen.** The live panel in idle: "PRESS START / TO PLAY" on the LCD,
+  the six buttons chasing in colour order, and a "Last results" ticket with
+  the 5 newest games (`GET /api/game-sessions/recent`, every 10 seconds). See
+  "Live game mirror" below.
 - **`/result/:sessionId`** shows the same result block for one game, with no
   countdown and no automatic return; an unknown id shows "Game not found".
 
 All kiosk rules live in the pure reducer `src/kioskState.js` and are unit
 tested in `src/kioskState.test.js`; the page only sends events to it.
 
+### Live game mirror (`/live`, also `/result`)
+
+While a game runs on the ESP32, `/live` shows a copy of the real control
+panel (contract: `docs/LIVE_PROTOCOL.md`): START | LCD | RESET on top, the six
+buttons in two rows of three, a speaker grille. It is **display-only**: the
+web cannot control the hardware ("Mirror of the device. Play on the game
+console.").
+
+- **One state machine.** idle (attract) -> countdown -> watch/input ->
+  finished ("Final score N, saving...") -> the existing kiosk result reveal
+  (`kioskState.js`, unchanged). `screenMode()` decides: the mirror wins while
+  a game runs; after `game_finished` it waits until the latest-session poll
+  shows that `session_id`, then the result reveal takes over (fallback: idle
+  after 15 s). `game_reset` restarts the mirror; 90 s of silence = idle.
+- **One stream per tab.** `LiveProvider` (App.jsx) opens ONE `EventSource`
+  for the whole tab (`live/useLiveGame.js`); the header and the leaderboard
+  read the same state. EventSource reconnects by itself; after 3 failures it
+  polls `GET /api/live/state` every 2 s and retries the stream every 20 s. A
+  tab hidden for 30 s closes the stream and reopens it (fresh snapshot) when
+  shown again.
+- **Timing on the browser clock.** One `playback_started` event carries the
+  whole sequence; `live/timeline.js` turns it into on/off times and the panel
+  replays it. If the event arrives later than the whole playback lasts, the
+  replay is skipped (WATCH only); a replay is never sped up, a duplicate never
+  replays. The UI never computes score, lives or deadlines.
+- **No per-frame renders.** `panelView(state, now)` (pure) says what is lit,
+  what the LCD shows and when the next change is (`nextAt`); the component
+  re-renders only at that moment and toggles CSS classes. Animations are
+  transform/opacity only; prefers-reduced-motion switches states without
+  movement; the attract loop pauses in a hidden tab.
+- **Header.** "Live game" (`/live`; `/result` still works and highlights it)
+  and, while a game runs, a pulsing bulb + **LIVE** that links to `/live`. It
+  keeps its place when hidden, so the header never jumps. The leaderboard
+  shows a slim "A game is in progress. Watch live" banner.
+- **Status:** connection chip "Live" / "Reconnecting..." / "Device offline"
+  (stream and fallback both failing); "Play sounds on this screen" (off by
+  default, remembered, WebAudio C4-A4 only after a click); an `aria-live`
+  region announces phase changes only (Get ready, Go, Watch, Your turn, Game
+  over).
+- **Demo:** `/live?demo=1` plays a scripted game in the browser (no server):
+  START and RESET are real, keyboard-accessible buttons; a DEMO sticker is
+  always visible. `?auto=1` loops it for an unattended screen. `?debug=1`
+  shows the connection and the time from a playback event's arrival to the
+  first lit button.
+- **Sizes:** LCD text >= 32 px and button labels >= 34 px on a 1920x1080 TV;
+  the whole panel fits a 1280x720 screen; phones stack the LCD over
+  RESET/START when one row does not fit; 44 px minimum targets.
+
+### How to play (`/how-to-play`)
+
+A folded paper brochure for visitors: 7 numbered panels (Step right up, How
+to play, Lives and time, Scoring, Your rank, Your animal, Good to know) and a
+closed "What does this mean?" list. Desktop: three columns that flow like a
+tri-fold leaflet; tablet: two; phone: one, with a sticky mini contents (Play,
+Score, Rank, Animal) that jumps to the panels (smooth, instant with reduced
+motion; focus moves to the panel). English / Filipino toggle on this page
+only (remembered in localStorage; the Filipino text needs review by a native
+speaker and falls back to English for a missing key). No popup anywhere.
+
+- **Numbers are never typed by hand.** `vite.config.js` serves
+  `virtual:game-facts`, built by `frontend/gameFacts.mjs` from
+  `docs/game_rules.json` (run `python ml/export_rules.py` after a rule
+  change) and `backend/artifacts/skill.json` + `animal.json`: lives, levels,
+  points per level, bonus maximum, time limits, the worked example (from the
+  real bonus table), the animal groups and fun IQ ranges, and the rank speed
+  ranges (given only when the model's answer depends on speed alone).
+- **"?" links** ("How is the rank decided?", "How is the animal decided?",
+  44 px tap area) sit next to the rank stamp and the animal on the result
+  ticket and the game page; on the leaderboard once in the title row (each
+  ticket is a link, and a link inside a link is invalid HTML). The TV screen
+  `/live` shows none while it waits or mirrors a game. A "? How to play" link
+  is in every footer.
+- **Print** (one "Print this page" button, `window.print()`): one portrait A4
+  page (`@page { size: A4 portrait; margin: 12mm; }`; turn "Headers and
+  footers" OFF in the print dialog), black ink on white, two flowing columns,
+  no header/footer/contents/buttons/glossary. Body 11pt, panel titles 13pt,
+  page title 18pt. The "Good to know" dots are a thick black border, so they
+  print solid black even with "Background graphics" off. At the bottom, a
+  boxed section: "Join the booth Wi-Fi first", then "Wi-Fi: <name>" from
+  `VITE_WIFI_NAME` or a write-in line "Wi-Fi: ____________", then the QR code
+  (40 mm with its white quiet zone) with "Scan to open on your phone" (14pt)
+  and the address under it (12pt).
+  The QR code exists ONLY on paper: it is in the page but `.print-only` hides
+  it on screen. It encodes `<address>/how-to-play`, where the address is
+  `VITE_PUBLIC_URL` (build-time) or the page's own address unless that is
+  localhost / 127.0.0.1 / ::1; otherwise the paper says "Ask the staff for the
+  game address". `VITE_WIFI_PASSWORD` is printed (on paper, for anyone to
+  read) only if it is set together with `VITE_WIFI_NAME`. Encoder: `lean-qr/nano`
+  (~4 kB, high error correction, no network). Open the page at the LAN address
+  before printing, never at localhost.
+
+### Visitor text (wording rules)
+
+Every word a visitor reads lives in `src/content/visitorText.js` (labels,
+messages, chips) or `src/content/howToPlay.js` (the brochure). Rules, checked
+by `src/content/howToPlay.test.js`:
+
+- sentences of at most 20 words (aim for 15), everyday words, active voice;
+- no abbreviations ("seconds", never "s" or "sec"); "IQ" only as "fun IQ
+  number", next to "Just for fun, not a real IQ test.";
+- banned words (whole word, any case, English AND Filipino strings):
+  sequence, playback, input, phase, reaction time, response time, deadline,
+  timeout, accuracy, success rate, percentile, tier, nearest neighbor,
+  similarity, matcher, decision tree, classifier, model, algorithm, AI,
+  machine learning, synthetic, trained, latency, reconnecting, offline,
+  mirror, kiosk, session, prediction, threshold, feature, data, API,
+  backend, prize, ML, UI, LCD (list: `src/content/wordingRules.js`);
+- brochure panels at most 70 words (the animal table's names and numbers
+  are not counted) and an English Flesch reading ease of at least 70.
+
+**Adding visitor text safely:** add the string to `visitorText.js` (or the
+brochure file, in BOTH `en` and `fil`), import it in the component, run
+`npm test`. A banned word, a long sentence or an abbreviation fails the test.
+Code, comments, docs and developer tools (`/live?debug=1`) may keep technical
+words. Known exception: the panel's 20 x 4 display copies the game console's
+own text ("WATCH SEQUENCE", "SAME SEQUENCE AGAIN", see
+`docs/LIVE_PROTOCOL.md`); changing it needs the firmware owner, so it is not
+in `visitorText.js`.
+
 ### Session detail (Phase K)
 
 `/session/:id`, opened by clicking a leaderboard row (the name is a real link
-for keyboard users) or a game id on the admin page.
+for keyboard users).
 
 - Header ticket: outcome sign, nickname (or "Mystery Player"), game id, device, local
   time, and the score.
@@ -185,36 +310,8 @@ separation, normal-vision separation, >= 3:1 contrast). Classic green/red was
 tested first and **failed** for red-green colour blindness (deutan
 difference 4.1, minimum 6), so it was not used.
 
-### Admin (Phase K)
-
-`/admin` is **not linked** anywhere; type the URL. It talks to the admin API
-(`docs/API.md`, "Admin API").
-
-- **Login.** The password is checked with `POST /api/admin/login`, then kept
-  **only in `sessionStorage`** (forgotten when the tab closes) and sent as
-  `X-Admin-Password`. Log out, or any `401`, removes it and shows the login
-  form again. Wrong password, too many tries (429) and "admin disabled" (503)
-  each have their own message.
-- **Overview** cards: total games, average score (+ best), win rate, real vs
-  simulated games.
-- **Charts:** games per 1,000-point score range, games per skill level, games
-  per animal. One colour each (single series), values on hover / at the bar
-  tip.
-- **Devices:** id, name, Online/Offline badge (seen in the last 10 minutes),
-  last seen ("5 min ago", exact time on hover), number of games.
-- **Recent games** (newest 20): links to the session page, **Clear nickname**
-  (only when there is one) and **Delete**, both behind a confirm dialog. One
-  action at a time; errors are shown in a banner.
-- **Remove simulated games:** deletes every `SIM01` game, enabled only after
-  typing `SIM01` exactly. Real devices are never touched.
-- **Models:** version, size and date of the three files in
-  `backend/artifacts`, plus a short summary (tree nodes, reference games and
-  animal tiers, difficulty formula).
-- Everything refreshes every **15 seconds**; a failed refresh keeps the old
-  data and shows a banner with Retry.
-
-The session and admin pages are loaded with `React.lazy`, so Recharts (about
-420 kB, 120 kB gzipped) is only downloaded when one of them is opened.
+The session page is loaded with `React.lazy`, so Recharts (about 420 kB,
+120 kB gzipped) is only downloaded when it is opened.
 
 ## Design
 
@@ -231,7 +328,7 @@ the critique of the three iteration passes are in
   `ok`, plus `font-sign` (Bungee) and `font-body` (Nunito) and the hard
   shadows `shadow-hard-sm`/`shadow-hard`/`shadow-hard-lg`.
 - **Shapes** (`.ticket`, `.ticket-notched`, `.sign`, `.painted`, `.stamp`,
-  `.counter`, `.prize-tag`, `.awning`, `.bulb-rail`, `.arcade-btn`,
+  `.counter`, `.animal-tag`, `.awning`, `.bulb-rail`, `.arcade-btn`,
   `.stage`, `.fuse-*`, `.confetti`) are in `@layer components`, so a Tailwind
   utility on the same element always wins.
 - **Fonts** come from `@fontsource/bungee` and `@fontsource/nunito` (latin,
@@ -243,7 +340,7 @@ the critique of the three iteration passes are in
   `main.jsx`) and stops under `prefers-reduced-motion: reduce`.
 - **Animals** are original inline SVG components in
   `src/components/animals/` (each under 1 kB, `role="img"` + `aria-label`);
-  unknown animals get a prize-ticket drawing. No emoji anywhere.
+  unknown animals get a blank-ticket drawing. No emoji anywhere.
 - **Charts** keep their validated result colours; axes, grid and tooltips
   follow the theme (ink axis line, beige hairline grid, Bungee numbers,
   ticket-style tooltips).
@@ -258,10 +355,13 @@ the critique of the three iteration passes are in
 | main JS (`index-*.js`) | 287.64 kB (90.44 kB gzip) | 297.75 kB (93.57 kB gzip) | 302.81 kB (94.51 kB gzip) |
 | CSS | 40.87 kB (7.62 kB gzip) | 36.62 kB (8.18 kB gzip) | 37.92 kB (8.53 kB gzip) |
 | SessionDetail chunk | 7.14 kB | 7.92 kB | 7.88 kB |
-| Admin chunk | 18.17 kB | 17.22 kB | 17.22 kB |
 | Charts chunk (Recharts) | 419.83 kB | 420.25 kB | 420.25 kB |
 | Fonts (woff2, the browser downloads only these) | - | 14.3 + 16.3 + 16.5 kB | same |
 | Images | none | none (all SVG inline; paper grain is a 353-byte data URI) | none |
+
+After the admin removal and the live mirror: main JS **322.52 kB (101.22 kB
+gzip)**, CSS **41.86 kB (9.78 kB gzip)**, SessionDetail chunk with Recharts
+**425.31 kB (121.13 kB gzip)**; no admin chunk.
 
 ## Top 10 checklist (0 / 3 / 10 / tie)
 
@@ -302,7 +402,7 @@ twice (the same game twice = the same score):
       "2"; the list starts at rank 4.
 - [ ] **No prediction.** Insert or upload a game without a prediction (for
       example the pre-Phase-G `RR01-000127`): its ticket shows "-" and
-      "No prize" and nothing breaks.
+      "No animal yet" and nothing breaks.
 - [ ] **Phone (360-390 px).** One column, podium first; list rows use two
       lines; nothing sticks out of a ticket; no sideways scroll.
 - [ ] **Hierarchy.** From across the room, the Champion ticket is the first
@@ -318,13 +418,14 @@ Afterwards stop the server and delete `backend/data/ui_test.db*`.
 Run the backend and frontend, then check:
 
 - [ ] **Normal load.** Open `http://localhost:5173/`. Tickets appear, and
-      "Updated HH:MM:SS" advances at least once after 10 seconds.
+      "Updated 8:27:05 PM" (Philippine time, 12-hour clock) advances at least
+      once after 10 seconds.
 - [ ] **Rank styling.** With at least three games, ranks 1-3 are on the
       podium with gold, silver and bronze ribbons; ranks 4-10 are list rows
       with a "No. N" stub. Two equal scores show the same rank number and the
       next rank skips (1, 2, 2, 4).
 - [ ] **No prediction.** A game uploaded before Phase G (for example
-      `RR01-000127`) still appears, with "-" for skill and "No prize".
+      `RR01-000127`) still appears, with "-" for skill and "No animal yet".
 - [ ] **Loading state.** In DevTools, set Network to "Slow 3G" and reload.
       The six buttons light up in sequence with "Loading the scores..."
       before the tickets appear.
@@ -350,7 +451,7 @@ Run the backend and frontend, then check:
       `.woff2` files; nothing goes to Google or a CDN.
 - [ ] **Narrow phone width.** In DevTools, switch to a 360-390 px-wide
       device. Each ticket stacks (rank and name, tear line, score, level,
-      stamp, prize tag); nothing overflows sideways.
+      stamp, animal tag); nothing overflows sideways.
 - [ ] **Nickname escaping.** The nickname endpoint only accepts letters,
       numbers, spaces, dashes, and underscores, so `<` and `>` are rejected by
       the API by design. To prove the UI would render them safely, put one
@@ -385,9 +486,9 @@ open `http://localhost:5173/result`. In a third terminal, from `/backend`,
 upload one game with `node ../tools/fake_esp32.js --count 1 --seed 1`
 (another `--seed` gives another game).
 
-- [ ] **Empty database.** The red stage shows "Step right up!", "Waiting
-      for the next player...", the six buttons lighting up one after another
-      (C4 ... A4) and "Be the first on the leaderboard!".
+- [ ] **Empty database.** The live panel shows "PRESS START / TO PLAY", the
+      six buttons chase one after another, and "Last results" says "No games
+      yet. Be the first!".
 - [ ] **TV.** On the 1080p display in full screen (F11), the idle stage and a
       result fill the screen without scrolling; read the score, level, rank,
       skill and animal from 2 m away.
@@ -405,7 +506,7 @@ upload one game with `node ../tools/fake_esp32.js --count 1 --seed 1`
 - [ ] **Validation.** Type `<script>` and press Save: "Use only letters,
       numbers, spaces, - or _." and nothing is sent (DevTools Network tab).
 - [ ] **Save.** Type `Ana_Maria-2` and Save: "Saved! You are Ana_Maria-2";
-      the name appears on the leaderboard and in the top 5.
+      the name appears on the leaderboard and in Last results.
 - [ ] **Double click.** Double-click Save quickly on a new game: the Network
       tab shows exactly one PATCH.
 - [ ] **409.** Open `/result/<id>` of a game without a nickname in two tabs,
@@ -422,17 +523,15 @@ upload one game with `node ../tools/fake_esp32.js --count 1 --seed 1`
 - [ ] **One game page.** `/result/<id>` has no countdown, no automatic
       return, and a "Back to the leaderboard" link. `/result/NOPE` shows "Game
       not found".
-- [ ] **Header.** "Live screen" is highlighted on `/result` and
-      `/result/<id>`, "Leaderboard" on `/`. There is no admin link.
+- [ ] **Header.** "Live game" is highlighted on `/live`, `/result` and
+      `/result/<id>`, "Leaderboard" on `/`.
 - [ ] **Phone width.** At 390 px wide nothing scrolls sideways.
 
 Delete the test database afterwards (`backend/data/result_check.db*`).
 
-## Session and admin checklist
+## Session page checklist
 
-Same test database as above. Start the backend with a known admin password
-for the test, e.g. `$env:ADMIN_PASSWORD = "test-admin-1"` before
-`node src/server.js`, and upload some games with the fake ESP32.
+Same test database as above; upload some games with the fake ESP32.
 
 - [ ] **Row click.** On `/`, click a row (not the name): the session page
       opens. Tab to a name and press Enter: same page.
@@ -445,24 +544,8 @@ for the test, e.g. `$env:ADMIN_PASSWORD = "test-admin-1"` before
 - [ ] **No prediction.** A game without a prediction shows "Not available"
       for the skill and "Fun result not available for this game".
 - [ ] **404.** `/session/NOPE` shows "Game not found".
-- [ ] **No admin link.** The header shows only Leaderboard and Live screen.
-- [ ] **Login.** `/admin` with a wrong password: "Wrong password.". With the
-      right one: the dashboard. DevTools > Application: the password is in
-      Session Storage, nothing in Local Storage or cookies.
-- [ ] **Lockout.** Enter a wrong password 10 times: the next try says "Too many
-      wrong passwords...". (Restart the server to reset it.)
-- [ ] **Auto refresh.** Upload a game; within 15 seconds it appears in Recent
-      games and the counts change. Stop the backend: the old data stays and a
-      red banner appears.
-- [ ] **Clear nickname / Delete.** Cancel the confirm dialog: nothing
-      changes. Accept: the success banner appears and the list updates.
-- [ ] **Remove simulated games.** The button stays disabled until `SIM01` is
-      typed exactly. Afterwards SIM01 shows 0 games and RR01 games remain.
-- [ ] **Logout / 401.** Log out: back to the login form, Session Storage is
-      empty. Log in, then restart the backend with another ADMIN_PASSWORD:
-      within 15 seconds the page returns to the login form with a notice.
-- [ ] **Phone width.** Tables scroll sideways inside their box; the page
-      itself never does.
+- [ ] **Phone width.** The attempts table scrolls sideways inside its box;
+      the page itself never does.
 
 ## Files
 
@@ -473,16 +556,16 @@ for the test, e.g. `$env:ADMIN_PASSWORD = "test-admin-1"` before
 | `src/index.css` | design tokens (`@theme`), paper grain, focus ring, carnival shapes, motion rules |
 | `src/theme.js` | six button colours + notes, stamp and ribbon colours |
 | `src/components/SkillBadge.jsx` | skill as a rubber stamp, "-" when missing |
-| `src/components/AnimalTag.jsx` | prize tag: animal drawing + name + IQ |
+| `src/components/AnimalTag.jsx` | animal tag: animal drawing + name + IQ |
 | `src/components/StatusMessage.jsx` | loading (buttons) / "Out of order" / closed booth |
 | `src/components/ArcadeButtons.jsx` | the six game buttons with notes, still or in sequence |
 | `src/components/Decor.jsx` | marquee bulbs, awning scallops, bunting, confetti (decorative) |
 | `src/components/ScoreCounter.jsx` | mechanical counter digits (plain number for screen readers) |
-| `src/components/RankBadge.jsx` | prize ribbon for rank 1-3, numbered stub otherwise |
+| `src/components/RankBadge.jsx` | place ribbon for rank 1-3, numbered stub otherwise |
 | `src/components/LevelSign.jsx` | "Level N" sign (`small` for tight cards) |
 | `src/components/PlayerName.jsx` | nickname, or the dark-but-secondary "Mystery Player" |
 | `src/leaderboard.js` | Top 10 helpers: `LEADERBOARD_LIMIT`, subtitle text, podium/list split (tested) |
-| `src/components/animals/` | Chimpanzee, Bottlenose Dolphin, Elephant, Orangutan, Pig, PrizeTicket SVGs + `AnimalIcon` |
+| `src/components/animals/` | Chimpanzee, Bottlenose Dolphin, Elephant, Orangutan, Pig, MysteryTicket SVGs + `AnimalIcon` |
 | `src/pages/Leaderboard.jsx` | leaderboard page |
 | `src/pages/Result.jsx` | live result screen (kiosk) and one-game result |
 | `src/kioskState.js` | pure kiosk reducer: baseline, countdown, pause, dismiss |
@@ -492,10 +575,22 @@ for the test, e.g. `$env:ADMIN_PASSWORD = "test-admin-1"` before
 | `src/components/ResultCard.jsx` | the big result block, shared by both result modes |
 | `src/components/NicknameForm.jsx` | nickname form, validation, no double submit |
 | `src/pages/SessionDetail.jsx` | one game: facts, ML results, chart, attempts table (lazy) |
-| `src/pages/Admin.jsx` | admin login and dashboard (lazy) |
-| `src/components/Charts.jsx` | Recharts charts: attempts, score histogram, count bars |
+| `src/components/Charts.jsx` | Recharts chart of the attempts (session page) |
 | `src/chartData.js` | game-rule mirror (deadline), result colours, chart-row mapping |
-| `src/adminAuth.js` | admin password in sessionStorage; admin error messages |
 | `src/*.test.js` | vitest unit tests for the pure helpers (`npm test`) |
-| `src/App.jsx` | header, routes, footer |
+| `src/App.jsx` | header (LIVE sign, 3 nav signs), routes (`/` opens `/live`), footer, `LiveProvider` |
+| `src/content/visitorText.js` | every visitor string outside the brochure (wording rules) |
+| `src/content/howToPlay.js` | brochure text, English + Filipino, numbers from `virtual:game-facts` |
+| `src/content/wordingRules.js` | banned words, sentence and reading-ease checks (tests only) |
+| `frontend/gameFacts.mjs` | build-time facts from the rule and model files |
+| `src/pages/HowToPlay.jsx` | the brochure page (lazy) |
+| `src/components/HelpLink.jsx`, `PrintQr.jsx` | "?" sign; print-only QR |
+| `src/printQr.js` | QR address rule and encoding |
+| `src/live/liveReducer.js` | live state, `panelView`, `screenMode`, connection status (pure, tested) |
+| `src/live/timeline.js` | sequence and countdown timelines (pure, tested) |
+| `src/live/useLiveGame.js` | the one EventSource per tab, polling fallback, hidden-tab close |
+| `src/live/usePanel.js` | panel clock (renders only at boundaries), reduced motion, sound, debug timing |
+| `src/live/demoGame.js` | `?demo=1` scripted game and its START/RESET |
+| `src/components/LivePanel.jsx` | the control panel and the connection chip |
+| `src/components/LiveIndicator.jsx` | header LIVE sign and leaderboard banner |
 | `src/main.jsx` | BrowserRouter + React root |

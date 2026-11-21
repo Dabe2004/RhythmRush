@@ -396,6 +396,4 @@ module.exports = {
   animalForPercentile,
   iqForPercentile,
   resetCache,
-  // Folder of the JSON artifacts (used by GET /api/admin/models).
-  artifactsDir,
 };

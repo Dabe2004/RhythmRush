@@ -41,6 +41,22 @@ POINTS_PER_LEVEL = 100
 # Used when a finished game has no passed attempts.
 DEFAULT_AVG_REACTION_SEC = 3.0
 
+# ---------------------------------------------------------------------------
+# Hardware timing (ESP32 panel; also drives the live web mirror and the fake
+# live device through docs/game_rules.json, written by ml/export_rules.py)
+# ---------------------------------------------------------------------------
+BUTTON_NOTES = {1: "C4", 2: "D4", 3: "E4", 4: "F4", 5: "G4", 6: "A4"}
+CUE_MS = 500             # one cue: LED ring lit + tone
+CUE_GAP_MS = 200         # dark gap after each cue
+COUNTDOWN_SECONDS = 3    # 3-2-1 before every NEW game (not retries/levels)
+COUNTDOWN_STEP_MS = 1000
+GO_MS = 600              # "GO!" before the first sequence
+GET_READY_MS = 350       # optional pause before every playback
+RETRY_PAUSE_MS = 1000    # "SAME SEQUENCE AGAIN" before a retry
+NEXT_LEVEL_PAUSE_MS = 1000   # "NICE!" before the next level
+RESTART_MS = 500         # "RESTARTING..." / "PLAY AGAIN!" after RESET
+RESET_HOLD_MS = 1000     # RESET must be held this long during a game
+
 
 # ---------------------------------------------------------------------------
 # Game formulas
