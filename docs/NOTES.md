@@ -727,6 +727,32 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
    WebAudio beeps were removed (November 2026): the box's buzzer is the only
    sound, and a TV beeping a little later than the box sounded like an echo.
 
+### Practice players recalibrated to the first real games (November 2026)
+
+**Problem:** almost every real game got the Pig. Real players on the box
+press fast (about 0.25-0.4 s per button) but forget long patterns: the first
+10 real games all ended in game over at levels 1-5 (scores 0-1,713, median
+about 730). The simulated players were slow (about 0.8 s) and almost never
+wrong, so 74 % of them won with about 3,000 points, and every real score
+landed in the bottom 30 % of the reference games = Pig.
+
+**Fix** (`ml/simulate_games.py`, `make_player`): faster presses
+(`press_mean = 0.60 - 0.40 x skill`) and a **memory span** (about 3-6
+buttons): presses inside it are almost always right, presses past it are
+often wrong (`p_beyond = 0.35 + 0.35 x skill`); more lapses. New reference
+set (seed 42, 2,000 games): 6.3 % wins, median 1,166, p25 722, p75 1,712;
+pass rate per level 0.96, 0.84, 0.64, 0.48, 0.36, 0.27, 0.19. Real scores now
+spread: 390 -> Pig, 728 -> Orangutan, 1,172 -> Elephant, 1,713 -> Dolphin,
+2,500+ -> Chimpanzee. Retrained: skill tree accuracy 70.50 %, difficulty R2
+0.7170 / MAE 0.2624, `check_exports.py` all checks passed. The saved real
+games were re-scored with the new models (backup
+`backend/data/rhythm.before-rescore.db`). The skill tree is no longer
+speed-only, so the brochure's rank stamps use plain words.
+
+**Still a stopgap:** 10 real games are too few to train on. Once the booth
+has a few hundred real games, retrain on them ("How to retrain with real
+data") instead of on simulated players.
+
 ### Firmware rules: matched to RhythmRushGame.h (November 2026)
 
 The team shared the box's real firmware (`RhythmRushGame.h`,

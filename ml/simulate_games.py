@@ -94,8 +94,8 @@ HIDDEN_PLAYER_COLUMNS = [
 # press_mean is the simulator's latent speed (seconds per press). The label
 # file reports a 0..1 speed score, so these bounds convert the existing
 # press_mean value. No extra random numbers are drawn for this.
-PRESS_MEAN_FASTEST = 0.45
-PRESS_MEAN_SLOWEST = 1.15
+PRESS_MEAN_FASTEST = 0.18
+PRESS_MEAN_SLOWEST = 0.62
 
 
 def make_player(rng: np.random.Generator) -> dict:
@@ -122,14 +122,23 @@ def make_player(rng: np.random.Generator) -> dict:
     else:
         skill = rng.uniform(0.65, 0.99)
 
-    # Better players press faster and make fewer mistakes.
-    press_mean = 1.04 - 0.48 * skill + rng.normal(0.0, 0.03)
-    press_sd = 0.20
-    p_correct = 0.932 + 0.064 * skill
+    # Calibrated on the first real games on the box (November 2026): real
+    # players press fast (about 0.25-0.4 s per button) but forget the pattern
+    # once it is longer than they can hold. Nobody won the first 10 games;
+    # most ended at levels 3-5 (sequences of 5-7 buttons).
+    press_mean = 0.60 - 0.40 * skill + rng.normal(0.0, 0.03)
+    press_sd = 0.10
+
+    # Memory span: how many buttons the player recalls reliably (about 3-6).
+    # Presses inside it are almost always right; beyond it, often wrong.
+    span = 2.6 + 3.0 * skill + rng.normal(0.0, 0.5)
+    p_correct = 0.975 + 0.02 * skill      # inside the span
+    p_beyond = 0.35 + 0.35 * skill         # past the span
 
     # Everyone has an occasional "brain lapse" (a slow press). Beginners have
-    # a few more lapses. This is what creates realistic timeouts.
-    lapse_prob = 0.008 + 0.012 * (1.0 - skill)
+    # a few more lapses. With the box's shrinking time limit this creates the
+    # realistic timeouts.
+    lapse_prob = 0.03 + 0.04 * (1.0 - skill)
 
     # Higher = faster. This uses press_mean, which is already part of the
     # simulator's hidden player values; no new random draw is made.
@@ -149,6 +158,8 @@ def make_player(rng: np.random.Generator) -> dict:
         "press_mean": float(press_mean),
         "press_sd": float(press_sd),
         "p_correct": float(p_correct),
+        "p_beyond": float(p_beyond),
+        "span": float(span),
         "lapse_prob": float(lapse_prob),
     }
 
@@ -178,8 +189,9 @@ def simulate_attempt(rng: np.random.Generator, level: int, player: dict, deadlin
         press_times[lapses] += rng.normal(0.80, 0.20, size=int(lapses.sum()))
     press_times = np.clip(press_times, 0.12, None)
 
-    # Was each button press the correct button?
-    correct = rng.random(seq_len) < player["p_correct"]
+    # Was each button press the correct button? Harder past the memory span.
+    p_each = np.where(np.arange(seq_len) < player["span"], player["p_correct"], player["p_beyond"])
+    correct = rng.random(seq_len) < p_each
 
     elapsed = 0.0
     presses_correct = 0

@@ -265,6 +265,18 @@ function chase(view, from, now, reducedMotion) {
   view.nextAt = Math.min(view.nextAt, from + (Math.floor(t / BLINK_MS) + 1) * BLINK_MS)
 }
 
+// The result in big letters over the panel (like the countdown numbers) for
+// as long as the box shows it: "Correct!", "Wrong sequence!", "Game Over!"...
+// tone "good" or "bad" only changes the colour; the words carry the meaning.
+function message(view, text, tone, from, now) {
+  if (now - from >= RESULT_MS) return
+  view.overlay = text
+  view.overlayKey = `msg|${from}|${text}`
+  view.overlayTone = tone
+  view.announce = text
+  view.nextAt = Math.min(view.nextAt, from + RESULT_MS)
+}
+
 // Idle: the box's LEDs are dark; the LCD invites the next player.
 function idleView(state) {
   const view = base(state, "idle", [TITLE, "7 Levels / 3 Lives", "Press START to play", "START again = reset"])
@@ -375,10 +387,12 @@ function viewFor(state, now, reducedMotion) {
           `Score: ${n(state.score)}`,
           state.level < LEVELS ? `Next: Level ${state.level + 1}` : `All ${LEVELS} levels clear!`,
         ])
+        message(view, "Correct!", "good", r.at, now)
       } else if (state.lives === 0) {
         // The last life: the box goes straight to GAME OVER (LEDs blink 1.2 s).
         view = base(state, "result", gameOverRows(state.score))
         blink(view, r.at, now, 10 * BLINK_MS, reducedMotion)
+        message(view, "Game Over!", "bad", r.at, now)
       } else {
         view = base(state, "result", [
           r.result === "timeout" ? "    Time is up!" : "  Wrong sequence!",
@@ -387,6 +401,7 @@ function viewFor(state, now, reducedMotion) {
           `Retrying Level ${n(state.level)}`,
         ])
         blink(view, r.at, now, RESULT_MS, reducedMotion)
+        message(view, r.result === "timeout" ? "Time is up!" : "Wrong sequence!", "bad", r.at, now)
       }
       const press = state.lastPress
       if (press && !press.ok && now - press.at < PRESS_MS) {
@@ -402,9 +417,15 @@ function viewFor(state, now, reducedMotion) {
       const view = win
         ? base(state, "finished", ["      YOU WIN!", `${LEVELS} levels completed`, `Points: ${final.final_score}`, "Press START to play"])
         : base(state, "finished", gameOverRows(final.final_score))
-      if (win) chase(view, final.at, now, reducedMotion)
-      else blink(view, state.lastResult?.at ?? final.at, now, 10 * BLINK_MS, reducedMotion)
       view.announce = win ? "You win" : "Game over"
+      if (win) {
+        chase(view, final.at, now, reducedMotion)
+        message(view, "You Win!", "good", final.at, now)
+      } else {
+        // Same key as in the result phase: the message does not pop twice.
+        blink(view, state.lastResult?.at ?? final.at, now, 10 * BLINK_MS, reducedMotion)
+        message(view, "Game Over!", "bad", state.lastResult?.at ?? final.at, now)
+      }
       view.nextAt = Math.min(view.nextAt, final.at + HANDOVER_MS + 1)
       return view
     }

@@ -10,58 +10,58 @@
     {
       "id": 0,
       "feature": 1,
-      "threshold": 0.820499986410141,
+      "threshold": 0.4465000033378601,
       "left": 1,
       "right": 8
     },
     {
       "id": 1,
-      "feature": 0,
-      "threshold": 3042.5,
+      "feature": 1,
+      "threshold": 0.3135000020265579,
       "left": 2,
       "right": 5
     },
     {
       "id": 2,
-      "feature": 1,
-      "threshold": 0.7514999806880951,
+      "feature": 0,
+      "threshold": 1716.5,
       "left": 3,
       "right": 4
     },
     {
       "id": 3,
-      "leaf": "Intermediate"
+      "leaf": "Pro"
     },
     {
       "id": 4,
-      "leaf": "Intermediate"
+      "leaf": "Pro"
     },
     {
       "id": 5,
-      "feature": 1,
-      "threshold": 0.6304999887943268,
+      "feature": 0,
+      "threshold": 1705.5,
       "left": 6,
       "right": 7
     },
     {
       "id": 6,
-      "leaf": "Pro"
+      "leaf": "Intermediate"
     },
     {
       "id": 7,
-      "leaf": "Pro"
+      "leaf": "Intermediate"
     },
     {
       "id": 8,
-      "feature": 1,
-      "threshold": 0.9105000197887421,
+      "feature": 0,
+      "threshold": 721.5,
       "left": 9,
       "right": 12
     },
     {
       "id": 9,
       "feature": 1,
-      "threshold": 0.87049999833107,
+      "threshold": 0.5175000131130219,
       "left": 10,
       "right": 11
     },
@@ -76,13 +76,13 @@
     {
       "id": 12,
       "feature": 1,
-      "threshold": 0.9305000007152557,
+      "threshold": 0.5844999849796295,
       "left": 13,
       "right": 14
     },
     {
       "id": 13,
-      "leaf": "Beginner"
+      "leaf": "Intermediate"
     },
     {
       "id": 14,

@@ -95,7 +95,10 @@ export default function LivePanel({ view, interactive = false, onStart }) {
 
       {view.overlay ? (
         <div className="rr-overlay" aria-hidden="true">
-          <span key={view.overlayKey} className={view.overlay.length > 3 ? "is-word" : undefined}>
+          <span
+            key={view.overlayKey}
+            className={view.overlayTone ? `is-message is-${view.overlayTone}` : view.overlay.length > 3 ? "is-word" : undefined}
+          >
             {view.overlay}
           </span>
         </div>

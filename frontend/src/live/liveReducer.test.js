@@ -251,6 +251,31 @@ describe("panelView: RESET (START pressed during a game)", () => {
   })
 })
 
+describe("panelView: result messages over the panel", () => {
+  it("Correct!, Wrong sequence! and Time is up! show for 2 s, like the box's result screen", () => {
+    const pass = play([[7100, e.result()]], inGame())
+    expect(panelView(pass, 7100)).toMatchObject({ overlay: "Correct!", overlayTone: "good", announce: "Correct!" })
+    expect(panelView(pass, 9099).overlay).toBe("Correct!")
+    expect(panelView(pass, 9100).overlay).toBeNull()
+    expect(panelView(pass, 7100).nextAt).toBe(9100)
+    const wrong = play([[7100, e.result("wrong", 2, 0, 0, 0)]], inGame())
+    expect(panelView(wrong, 7200)).toMatchObject({ overlay: "Wrong sequence!", overlayTone: "bad" })
+    const late = play([[7100, e.result("timeout", 2, 0, 0, 0)]], inGame())
+    expect(panelView(late, 7200).overlay).toBe("Time is up!")
+  })
+
+  it("Game Over! pops once (last result, then game_finished); a win says You Win!", () => {
+    const last = play([[7100, e.result("wrong", 0, 0, 0, 0)]], inGame())
+    const first = panelView(last, 7200)
+    expect(first).toMatchObject({ overlay: "Game Over!", overlayTone: "bad" })
+    const over = play([[7300, e.finished()]], last)
+    expect(panelView(over, 7400).overlayKey).toBe(first.overlayKey) // same key: no second pop
+    expect(panelView(over, 9200).overlay).toBeNull()
+    const win = play([[7000, { ...e.finished("win"), final_score: 3078 }]], inGame())
+    expect(panelView(win, 7000)).toMatchObject({ overlay: "You Win!", overlayTone: "good" })
+  })
+})
+
 describe("panelView: LEDs after a result, like the box", () => {
   it("a fail blinks all six LEDs every 120 ms for 2 s; reduced motion keeps them dark", () => {
     const s = play([[6000, e.press(0, 6, false)], [6010, e.result("wrong", 2, 0, 0, 0)]], inGame())

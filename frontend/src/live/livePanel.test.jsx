@@ -40,6 +40,11 @@ describe("LivePanel", () => {
     expect(html).toContain("rr-start is-down")
   })
 
+  it("draws a result message with its tone class", () => {
+    const html = renderToStaticMarkup(<LivePanel view={{ ...idleView, overlay: "Wrong sequence!", overlayKey: "m", overlayTone: "bad" }} />)
+    expect(html).toContain('<span class="is-message is-bad">Wrong sequence!</span>')
+  })
+
   it("demo mode has one real, focusable START button with a name", () => {
     const html = renderToStaticMarkup(<LivePanel view={idleView} interactive onStart={() => {}} />)
     expect(html.match(/<button type="button"/g)).toHaveLength(1)

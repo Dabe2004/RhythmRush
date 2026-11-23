@@ -982,6 +982,25 @@ button.rr-start:active,
   font-size: clamp(48px, min(17cqi, 15vh), 150px);
 }
 
+/* Results ("Correct!", "Wrong sequence!", "Game Over!"): long words, so
+   smaller still; they may wrap. Green or red ink on white (both >= 6:1);
+   the words, not the colour, say what happened. */
+.rr-overlay span.is-message {
+  max-width: 92%;
+  font-size: clamp(32px, min(10cqi, 9vh), 110px);
+  padding: 0.15em 0.4em;
+}
+
+.rr-overlay span.is-good {
+  border-color: #1e6b3c;
+  color: #1e6b3c;
+}
+
+.rr-overlay span.is-bad {
+  border-color: #a3201a;
+  color: #a3201a;
+}
+
 @keyframes rr-pop {
   from {
     opacity: 0;
