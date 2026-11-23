@@ -1,33 +1,14 @@
 // frontend/src/live/usePanel.js
 // React glue for the live panel: a clock that only ticks at timeline
-// boundaries (no per-frame renders), reduced motion, sound and the debug
-// timing. The drawing itself is components/LivePanel.jsx.
+// boundaries (no per-frame renders), reduced motion and the debug timing.
+// The drawing itself is components/LivePanel.jsx. The web page makes no
+// sound: the box's buzzer is the only sound.
 
 import { useEffect, useRef, useState } from "react"
 
 import { panelView } from "./liveReducer"
 
-const NOTE_HZ = { 1: 262, 2: 294, 3: 330, 4: 349, 5: 392, 6: 440 }
 const REDUCED = "(prefers-reduced-motion: reduce)"
-let audio = null
-
-// Short WebAudio beep. Only called after the user turned sound on (a click).
-function playTone(hz, ms) {
-  try {
-    audio ??= new AudioContext()
-    const osc = audio.createOscillator()
-    const gain = audio.createGain()
-    const end = audio.currentTime + ms / 1000
-    osc.frequency.value = hz
-    gain.gain.setValueAtTime(0.18, audio.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.0001, end)
-    osc.connect(gain).connect(audio.destination)
-    osc.start()
-    osc.stop(end)
-  } catch {
-    // No audio here: the hardware plays sound anyway.
-  }
-}
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.(REDUCED).matches))
@@ -77,18 +58,6 @@ export function usePanelView(state) {
   }, [setClock])
 
   return view
-}
-
-// Tones that follow the view: cue/press notes, a tick per number, higher GO.
-export function usePanelSound(view, enabled) {
-  const lit = view.litKind === "cue" || view.litKind === "press" ? view.lit[0] : null
-  const { overlay, overlayKey } = view
-  useEffect(() => {
-    if (enabled && lit) playTone(NOTE_HZ[lit], 260)
-  }, [enabled, lit])
-  useEffect(() => {
-    if (enabled && overlay) playTone(overlay === "GO!" ? 988 : 660, overlay === "GO!" ? 300 : 120)
-  }, [enabled, overlay, overlayKey])
 }
 
 // Debug (?debug=1): ms from the playback event's arrival to the first lit cue.

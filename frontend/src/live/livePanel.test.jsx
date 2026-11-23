@@ -1,6 +1,6 @@
 // frontend/src/live/livePanel.test.jsx
 // Static rendering checks (react-dom/server, no browser needed): the panel is
-// display-only in live mode and has real START/RESET buttons in demo mode;
+// display-only in live mode and has a real START button in demo mode;
 // the header LIVE indicator and the connection chip; the demo script.
 
 import { renderToStaticMarkup } from "react-dom/server"
@@ -8,6 +8,7 @@ import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
 import LivePanel, { ConnectionChip } from "../components/LivePanel"
+import PlayerName from "../components/PlayerName"
 import { LiveBannerView, LiveIndicatorView } from "../components/LiveIndicator"
 import { demoScript } from "./demoGame"
 import { INITIAL_LIVE, liveReducer, panelView } from "./liveReducer"
@@ -15,23 +16,34 @@ import { INITIAL_LIVE, liveReducer, panelView } from "./liveReducer"
 const idleView = panelView({ ...INITIAL_LIVE }, 0)
 
 describe("LivePanel", () => {
-  it("mirror mode is display-only: no buttons, controls hidden from assistive tech", () => {
+  it("mirror mode copies the box: START left, LCD, buzzer right, an LED over each button, no RESET", () => {
     const html = renderToStaticMarkup(<LivePanel view={idleView} />)
     expect(html).not.toContain("<button")
-    expect(html).toContain('class="rr-pill rr-pill-reset ')
-    expect(html).toMatch(/<span[^>]*rr-pill-start[^>]*aria-hidden="true"/)
+    expect(html).toMatch(/<span[^>]*rr-start[^>]*aria-hidden="true"/)
     expect(html).toContain("PRESS START")
-    expect(html).toContain(">Red<") // colour names only, no notes
-    expect(html.indexOf("rr-pill-start")).toBeLessThan(html.indexOf("rr-pill-reset")) // START left, RESET right
-    expect(html).toContain(">Purple<")
-    expect(html).not.toMatch(/\b[A-G]4\b/)
+    expect(html).not.toContain("reset")
+    expect(html.indexOf("rr-start")).toBeLessThan(html.indexOf("rr-lcd"))
+    expect(html.indexOf("rr-lcd")).toBeLessThan(html.indexOf("rr-buzzer"))
+    expect(html.match(/class="rr-led/g)).toHaveLength(6)
+    expect(html).toContain("--c:#e2412f") // button 1 is red, as on the box
+    expect(html).not.toMatch(/\b[A-G]4\b/) // no note names
   })
 
-  it("demo mode has real, focusable START and RESET buttons", () => {
-    const html = renderToStaticMarkup(<LivePanel view={idleView} interactive onStart={() => {}} onReset={() => {}} />)
-    expect(html.match(/<button type="button"/g)).toHaveLength(2)
-    expect(html).toMatch(/<button[^>]*rr-pill-reset[^>]*>Reset<\/button>/)
-    expect(html).toMatch(/<button[^>]*rr-pill-start[^>]*>Start<\/button>/)
+  it("a lit button lights the LED above it, not the button", () => {
+    const html = renderToStaticMarkup(<LivePanel view={{ ...idleView, lit: [3] }} />)
+    expect(html.match(/rr-led is-lit/g)).toHaveLength(1)
+    expect(html).not.toContain("rr-btn is-lit")
+  })
+
+  it("a RESET from the device (START held) animates START", () => {
+    const html = renderToStaticMarkup(<LivePanel view={{ ...idleView, control: { control: "reset", key: 1 } }} />)
+    expect(html).toContain("rr-start is-down")
+  })
+
+  it("demo mode has one real, focusable START button with a name", () => {
+    const html = renderToStaticMarkup(<LivePanel view={idleView} interactive onStart={() => {}} />)
+    expect(html.match(/<button type="button"/g)).toHaveLength(1)
+    expect(html).toMatch(/<button[^>]*rr-start[^>]*aria-label="Start"/)
   })
 
   it("draws the countdown numeral, dimmed buttons and spent lives", () => {
@@ -76,9 +88,9 @@ describe("ConnectionChip", () => {
 })
 
 describe("demoScript", () => {
-  it("is a whole game the reducer accepts: countdown first, game over at the end", () => {
+  it("is a whole game the reducer accepts: game first, GO and BEGIN countdowns, game over at the end", () => {
     const script = demoScript("DEMO-1")
-    expect(script[0].event.type).toBe("countdown_started")
+    expect(script[0].event.type).toBe("game_started")
     let state = INITIAL_LIVE
     const phases = []
     for (const { at, event } of script) {
@@ -86,7 +98,18 @@ describe("demoScript", () => {
       phases.push(state.phase)
     }
     expect(state.phase).toBe("finished")
-    expect(phases.filter((p) => p === "countdown")).toHaveLength(1) // retries never count down
+    const counts = script.filter((s) => s.event.type === "countdown_started").map((s) => s.event.then)
+    const playbacks = script.filter((s) => s.event.type === "playback_started")
+    expect(counts).toEqual(playbacks.flatMap(() => ["watch", "input"])) // two per attempt, retries too
+    expect(playbacks[1].event.sequence).not.toEqual(playbacks[2].event.sequence) // a fail brings a new pattern
     expect(script.map((s) => s.at)).toEqual([...script.map((s) => s.at)].sort((a, b) => a - b))
+  })
+})
+
+describe("PlayerName", () => {
+  it("shows the nickname, or Player #N (the game's number) when there is none", () => {
+    expect(renderToStaticMarkup(<PlayerName nickname="Ana" number={3} />)).toBe("Ana")
+    expect(renderToStaticMarkup(<PlayerName nickname={null} number={3} />)).toBe('<span class="player-number">Player #3</span>')
+    expect(renderToStaticMarkup(<PlayerName nickname={null} number={null} />)).toContain(">Player<")
   })
 })

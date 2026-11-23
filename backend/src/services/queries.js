@@ -20,6 +20,7 @@ function getLeaderboard(db, limit) {
         RANK() OVER (ORDER BY g.final_score DESC) AS rank,
         g.session_id,
         g.nickname,
+        g.player_number,
         g.final_score,
         g.highest_level_completed,
         g.outcome,
@@ -47,8 +48,8 @@ function getLeaderboard(db, limit) {
 function getRecentSessions(db, limit) {
   return db
     .prepare(`
-      SELECT session_id, nickname, final_score, highest_level_completed,
-             outcome, received_at
+      SELECT session_id, nickname, player_number, final_score,
+             highest_level_completed, outcome, received_at
       FROM game_sessions
       ORDER BY received_at DESC, rowid DESC
       LIMIT ?

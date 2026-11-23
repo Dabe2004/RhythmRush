@@ -1,50 +1,42 @@
 // frontend/src/components/LivePanel.jsx
-// The live mirror of the hardware control panel (copies the real panel, not
-// the carnival look): START | LCD | RESET on top, six round buttons in two
-// rows, a speaker grille. It draws a panelView (live/liveReducer.js); timing
-// lives there, so this file only toggles CSS classes. Animations are
-// transform/opacity only and stop for prefers-reduced-motion.
+// The live mirror of the real game box top (copies the box, not the carnival
+// look): pink START | blue LCD | buzzer on top, then six arcade buttons in
+// two rows with a green LED above each. The buttons cannot light up, so the
+// LED above a button lights instead, as on the box. The box has no RESET
+// button: a RESET from the device (START held) animates START. It draws a
+// panelView (live/liveReducer.js); timing lives there, so this file only
+// toggles CSS classes. Animations are transform/opacity only and stop for
+// prefers-reduced-motion.
 //
 // interactive = false (live mirror): nothing here is a control, because the
-// web cannot control the hardware. interactive = true (demo): START and RESET
-// are real buttons.
+// web cannot control the hardware. interactive = true (demo): START is a real
+// button.
 
 import { visitorText } from "../content/visitorText"
 import { ARCADE_COLORS } from "../theme"
 
 const V = visitorText.live
 
-function Pill({ kind, label, view, interactive, onPress }) {
-  const down = view.control?.control === kind
-  const className = `rr-pill rr-pill-${kind} ${down ? "is-down" : ""}`
+function StartButton({ view, interactive, onPress }) {
+  const down = Boolean(view.control)
+  const className = `rr-start ${down ? "is-down" : ""}`
+  const key = down ? view.control.key : "still"
   if (interactive) {
-    return (
-      <button key={down ? view.control.key : kind} type="button" className={className} onClick={onPress}>
-        {label}
-      </button>
-    )
+    return <button key={key} type="button" className={className} aria-label={V.start} onClick={onPress} />
   }
-  return (
-    <span key={down ? view.control.key : kind} className={className} aria-hidden="true">
-      {label}
-    </span>
-  )
+  return <span key={key} className={className} aria-hidden="true" />
 }
 
 function GameButton({ number, view }) {
-  const color = ARCADE_COLORS[number - 1]
   const lit = view.lit.includes(number)
   const press = view.press?.button === number ? view.press : null
-  const classes = ["rr-btn", `rr-btn-${number}`, lit ? "is-lit" : "", press ? "is-pressed" : "", press && !press.ok ? "is-wrong" : ""]
+  const classes = ["rr-btn", press ? "is-pressed" : "", press && !press.ok ? "is-wrong" : ""]
   return (
-    <div className="rr-btn-wrap">
+    <div className="rr-btn-wrap" style={{ "--c": ARCADE_COLORS[number - 1].hex }}>
+      <span className={`rr-led ${lit ? "is-lit" : ""}`} />
       <div key={press ? press.key : "still"} className={classes.join(" ")}>
-        <span className="rr-btn-num">{number}</span>
         {press ? <span className="rr-ripple" /> : null}
       </div>
-      <span className="rr-btn-label">
-        {color.name}
-      </span>
     </div>
   )
 }
@@ -64,11 +56,11 @@ function Lives({ lives }) {
   )
 }
 
-export default function LivePanel({ view, interactive = false, onStart, onReset }) {
+export default function LivePanel({ view, interactive = false, onStart }) {
   return (
     <div className={`rr-panel ${view.dim ? "rr-dim" : ""}`}>
       <div className="rr-top">
-        <Pill kind="start" label={V.start} view={view} interactive={interactive} onPress={onStart} />
+        <StartButton view={view} interactive={interactive} onPress={onStart} />
         <div className="rr-lcd-wrap">
           <div className="rr-lcd-box">
             <div className="rr-lcd" aria-label={V.screen}>
@@ -92,7 +84,7 @@ export default function LivePanel({ view, interactive = false, onStart, onReset 
             {view.fuse ? <span key={view.fuse.key} style={{ animationDuration: `${view.fuse.ms}ms` }} /> : null}
           </div>
         </div>
-        <Pill kind="reset" label={V.reset} view={view} interactive={interactive} onPress={onReset} />
+        <span className="rr-buzzer" aria-hidden="true" />
       </div>
 
       <div className="rr-grid" aria-hidden="true">
@@ -101,15 +93,11 @@ export default function LivePanel({ view, interactive = false, onStart, onReset 
         ))}
       </div>
 
-      <div className="rr-speaker" aria-hidden="true">
-        {Array.from({ length: 21 }, (_, i) => (
-          <span key={i} />
-        ))}
-      </div>
-
       {view.overlay ? (
         <div className="rr-overlay" aria-hidden="true">
-          <span key={view.overlayKey}>{view.overlay}</span>
+          <span key={view.overlayKey} className={view.overlay.length > 3 ? "is-word" : undefined}>
+            {view.overlay}
+          </span>
         </div>
       ) : null}
     </div>

@@ -167,10 +167,10 @@ def main() -> None:
 
     # Show that the helper produces the final 0/1/2 decisions.
     examples = [
-        ("fast and accurate", 0.95, 0.40, 12),
-        ("average player", 0.80, 0.80, 8),
+        ("fast and accurate", 0.95, 0.40, 6),
+        ("average player", 0.80, 0.80, 4),
         ("struggling player", 0.40, 1.30, 4),
-        ("slow but accurate", 0.95, 1.20, 12),
+        ("slow but accurate", 0.95, 1.20, 6),
         ("fast but sloppy", 0.40, 0.40, 6),
     ]
 

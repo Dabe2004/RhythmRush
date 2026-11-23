@@ -32,7 +32,7 @@ beforeAll(() => {
 const ev = {
   start: () => ({ type: "control_pressed", t_ms: 0, control: "start" }),
   reset: () => ({ type: "control_pressed", t_ms: 0, control: "reset" }),
-  countdown: () => ({ type: "countdown_started", t_ms: 0, seconds: 3, step_ms: 1000 }),
+  countdown: (then = "watch", level = 1) => ({ type: "countdown_started", t_ms: 0, seconds: 3, step_ms: 1000, then, level }),
   game: () => ({ type: "game_started", t_ms: 3000, lives: 3, level: 1 }),
   playback: (level = 1, attempt = 1, sequence = [1, 4, 2]) => ({
     type: "playback_started", t_ms: 3600, level, attempt, sequence, cue_ms: 500, gap_ms: 200,
@@ -56,15 +56,20 @@ function run(events, state = emptyState("RR01", "G1"), start = 1000) {
 }
 
 describe("reduceLive (pure)", () => {
-  it("walks a whole game: countdown, watch, input, presses, result, finished", () => {
-    let s = run([ev.start(), ev.countdown()]);
-    expect(s.phase).toBe("countdown");
+  it("walks a whole game: START, GO countdown, watch, BEGIN countdown, input, presses, result, finished", () => {
+    let s = run([ev.start(), ev.game(), ev.countdown("watch")]);
+    expect(s).toMatchObject({ phase: "countdown", lives: 3, level: 1, score: 0 });
     expect(s.lastControl.control).toBe("start");
-    expect(s.countdown).toMatchObject({ seconds: 3, step_ms: 1000 });
+    expect(s.countdown).toMatchObject({ seconds: 3, step_ms: 1000, then: "watch" });
 
-    s = run([ev.game(), ev.playback()], s, 5000);
-    expect(s).toMatchObject({ phase: "watch", lives: 3, level: 1, attempt: 1, score: 0 });
+    s = run([ev.playback()], s, 5000);
+    expect(s).toMatchObject({ phase: "watch", lives: 3, level: 1, attempt: 1, score: 0, countdown: null });
     expect(s.sequence).toMatchObject({ sequence: [1, 4, 2], cue_ms: 500, gap_ms: 200 });
+
+    s = run([ev.countdown("input")], s, 6000);
+    expect(s).toMatchObject({ phase: "countdown", lives: 3, level: 1 });
+    expect(s.countdown.then).toBe("input");
+    expect(s.sequence).not.toBeNull(); // BEGIN keeps the sequence just shown
 
     s = run([ev.input(), ev.press(0, 1), ev.press(1, 4)], s, 7000);
     expect(s.phase).toBe("input");
@@ -75,9 +80,10 @@ describe("reduceLive (pure)", () => {
     expect(s).toMatchObject({ phase: "watch", score: 140, input: null });
     expect(s.lastResult).toMatchObject({ result: "pass", points_awarded: 140, speed_bonus: 40 });
 
-    s = run([ev.playback(2, 1, [3, 3, 5, 6]), ev.input(2, 4), ev.press(0, 2, false), ev.result("wrong", 2, 140, 0)], s, 11000);
-    s = run([ev.playback(2, 2, [3, 3, 5, 6]), ev.input(2, 4), ev.result("timeout", 1, 140, 0)], s, 13000);
-    s = run([ev.playback(2, 3, [3, 3, 5, 6]), ev.input(2, 4), ev.press(0, 1, false), ev.result("wrong", 0, 140, 0), ev.finished()], s, 15000);
+    const attempt = (attemptNo, sequence, ...rest) => [ev.countdown("watch", 2), ev.playback(2, attemptNo, sequence), ev.countdown("input", 2), ev.input(2, 4), ...rest];
+    s = run(attempt(1, [3, 3, 5, 6], ev.press(0, 2, false), ev.result("wrong", 2, 140, 0)), s, 11000);
+    s = run(attempt(2, [6, 1, 2, 4], ev.result("timeout", 1, 140, 0)), s, 13000); // a NEW pattern after a fail
+    s = run(attempt(3, [5, 2, 2, 1], ev.press(0, 1, false), ev.result("wrong", 0, 140, 0), ev.finished()), s, 15000);
     expect(s.phase).toBe("result_pending");
     expect(s.final).toMatchObject({ outcome: "game_over", final_score: 140, session_id: "SIM01-L-1" });
   });
@@ -87,10 +93,9 @@ describe("reduceLive (pure)", () => {
     for (const event of [ev.press(0, 1), ev.input(), ev.result(), ev.finished()]) {
       expect(reduceLive(idle, event, 5).applied, event.type).toBe(false);
     }
-    const watching = run([ev.countdown(), ev.game(), ev.playback()]);
-    expect(reduceLive(watching, ev.game(), 5).applied).toBe(false);
+    const watching = run([ev.game(), ev.countdown(), ev.playback()]);
     expect(reduceLive(watching, ev.press(0, 1), 5).applied).toBe(false);
-    const finished = run([ev.countdown(), ev.game(), ev.playback(), ev.input(), ev.finished()]);
+    const finished = run([ev.game(), ev.countdown(), ev.playback(), ev.input(), ev.finished()]);
     expect(reduceLive(finished, ev.playback(), 5).applied).toBe(false);
     expect(reduceLive(idle, { type: "something_new", t_ms: 0 }, 5).applied).toBe(false);
   });
@@ -102,29 +107,19 @@ describe("reduceLive (pure)", () => {
     expect(result.state).toBe(s);
   });
 
-  it("RESET during the countdown restarts it at 3 (one countdown, new start time)", () => {
-    const first = run([ev.start(), ev.countdown()], undefined, 1000);
-    const restarted = run([ev.reset(), ev.gameReset(), ev.countdown()], first, 2500);
-    expect(restarted.phase).toBe("countdown");
-    expect(restarted.countdown.seconds).toBe(3);
-    expect(restarted.countdown.startedAt).toBeGreaterThan(first.countdown.startedAt);
-    expect(restarted.resetAt).not.toBeNull();
-    expect(restarted.lastControl.control).toBe("reset");
+  it("a countdown mid-game keeps lives, score and level (next level comes from the event)", () => {
+    const s = run([ev.game(), ev.countdown(), ev.playback(), ev.countdown("input"), ev.input(), ev.result("pass", 3, 140, 140), ev.countdown("watch", 2)]);
+    expect(s).toMatchObject({ phase: "countdown", lives: 3, score: 140, level: 2, lastResult: null, sequence: null });
   });
 
-  it("retries and next levels never enter the countdown phase", () => {
-    let s = run([ev.countdown(), ev.game(), ev.playback(), ev.input(), ev.result("wrong", 2, 0, 0)]);
-    const phases = [];
-    for (const event of [ev.playback(1, 2), ev.input(), ev.result("pass"), ev.playback(2, 1, [1, 2, 3, 4])]) {
-      s = reduceLive(s, event, 9999).state;
-      phases.push(s.phase);
-    }
-    expect(phases).not.toContain("countdown");
-    expect(s.countdown).toBeNull();
+  it("a countdown from idle (no game_started yet) is a fresh game", () => {
+    const s = run([ev.countdown()]);
+    expect(s).toMatchObject({ phase: "countdown", lives: null, score: null });
+    expect(s.countdown.then).toBe("watch"); // an old device without "then" means GO
   });
 
-  it("game_reset mid-game goes back to idle and keeps the RESET mark", () => {
-    const s = run([ev.countdown(), ev.game(), ev.playback(), ev.input(), ev.press(0, 1), ev.reset(), ev.gameReset()]);
+  it("game_reset mid-game (START held) goes back to idle and keeps the RESET mark", () => {
+    const s = run([ev.game(), ev.countdown(), ev.playback(), ev.input(), ev.press(0, 1), ev.reset(), ev.gameReset()]);
     expect(s).toMatchObject({ phase: "idle", input: null, sequence: null, lives: null });
     expect(s.resetAt).not.toBeNull();
   });
@@ -134,7 +129,7 @@ describe("createLiveStore", () => {
   it("RESET mid-game: a new game_id starts a new game; the old game's events are ignored", () => {
     let t = 0;
     const store = createLiveStore({ now: () => (t += 5) });
-    store.accept("RR01", "G1", [ev.start(), ev.countdown(), ev.game(), ev.playback(), ev.input()]);
+    store.accept("RR01", "G1", [ev.start(), ev.game(), ev.countdown(), ev.playback(), ev.input()]);
     store.accept("RR01", "G1", [ev.reset(), ev.gameReset()]);
     store.accept("RR01", "G2", [ev.countdown()]);
 
@@ -151,7 +146,7 @@ describe("createLiveStore", () => {
     const store = createLiveStore({ now: () => t });
     const seen = [];
     store.subscribe((message) => seen.push(message.event.type));
-    store.accept("RR01", "G1", [ev.countdown(), ev.game(), ev.playback()]);
+    store.accept("RR01", "G1", [ev.game(), ev.countdown(), ev.playback()]);
 
     t = 89_000;
     store.tick();
@@ -166,7 +161,7 @@ describe("createLiveStore", () => {
 
   it("numbers messages 1, 2, 3 and replays only what the ring buffer still has", () => {
     const store = createLiveStore({ bufferSize: 3 });
-    store.accept("RR01", "G1", [ev.start(), ev.countdown(), ev.game(), ev.playback(), ev.input()]);
+    store.accept("RR01", "G1", [ev.start(), ev.game(), ev.countdown(), ev.playback(), ev.input()]);
     expect(store.lastId()).toBe(5);
     expect(store.since(3).map((m) => m.id)).toEqual([4, 5]);
     expect(store.since(5)).toEqual([]);
@@ -407,7 +402,7 @@ describe("GET /api/game-sessions/recent", () => {
     expect(res.status).toBe(200);
     expect(res.body.sessions.map((s) => s.session_id)).toEqual(["R-3", "R-2"]);
     expect(Object.keys(res.body.sessions[0]).sort()).toEqual(
-      ["final_score", "highest_level_completed", "nickname", "outcome", "received_at", "session_id"]
+      ["final_score", "highest_level_completed", "nickname", "outcome", "player_number", "received_at", "session_id"]
     );
     expect((await request(app).get("/api/game-sessions/recent?limit=0")).status).toBe(400);
     expect((await request(app).get("/api/game-sessions/recent?limit=abc")).status).toBe(400);

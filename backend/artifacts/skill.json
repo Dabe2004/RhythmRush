@@ -10,21 +10,21 @@
     {
       "id": 0,
       "feature": 1,
-      "threshold": 0.7804999947547913,
+      "threshold": 0.8145000040531158,
       "left": 1,
       "right": 8
     },
     {
       "id": 1,
       "feature": 1,
-      "threshold": 0.6644999980926514,
+      "threshold": 0.6724999845027924,
       "left": 2,
       "right": 5
     },
     {
       "id": 2,
-      "feature": 0,
-      "threshold": 12497.5,
+      "feature": 1,
+      "threshold": 0.6245000064373016,
       "left": 3,
       "right": 4
     },
@@ -38,8 +38,8 @@
     },
     {
       "id": 5,
-      "feature": 1,
-      "threshold": 0.7205000221729279,
+      "feature": 0,
+      "threshold": 3038.5,
       "left": 6,
       "right": 7
     },
@@ -54,14 +54,14 @@
     {
       "id": 8,
       "feature": 1,
-      "threshold": 0.8695000112056732,
+      "threshold": 0.9084999859333038,
       "left": 9,
       "right": 12
     },
     {
       "id": 9,
       "feature": 1,
-      "threshold": 0.8375000059604645,
+      "threshold": 0.87049999833107,
       "left": 10,
       "right": 11
     },
@@ -76,7 +76,7 @@
     {
       "id": 12,
       "feature": 1,
-      "threshold": 0.94200000166893,
+      "threshold": 0.9325000047683716,
       "left": 13,
       "right": 14
     },

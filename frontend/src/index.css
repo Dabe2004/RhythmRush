@@ -21,9 +21,7 @@
   --color-paint-red: #e2412f;
   --color-paint-orange: #f0892b;
   --color-paint-yellow: #f6c522;
-  --color-paint-green: #2f9e57;
-  --color-paint-blue: #2f6fde;
-  --color-paint-purple: #7c4dcc;
+  --color-paint-blue: #2a9fd8;
 
   /* Place ribbons and rank stamps */
   --color-gold: #f2b630;
@@ -148,8 +146,8 @@ body {
   clip-path: inset(-4px 50% -4px -4px);
 }
 
-/* "Mystery Player": dark, but regular weight and smaller than real names. */
-.mystery-player {
+/* "Player #N" (no nickname): dark, but regular weight and smaller than real names. */
+.player-number {
   color: var(--color-mystery);
   font-weight: 400;
   font-size: 0.86em;
@@ -554,49 +552,67 @@ body {
 
 
 /* --------------------------------------------------------------------------
-   Live mirror panel (/live). Copies the REAL control panel, not the carnival
-   look: light panel, navy LCD, round glossy buttons. Flat fills only (the
-   highlight is a flat white ellipse); no glow, blur or gradient.
-   Sizes use container units (cqi) so the panel scales as one piece.
+   Live mirror panel (/live). Copies the REAL box top (see docs/DESIGN.md):
+   white painted board on a cardboard box with two brass hinges, pink START,
+   blue-backlit LCD in a black bezel, black buzzer, and six arcade buttons in
+   white bezels with a green LED above each. Flat fills only (highlights are
+   flat white ellipses); no glow, blur or gradient. Sizes use container units
+   (cqi) so the panel scales as one piece.
    -------------------------------------------------------------------------- */
 .rr-panel {
   container-type: inline-size;
   position: relative;
-  background: #f1f4f5;
-  border: 6px solid #3e5a6e;
-  border-radius: 32px;
-  padding: clamp(12px, min(2.6vw, 2.6vh), 34px);
-  box-shadow: 6px 6px 0 #1d1a2f;
+  background: #f6f6f2;
+  border: 7px solid #c69c62;
+  border-radius: 6px;
+  padding: clamp(14px, min(3vw, 3vh), 40px) clamp(12px, min(2.6vw, 2.6vh), 34px);
+  box-shadow: 0 0 0 2px #7d5c30, 6px 6px 0 2px #1d1a2f;
   color: #22313b;
 }
 
+/* Two brass hinges on the top edge, where the lid opens. */
+.rr-panel::before,
+.rr-panel::after {
+  content: "";
+  position: absolute;
+  top: -16px;
+  width: 8cqi;
+  height: 14px;
+  border: 2px solid #7d5f1f;
+  border-radius: 3px;
+  background: #c9a447;
+}
+
+.rr-panel::before {
+  left: 17%;
+}
+
+.rr-panel::after {
+  right: 17%;
+}
+
+/* START, LCD, buzzer: the side columns sit over the side button columns. */
 .rr-top {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: "start lcd reset";
+  grid-template-columns: 1fr minmax(0, 1.7fr) 1fr;
+  grid-template-areas: "start lcd buzzer";
   align-items: center;
+  justify-items: center;
   gap: 2.4cqi;
 }
 
-/* Too narrow for one row: LCD on top, START and RESET side by side under it. */
+/* Too narrow for one row: LCD on top, START and the buzzer side by side under it. */
 @container (max-width: 470px) {
   .rr-top {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: "lcd lcd" "start reset";
+    grid-template-areas: "lcd lcd" "start buzzer";
   }
 }
 
 .rr-lcd-wrap {
   grid-area: lcd;
+  width: 100%;
   min-width: 0;
-}
-
-.rr-pill-reset {
-  grid-area: reset;
-}
-
-.rr-pill-start {
-  grid-area: start;
 }
 
 /* The LCD sizes its text from its OWN width: 20 columns always fit. */
@@ -604,20 +620,21 @@ body {
   container-type: inline-size;
 }
 
+/* Blue backlight, white characters, thick black bezel. */
 .rr-lcd {
   display: block;
-  background: #172d3b;
-  border: 4px solid #5d7a8c;
-  border-radius: 14px;
-  padding: 0.4em 0.7em;
-  color: #c9f2de;
+  background: #2438b5;
+  border: 0.45em solid #151617;
+  border-radius: 0.3em;
+  box-shadow: 0 0 0 2px #45494d;
+  padding: 0.3em 0.5em;
+  color: #eef3ff;
   font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
   font-weight: 700;
-  font-size: clamp(11px, min(calc(100cqi / 14), 3.4vh), 46px);
+  font-size: clamp(11px, min(calc(100cqi / 14.6), 3.4vh), 46px);
   line-height: 1.3;
   text-align: center;
 }
-
 
 .rr-lcd-line {
   display: block;
@@ -625,54 +642,85 @@ body {
   white-space: pre;
 }
 
-.rr-pill {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid var(--edge);
-  border-radius: 999px;
-  padding: 0.6em 1.1em;
-  font-family: var(--font-body);
-  font-size: clamp(14px, min(3.4cqi, 3vh), 36px);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  box-shadow: 0 4px 0 var(--edge);
+/* Pink START: a plain round arcade button with an inner ring, no text. */
+.rr-start {
+  --s: max(44px, min(15cqi, 10.5vh));
+  grid-area: start;
+  position: relative;
+  display: block;
+  width: var(--s);
+  height: var(--s);
+  border: calc(var(--s) * 0.07) solid #b8365c;
+  border-radius: 50%;
+  padding: 0;
+  background: #e95a85;
+  box-shadow: 0 calc(var(--s) * 0.05) 0 #8f2445;
   transition: transform 150ms ease-out, box-shadow 150ms ease-out;
-  user-select: none;
 }
 
-.rr-pill-start {
-  --edge: #3f8f6b;
-  background: #cde9de;
-  color: #1d5a3e;
+.rr-start::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: calc(var(--s) * 0.035) solid #c8416a;
+  border-radius: 50%;
 }
 
-.rr-pill-reset {
-  --edge: #8d989f;
-  background: #e9ecee;
-  color: #26343d;
+.rr-start::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  top: 18%;
+  width: 26%;
+  height: 13%;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.6;
+  transform: rotate(-35deg);
 }
 
-button.rr-pill {
+button.rr-start {
   cursor: pointer;
 }
 
-button.rr-pill:hover {
+button.rr-start:hover {
   transform: translateY(-1px);
 }
 
-button.rr-pill:active,
-.rr-pill.is-down {
-  animation: rr-pill-press 150ms ease-out;
+button.rr-start:active,
+.rr-start.is-down {
+  animation: rr-start-press 150ms ease-out;
 }
 
-@keyframes rr-pill-press {
+@keyframes rr-start-press {
   50% {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 var(--edge);
+    transform: translateY(calc(var(--s) * 0.05));
+    box-shadow: 0 0 0 #8f2445;
   }
+}
+
+/* Black piezo buzzer: rings and a small brass dot in the middle. */
+.rr-buzzer {
+  --s: max(44px, min(13cqi, 9vh));
+  grid-area: buzzer;
+  position: relative;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: #1c1e20;
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * 0.06) #2c3033,
+    inset 0 0 0 calc(var(--s) * 0.12) #1c1e20,
+    inset 0 0 0 calc(var(--s) * 0.15) #33383c,
+    0 0 0 calc(var(--s) * 0.06) #3a3d40;
+}
+
+.rr-buzzer::after {
+  content: "";
+  position: absolute;
+  inset: 44%;
+  border-radius: 50%;
+  background: #d8bd5a;
 }
 
 /* Hearts and press dots share one fixed-height row under the LCD. */
@@ -760,96 +808,102 @@ button.rr-pill:active,
   background: #3e5a6e;
 }
 
+/* Two rows of three, with the wide gap between the rows of the real box. */
 .rr-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: min(3cqi, 2.2vh) 2cqi;
-  margin-top: min(4cqi, 2.5vh);
+  gap: min(5cqi, 3.4vh) 2cqi;
+  margin-top: min(4cqi, 2.6vh);
   justify-items: center;
 }
 
-/* Stacked phone layout: room for the lit ring under the RESET/START row. */
-@container (max-width: 470px) {
-  .rr-grid {
-    margin-top: 7cqi;
-  }
-}
-
+/* --size is the coloured cap; the LED and bezel are sized from it.
+   --c (the cap colour) comes from theme.js. */
 .rr-btn-wrap {
+  --size: max(36px, min(12cqi, 8vh));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.4cqi;
+  gap: calc(var(--size) * 0.42);
 }
 
-.rr-btn {
-  --size: min(17cqi, 11vh);
+/* The green LED above each button: dark when off. */
+.rr-led {
   position: relative;
-  display: grid;
-  width: var(--size);
-  height: var(--size);
-  min-width: 44px;
-  min-height: 44px;
-  place-items: center;
+  width: calc(var(--size) * 0.3);
+  aspect-ratio: 1;
+  border: calc(var(--size) * 0.03) solid #0f3a1f;
   border-radius: 50%;
-  background: var(--c);
+  background: #1f5e36;
   transition: transform 120ms ease-out, opacity 200ms ease-out;
 }
 
-/* The thick white ring inside the colour. */
+.rr-led::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  top: 18%;
+  width: 30%;
+  height: 22%;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.35;
+}
+
+/* Lit: bright green, bigger, and hard white + green rings (no blur), so the
+   change is not colour alone. */
+.rr-led.is-lit {
+  border-color: #1f8a46;
+  background: #6cf597;
+  transform: scale(1.35);
+  box-shadow: 0 0 0 calc(var(--size) * 0.05) #fff, 0 0 0 calc(var(--size) * 0.1) #23b25a;
+}
+
+/* The coloured cap with a darker rim, inside a white bezel (box-shadow rings). */
+.rr-btn {
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) * 0.2) 0 calc(var(--size) * 0.26);
+  border: calc(var(--size) * 0.07) solid rgb(0 0 0 / 0.22);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow:
+    0 0 0 calc(var(--size) * 0.2) #fbfbf9,
+    0 0 0 calc(var(--size) * 0.22) #c4c9cc,
+    0 calc(var(--size) * 0.05) 0 calc(var(--size) * 0.22) #9aa3a8;
+  transition: transform 120ms ease-out, opacity 200ms ease-out;
+}
+
+/* The two mounting screw holes left and right of the bezel. */
 .rr-btn::before {
   content: "";
   position: absolute;
-  inset: 9%;
-  border: calc(var(--size) * 0.06) solid #fff;
+  left: calc(var(--size) * -0.475);
+  top: calc(50% - var(--size) * 0.045);
+  width: calc(var(--size) * 0.09);
+  height: calc(var(--size) * 0.09);
   border-radius: 50%;
+  background: #3a3f44;
+  box-shadow: calc(var(--size) * 1.72) 0 0 #3a3f44;
 }
 
 /* Flat white highlight, top left. */
 .rr-btn::after {
   content: "";
   position: absolute;
-  left: 18%;
-  top: 16%;
+  left: 16%;
+  top: 14%;
   width: 30%;
   height: 16%;
   border-radius: 50%;
   background: #fff;
-  opacity: 0.85;
+  opacity: 0.55;
   transform: rotate(-35deg);
 }
 
-.rr-btn-num {
-  position: relative;
-  z-index: 1;
-  color: #fff;
-  font-family: var(--font-body);
-  font-size: calc(var(--size) * 0.36);
-  font-weight: 800;
-  line-height: 1;
-}
-
-.rr-btn-1 { --c: #d9434d; --c-lit: #e88e94; }
-.rr-btn-2 { --c: #ef8a2f; --c-lit: #f5b982; }
-.rr-btn-3 { --c: #e0b932; --c-lit: #ecd584; }
-.rr-btn-4 { --c: #4aab72; --c-lit: #92cdaa; }
-.rr-btn-5 { --c: #3b78c4; --c-lit: #89aedc; }
-.rr-btn-6 { --c: #8e55b8; --c-lit: #bb99d4; }
-
-/* Lit: lighter fill, thicker ring, a little bigger. Colour is not the only
-   change: size and ring width change too. */
-.rr-btn.is-lit {
-  background: var(--c-lit);
-  transform: scale(1.06);
-  /* An LED ring around the button: hard edges, no blur (not a glow). */
-  box-shadow: 0 0 0 calc(var(--size) * 0.05) #fff, 0 0 0 calc(var(--size) * 0.11) var(--c);
-}
-
-.rr-btn.is-lit::before {
-  border-width: calc(var(--size) * 0.1);
-}
-
-.rr-dim .rr-btn {
+.rr-dim .rr-btn,
+.rr-dim .rr-led {
   opacity: 0.4;
 }
 
@@ -881,7 +935,7 @@ button.rr-pill:active,
 
 .rr-ripple {
   position: absolute;
-  inset: -4px;
+  inset: calc(var(--size) * -0.3);
   border: 3px solid #3e5a6e;
   border-radius: 50%;
   opacity: 0;
@@ -895,36 +949,11 @@ button.rr-pill:active,
   }
   to {
     opacity: 0;
-    transform: scale(1.45);
+    transform: scale(1.35);
   }
 }
 
-.rr-btn-label {
-  color: #22313b;
-  font-family: var(--font-body);
-  font-size: clamp(12px, min(4.2cqi, 3.4vh), 42px);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.rr-speaker {
-  display: grid;
-  width: clamp(70px, min(14cqi, 12vh), 170px);
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.9cqi;
-  margin: min(4cqi, 2.5vh) auto 0;
-}
-
-.rr-speaker span {
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #3e5a6e;
-  opacity: 0.55;
-}
-
-/* 3, 2, 1, GO! in the middle of the panel. */
+/* 1, 2, 3, GO! / BEGIN! in the middle of the panel. */
 .rr-overlay {
   position: absolute;
   inset: 0;
@@ -946,6 +975,11 @@ button.rr-pill:active,
   text-align: center;
   box-shadow: 6px 6px 0 #1d1a2f;
   animation: rr-pop 300ms ease-out;
+}
+
+/* "BEGIN!" is twice as long as "GO!": smaller, so it fits the panel. */
+.rr-overlay span.is-word {
+  font-size: clamp(48px, min(17cqi, 15vh), 150px);
 }
 
 @keyframes rr-pop {
@@ -1391,7 +1425,8 @@ button.rr-pill:active,
 @media (prefers-reduced-motion: reduce) {
   /* Live panel: states switch without any movement. */
   .rr-btn,
-  .rr-pill,
+  .rr-led,
+  .rr-start,
   .rr-overlay span,
   .rr-fuse > span,
   .live-bulb {

@@ -17,8 +17,9 @@ bunting along the bottom.
 - **Not** neon cyberpunk, not a dark dashboard. Cream paper is the main
   surface; deep tent-red and midnight-blue appear only as big framing areas
   (the awning, the kiosk stage).
-- The six game buttons are the brand: red, orange, yellow, green, blue,
-  purple, labelled with their notes **C4 D4 E4 F4 G4 A4**. They return as a
+- The six game buttons are the brand, in the real box's colours: red,
+  orange, blue (top row), blue, yellow, red (bottom row); their tones are
+  **C4 D4 E4 F4 G4 A4**. They return as a
   motif: in the idle kiosk (lighting up in sequence, like the game), in
   loading states, in the bunting.
 
@@ -32,16 +33,14 @@ One ink, one cream, one accent, plus the six button paints. All flat.
 | `cream` | `#f6ecd6` | page background (ticket paper, with a faint grain) |
 | `ticket` | `#fffaee` | the face of tickets, signs and tables (lighter than the page) |
 | `muted` | `#5c5468` | secondary text (captions, "points", labels) |
-| `mystery` | `#3a3448` | "Mystery Player" (no nickname): dark, but regular weight and 0.86 em, so real nicknames (800 weight) stay first |
+| `mystery` | `#3a3448` | "Player #N" (no nickname): dark, but regular weight and 0.86 em, so real nicknames (800 weight) stay first |
 | `tent` | `#b3261e` | **accent**: awning stripes, kiosk stage, primary buttons |
 | `tent-dark` | `#8f1d17` | stage stripes, pressed states |
 | `midnight` | `#1c2541` | footer band, the night sky behind the awning |
-| `paint-red` | `#e2412f` | button 1 (C4), bunting. **Never under text** |
-| `paint-orange` | `#f0892b` | button 2 (D4) |
-| `paint-yellow` | `#f6c522` | button 3 (E4), highlight signs, focus ring halo |
-| `paint-green` | `#2f9e57` | button 4 (F4) |
-| `paint-blue` | `#2f6fde` | button 5 (G4). **Never under text** |
-| `paint-purple` | `#7c4dcc` | button 6 (A4) |
+| `paint-red` | `#e2412f` | buttons 1 and 6, bunting. **Never under text** |
+| `paint-orange` | `#f0892b` | button 2 |
+| `paint-yellow` | `#f6c522` | button 5, highlight signs, focus ring halo |
+| `paint-blue` | `#2a9fd8` | buttons 3 and 4 (the box's light blue). **Never under text** |
 | `gold` / `silver` / `bronze` | `#f2b630` / `#c9ccd4` / `#c77c3c` | place ribbons for rank 1-3 |
 | `stamp-green` / `stamp-blue` / `stamp-purple` | `#1e6b3c` / `#1f4f9e` / `#5a2c9c` | skill stamps: Beginner / Intermediate / Pro |
 | `danger` | `#a3201a` | error text, delete buttons |
@@ -55,8 +54,8 @@ One ink, one cream, one accent, plus the six button paints. All flat.
 | ink | ticket | **16.25:1** | text on tickets and signs |
 | muted | cream | **6.12:1** | secondary text |
 | muted | ticket | **6.90:1** | secondary text on tickets |
-| mystery `#3a3448` | ticket `#fffaee` | **11.42:1** | "Mystery Player" on tickets (was muted, 6.90:1) |
-| mystery | cream | **10.14:1** | "Mystery Player" on the page |
+| mystery `#3a3448` | ticket `#fffaee` | **11.42:1** | "Player #N" on tickets (was muted, 6.90:1) |
+| mystery | cream | **10.14:1** | "Player #N" on the page |
 | mystery | tag `#f1d49b` | **8.29:1** | on a animal tag |
 | cream | tent | **5.57:1** | text on the kiosk stage / awning |
 | ticket | tent | **6.28:1** | text on the kiosk stage |
@@ -66,8 +65,6 @@ One ink, one cream, one accent, plus the six button paints. All flat.
 | yellow | midnight | 9.30:1 | large text |
 | ink | orange | 6.70:1 | labels on orange |
 | ink | yellow | 10.42:1 | "Out of order" sign, highlights |
-| ink | green | 4.95:1 | labels on green |
-| cream | purple | 4.72:1 | labels on purple |
 | ink | gold / silver / bronze | 9.27 / 10.53 / 5.14:1 | rank numbers on ribbons |
 | stamp-green / -blue / -purple | ticket | 6.25 / 7.55 / 8.86:1 | skill stamps |
 | stamp-green / -blue / -purple | cream | 5.55 / 6.70 / 7.86:1 | skill stamps |
@@ -335,7 +332,7 @@ on top with #2 and #3 side by side under it is still a stack (two tiers,
 the classic podium shape) and measures **698 px** to the bottom of the podium
 at 1280x720 in every test case.
 
-### "Mystery Player"
+### "Player #N"
 
 Was `muted` `#5c5468` (6.90:1, it looked too pale next to real names). Now
 `mystery` `#3a3448`: **11.42:1 on ticket paper, 10.14:1 on cream, 8.29:1 on a
@@ -399,7 +396,7 @@ at 1280x720 in every case**. Then the 360 px screenshot showed:
 **What is still weak (honest):**
 
 - **2 m readability of the list on the 1920 TV.** The 1200 px cap keeps the
-  list compact: names are 18 px (Mystery Player about 15.5 px), level and IQ
+  list compact: names are 18 px (Player #N about 15.5 px), level and IQ
   12 px. Fine at a laptop, small from 2 m. The kiosk `/result` screen is the
   page meant for distance; the podium (30 px name, big counters) reads from
   2 m, the list rows less so.
@@ -430,31 +427,38 @@ at 1280x720 in every case**. Then the 360 px screenshot showed:
 
 ## Live game panel (`/live`)
 
-The one place that does **not** use the carnival look: the panel copies the
-real control panel (the reference image was not visible to the assistant, so
-the written description and its colours were used). Around it, everything
-stays carnival: the red stage, the awning, the "Last results" ticket.
+The one place that does **not** use the carnival look: the panel copies a
+photo of the real box top (November 2026). Around it, everything stays
+carnival: the red stage, the awning, the "Last results" ticket.
 
-- **Layout:** no title in the panel. Top row START | LCD | RESET, vertically
-  centred; below, the six buttons in two rows (1 Red, 2 Orange, 3 Yellow /
-  4 Green, 5 Blue, 6 Purple) with uppercase colour names only (no notes); a speaker
-  grille at the bottom. Phones (panel narrower than 470 px): the LCD goes on
-  top with START and RESET side by side under it.
-- **Look:** panel `#f1f4f5` with a 6 px `#3e5a6e` border and 32 px radius, a
-  hard 6 px ink shadow like every carnival ticket; LCD `#172d3b` with a
-  lighter slate border and pale mint monospaced text in a 20 x 4 grid; round
-  buttons with a white inner ring, a flat white highlight ellipse and a bold
-  white number. Flat fills only: no glow, blur or gradient.
-- **Contrast (WCAG):** LCD text 11.69:1, labels 12.10:1, START text 6.31:1,
-  RESET text 10.78:1, countdown numeral 14.24:1. The white numbers inside the
-  buttons are **below AA** on orange (2.52), yellow (1.88) and green (2.85),
-  as on the real panel. They are decoration (the grid is `aria-hidden`); the
-  dark label under each button ("YELLOW E4", 12.10:1) carries the meaning.
-- **States are never colour alone:** lit = lighter fill + thicker white ring
-  + scale 1.06 + a hard outer ring in the button's colour; pressed = press
-  animation + ripple; wrong = shake + "OOPS!" on the LCD; spent lives are
-  grey AND crossed out; the connection chip has text and a different shape
-  per state.
+- **Layout:** no title and no text on the panel, like the box. Top row: pink
+  START | LCD | black buzzer, the side items over the side button columns.
+  Below, two rows of three arcade buttons (Red, Orange, Blue / Blue, Yellow,
+  Red) with a green LED above each. There is **no RESET button** on the box.
+  Under the LCD the web adds the hearts, press dots and the deadline fuse
+  (game information, not on the box). Phones (panel narrower than 470 px):
+  the LCD goes on top with START and the buzzer side by side under it.
+- **Look:** white painted board `#f6f6f2` with a 7 px cardboard edge
+  `#c69c62`, two brass hinges on the top edge, a hard ink shadow like every
+  carnival ticket; LCD with a blue backlight `#2438b5`, white monospaced text
+  in a 20 x 4 grid and a thick black bezel; buttons are coloured caps with a
+  darker rim in a white bezel with two screw holes; LEDs are dark green when
+  off. Flat fills only: no glow, blur or gradient.
+- **The LED lights, not the button** (the real buttons cannot light up). Lit
+  = bright green + scale 1.35 + a hard white ring and a green ring, so it is
+  not colour alone. Pressed = press animation + ripple on the button; wrong
+  = shake + "OOPS!" on the LCD; spent lives are grey AND crossed out; the
+  connection chip has text and a different shape per state.
+- **START** is drawn without text, like the box. In the mirror it is
+  `aria-hidden`; in demo mode it is a real button named "Start". A RESET from
+  the device (START held) plays the START press animation.
+- **Contrast (WCAG):** LCD text `#eef3ff` on `#2438b5` about 8:1. The grid is
+  `aria-hidden`; phases are announced through the `aria-live` region.
+
+The critique rounds below were for the earlier, description-based panel
+(labels and numbers on the buttons, RESET pill, speaker grille); the
+measurements of the new panel are in `docs/NOTES.md` ("Panel copied from the
+box").
 
 ### Critique and revisions (screenshots in `docs/screenshots/live/`, local only)
 

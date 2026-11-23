@@ -95,8 +95,11 @@ function insertSession(db, record) {
   const insertGameSession = db.prepare(`
     INSERT OR IGNORE INTO game_sessions (
       session_id, device_id, outcome, final_score, highest_level_completed,
-      final_sequence_length, successful_rounds, failed_attempts, duration_seconds
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      final_sequence_length, successful_rounds, failed_attempts, duration_seconds,
+      player_number
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
+      -- "Player #N": the next number (a duplicate upload inserts nothing).
+      (SELECT COALESCE(MAX(player_number), 0) + 1 FROM game_sessions))
   `);
 
   const insertAttempt = db.prepare(`

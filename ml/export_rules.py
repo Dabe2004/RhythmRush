@@ -65,8 +65,9 @@ def build() -> dict:
         "notes": [
             "deadline_ms is per press; it restarts after every correct press.",
             "points for a pass = base_points + the speed bonus for the attempt's response_ms.",
-            "A fail costs one life and replays the SAME sequence (no countdown).",
-            "The countdown runs only before a new game (START or RESET).",
+            "A fail costs one life; the same level comes back with a NEW random pattern.",
+            "Every attempt: 1 2 3 GO!, the sequence plays, 1 2 3 BEGIN!, then the player's turn.",
+            "START held for reset_hold ms during a game stops it and goes back to idle.",
         ],
     }
 

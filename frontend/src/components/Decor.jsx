@@ -48,7 +48,7 @@ export function Bunting({ className = "" }) {
             const y = 4 + (index % 3) * 1.5
             return (
               <path
-                key={color.name}
+                key={index}
                 d={`M${x + 4} ${y}H${x + 44}L${x + 24} ${y + 34}Z`}
                 fill={color.hex}
                 stroke="#1d1a2f"

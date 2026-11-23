@@ -21,7 +21,7 @@ const e = {
   start: (g = "G1") => ({ type: "control_pressed", control: "start", game_id: g }),
   reset: (g = "G1") => ({ type: "control_pressed", control: "reset", game_id: g }),
   gameReset: (g = "G1") => ({ type: "game_reset", game_id: g }),
-  countdown: (g = "G1") => ({ type: "countdown_started", seconds: 3, step_ms: 1000, game_id: g }),
+  countdown: (g = "G1", then = "watch", level = 1) => ({ type: "countdown_started", seconds: 3, step_ms: 1000, then, level, game_id: g }),
   game: (g = "G1") => ({ type: "game_started", lives: 3, level: 1, game_id: g }),
   playback: (level = 1, attempt = 1, sequence = [1, 4, 2], g = "G1") => ({
     type: "playback_started", level, attempt, sequence, cue_ms: 500, gap_ms: 200, game_id: g,
@@ -42,8 +42,10 @@ function play(steps, state = INITIAL_LIVE) {
   return state
 }
 
-// A game that reached the input phase of level 1 at t = 6000.
-const inGame = () => play([[0, e.start()], [10, e.countdown()], [3010, e.game()], [3600, e.playback()], [5700, e.input()]])
+// A game that reached the input phase of level 1 at t = 5700:
+// START, game_started, 1 2 3 GO!, the sequence, 1 2 3 BEGIN!, the turn.
+const inGame = () =>
+  play([[0, e.start()], [5, e.game()], [10, e.countdown()], [3610, e.playback()], [5650, e.countdown("G1", "input")], [5700, e.input()]])
 
 describe("liveReducer", () => {
   it("follows a game and keeps the numbers the device sent", () => {
@@ -53,12 +55,12 @@ describe("liveReducer", () => {
     expect(s).toMatchObject({ phase: "result", score: 140, lives: 3 })
     expect(panelView(s, 7200).lcd.map((l) => l.trim())).toEqual(["LEVEL 01 SCORE 0140", "LIVES 3", "NICE! +140", "SPEED BONUS +40"])
     s = play([[9000, e.playback(2, 1, [1, 2, 3, 4])], [11800, e.input(4)], [12000, e.press(0, 6, false)], [12100, e.result("wrong", 2, 140, 0, 0)]], s)
-    expect(panelView(s, 12200).lcd.map((l) => l.trim()).slice(1)).toEqual(["LIVES 2", "OOPS!", "SAME SEQUENCE AGAIN"])
-    s = play([[14000, e.playback(2, 2, [1, 2, 3, 4])], [16800, e.input(4)], [19800, e.result("timeout", 1, 140, 0, 0)]], s)
+    expect(panelView(s, 12200).lcd.map((l) => l.trim()).slice(1)).toEqual(["LIVES 2", "OOPS!", "NEW PATTERN NEXT"])
+    s = play([[14000, e.playback(2, 2, [6, 5, 4, 3])], [16800, e.input(4)], [19800, e.result("timeout", 1, 140, 0, 0)]], s)
     expect(panelView(s, 19900).lcd[2].trim()).toBe("TIME'S UP!")
     s = play([[20000, e.finished()]], s)
     expect(s.phase).toBe("finished")
-    expect(panelView(s, 20100).lcd.map((l) => l.trim())).toEqual(["GAME OVER", "FINAL SCORE 0350", "PRESS RESET TO", "PLAY AGAIN"])
+    expect(panelView(s, 20100).lcd.map((l) => l.trim())).toEqual(["GAME OVER", "FINAL SCORE 0350", "PRESS START TO", "PLAY AGAIN"])
   })
 
   it("ignores game-button presses during the countdown", () => {
@@ -147,37 +149,40 @@ describe("panelView: idle attract", () => {
 })
 
 describe("panelView: countdown", () => {
-  it("shows 3, 2, 1, GO! on the browser clock, buttons dimmed", () => {
+  it("counts 1, 2, 3, GO! on the browser clock, buttons dimmed", () => {
     const s = play([[0, e.start()], [100, e.countdown()]])
     const at = (t) => panelView(s, t)
-    expect([at(100).overlay, at(1100).overlay, at(2100).overlay, at(3100).overlay]).toEqual(["3", "2", "1", "GO!"])
+    expect([at(100).overlay, at(1100).overlay, at(2100).overlay, at(3100).overlay]).toEqual(["1", "2", "3", "GO!"])
     expect(at(100).dim).toBe(true)
     expect(at(3100).dim).toBe(false)
-    expect(at(100).lcd.map((l) => l.trim())).toEqual(["GET READY!", "", "3", ""])
+    expect(at(100).lcd.map((l) => l.trim())).toEqual(["GET READY!", "", "1", ""])
     expect(at(100).announce).toBe("Get ready")
     expect(at(3100).announce).toBe("Go")
     expect(at(500).nextAt).toBe(1100) // (before 400 ms the START press animation ends first)
     expect(at(3800).overlay).toBeNull()
   })
 
-  it("RESET during the countdown restarts it at 3 (never two countdowns)", () => {
-    const resetting = play([[0, e.countdown()], [1500, e.reset()], [1505, e.gameReset()]])
-    expect(panelView(resetting, 1600).mode).toBe("reset")
-    const s = play([[2005, e.countdown()]], resetting)
-    expect(panelView(s, 2010).overlay).toBe("3")
-    expect(panelView(s, 3010).overlay).toBe("2")
-    expect(s.countdown.at).toBe(2005)
+  it("before the turn: 1, 2, 3, BEGIN! with level, score and lives on the LCD", () => {
+    const s = play([[0, e.start()], [5, e.game()], [10, e.countdown()], [3610, e.playback()], [5710, e.countdown("G1", "input")]])
+    const at = (t) => panelView(s, t)
+    expect(at(5710).lcd.map((l) => l.trim())).toEqual(["LEVEL 01 SCORE 0000", "LIVES 3", "1", "YOUR TURN NEXT"])
+    expect(at(5710).lives).toBe(3) // hearts stay during a mid-game countdown
+    expect(at(8710).overlay).toBe("BEGIN!")
+    expect(at(8710).announce).toBe("Begin")
+    expect(play([[6000, e.press(0, 1)]], s)).toBe(s) // presses are ignored until BEGIN! is over
   })
 
-  it("retries and next levels never show a countdown", () => {
-    let s = play([[0, e.result("wrong", 2, 0, 0, 0)]], inGame())
+  it("every attempt counts down twice; the next level's countdown shows the new level", () => {
+    let s = play([[6000, e.press(0, 1)], [6500, e.press(1, 4)], [7000, e.press(2, 2)], [7100, e.result()]], inGame())
+    s = play([[8100, e.countdown("G1", "watch", 2)]], s)
+    expect(s).toMatchObject({ phase: "countdown", level: 2, score: 140, lives: 3 })
+    expect(panelView(s, 8100).lcd.map((l) => l.trim())).toEqual(["LEVEL 02 SCORE 0140", "LIVES 3", "1", "WATCH THE LIGHTS"])
     const modes = []
-    for (const [t, event] of [[8000, e.playback(1, 2)], [10100, e.input()], [12000, e.result()], [13500, e.playback(2, 1, [3, 3, 5, 6])]]) {
+    for (const [t, event] of [[11700, e.playback(2, 1, [3, 3, 5, 6])], [14500, e.countdown("G1", "input", 2)], [18100, e.input(4)]]) {
       s = play([[t, event]], s)
       modes.push(panelView(s, t + 1).mode)
     }
-    expect(modes).toEqual(["watch", "input", "result", "watch"])
-    expect(panelView(s, 13501).overlay).toBeNull()
+    expect(modes).toEqual(["watch", "countdown", "input"])
   })
 })
 
@@ -204,12 +209,12 @@ describe("panelView: sequence playback and latency", () => {
     expect(again).toBe(first)
   })
 
-  it("a sequence of 17 lights every cue in order", () => {
-    const sequence = Array.from({ length: 17 }, (_, i) => (i % 6) + 1)
-    const s = play([[0, e.countdown()], [3000, e.game()], [10000, e.playback(15, 1, sequence)]])
+  it("the longest sequence (15: level 7 with +2 steps every level) lights every cue in order", () => {
+    const sequence = Array.from({ length: 15 }, (_, i) => (i % 6) + 1)
+    const s = play([[0, e.countdown()], [3000, e.game()], [10000, e.playback(7, 1, sequence)]])
     const lit = sequence.map((_, i) => panelView(s, 10000 + i * 700 + 10).lit[0])
     expect(lit).toEqual(sequence)
-    expect(panelView(s, 10000 + 17 * 700).lit).toEqual([])
+    expect(panelView(s, 10000 + 15 * 700).lit).toEqual([])
   })
 })
 
@@ -231,31 +236,26 @@ describe("panelView: presses", () => {
   })
 })
 
-describe("panelView: RESET", () => {
-  it("mid-game: buttons 6..1 flash in reverse, LCD wipes, RESTARTING..., then the new countdown at 3", () => {
+describe("panelView: RESET (START held)", () => {
+  it("mid-game: LEDs 6..1 flash in reverse, LCD wipes, GAME STOPPED, then idle", () => {
     const s = play([[7000, e.reset()], [7001, e.gameReset()]], inGame())
     const view = (t) => panelView(s, t)
     expect([view(7010).lit, view(7070).lit, view(7190).lit, view(7310).lit]).toEqual([[6], [5], [3], [1]])
     expect(view(7050).lcd.every((line) => line.trim() === "")).toBe(true)
-    expect(view(7200).lcd[2].trim()).toBe("RESTARTING...")
+    expect(view(7200).lcd[2].trim()).toBe("GAME STOPPED")
     expect(view(7400).lit).toEqual([])
     expect(view(7010).control).toEqual({ control: "reset", key: 7000 })
-    const next = play([[7501, e.countdown("G2")]], s)
-    expect(panelView(next, 7510).overlay).toBe("3")
+    expect(view(7600).mode).toBe("idle")
+    const next = play([[9000, e.game("G2")], [9005, e.countdown("G2")]], s)
+    expect(panelView(next, 9010).overlay).toBe("1")
     expect(next.game_id).toBe("G2")
-  })
-
-  it("after game over it says PLAY AGAIN!", () => {
-    const over = play([[7000, e.finished()]], inGame())
-    const s = play([[9000, e.reset()], [9001, e.gameReset()]], over)
-    expect(panelView(s, 9200).lcd[2].trim()).toBe("PLAY AGAIN!")
   })
 
   it("reduced motion: no reverse flash, the text still changes", () => {
     const s = play([[7000, e.reset()], [7001, e.gameReset()]], inGame())
     const view = panelView(s, 7010, { reducedMotion: true })
     expect(view.lit).toEqual([])
-    expect(panelView(s, 7200, { reducedMotion: true }).lcd[2].trim()).toBe("RESTARTING...")
+    expect(panelView(s, 7200, { reducedMotion: true }).lcd[2].trim()).toBe("GAME STOPPED")
   })
 })
 

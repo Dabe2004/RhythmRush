@@ -1,15 +1,16 @@
 // frontend/src/theme.js
 // Colours and labels shared by the components (see docs/DESIGN.md).
 
-// The six game buttons, in button order.
+// The six game buttons, in button order, as on the real box (ml/game_rules.py
+// BUTTONS): top row 1-3, bottom row 4-6. Red and blue appear twice.
 // Flat paint colours; text is never placed on the red or blue paint.
 export const ARCADE_COLORS = [
   { name: "Red", hex: "#e2412f" },
   { name: "Orange", hex: "#f0892b" },
+  { name: "Blue", hex: "#2a9fd8" },
+  { name: "Blue", hex: "#2a9fd8" },
   { name: "Yellow", hex: "#f6c522" },
-  { name: "Green", hex: "#2f9e57" },
-  { name: "Blue", hex: "#2f6fde" },
-  { name: "Purple", hex: "#7c4dcc" },
+  { name: "Red", hex: "#e2412f" },
 ]
 
 // Skill stamp ink colours (all >= 5.5:1 on cream and ticket paper).

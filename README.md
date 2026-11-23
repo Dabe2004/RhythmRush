@@ -2,7 +2,7 @@
 
 Rhythm Rush is a 6-button musical memory game for an ESP32. The device plays a
 sequence of coloured buttons and the player repeats it; every level adds a
-step (Level 1 = 3 steps, Level 15 = 17 steps), the time per press gets
+step (Level 1 = 3 steps, Level 7 = 9 steps), the time per press gets
 shorter, and three mistakes end the game.
 
 This repository is the **software side**:

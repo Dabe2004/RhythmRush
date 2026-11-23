@@ -453,10 +453,10 @@ def validate(games: pd.DataFrame, attempts: pd.DataFrame) -> None:
         games.set_index("session_id")["final_level_attempted"] == last["level"]
     ).all(), "bad final level"
 
-    # Wins clear level 15. Game overs always use all 3 lives.
+    # Wins clear the last level. Game overs always use all 3 lives.
     wins = games[games["outcome"] == "win"]
-    assert (wins["final_level_attempted"] == MAX_LEVEL).all(), "win must clear level 15"
-    assert (wins["successful_rounds"] == MAX_LEVEL).all(), "win needs 15 passes"
+    assert (wins["final_level_attempted"] == MAX_LEVEL).all(), "win must clear the last level"
+    assert (wins["successful_rounds"] == MAX_LEVEL).all(), "win needs one pass per level"
     assert (wins["failed_attempts"] <= START_LIVES - 1).all(), "win with too many fails"
     game_overs = games[games["outcome"] == "game_over"]
     assert (game_overs["failed_attempts"] == START_LIVES).all(), "game over needs 3 fails"

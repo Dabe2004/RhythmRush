@@ -23,9 +23,7 @@ const USAGE = `Usage: node tools/fake_live_game.js [options]
   --games N                 games in a row (default 1)
   --seed N                  random seed (default 42)
   --speed X                 time multiplier, 2 = twice as fast (default 1)
-  --reset-at N              hold RESET during attempt N: abandon (no upload), new game
-  --reset-during-countdown  tap RESET during the first countdown (restarts at 3)
-  --play-again              start the next game with RESET after game over
+  --reset-at N              hold START during attempt N: back to idle (no upload), then START again
   --latency-ms N            delay every batch by N ms (+-30 %)
   --spike                   sometimes delay a batch by 2-4 s
   --help
@@ -49,8 +47,6 @@ function parseArgs(argv) {
     seed: 42,
     speed: 1,
     resetAt: null,
-    resetDuringCountdown: false,
-    playAgain: false,
     latencyMs: 0,
     spike: false,
   };
@@ -66,8 +62,6 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--help" || a === "-h") o.help = true;
-    else if (a === "--reset-during-countdown") o.resetDuringCountdown = true;
-    else if (a === "--play-again") o.playAgain = true;
     else if (a === "--spike") o.spike = true;
     else if (a === "--url") o.url = value(i++).replace(/\/+$/, "");
     else if (a === "--device") o.device = value(i++);
@@ -82,7 +76,6 @@ function parseArgs(argv) {
     else if (a === "--latency-ms") o.latencyMs = number(i++, 0);
     else throw new Error(`Unknown option ${a}`);
   }
-  if (o.playAgain) o.games = Math.max(2, o.games);
   return o;
 }
 
@@ -175,6 +168,7 @@ function createDevice(o) {
     if (IMMEDIATE.has(type)) flush();
   }
 
+  // START held during a game: back to idle (the box has no RESET button).
   async function reset(gameId, label) {
     emit(gameId, "control_pressed", { control: "reset" });
     emit(gameId, "game_reset");
@@ -182,28 +176,20 @@ function createDevice(o) {
     await wait(T.restart);
   }
 
-  async function countdown(gameId, allowRestart) {
-    emit(gameId, "countdown_started", { seconds: T.countdown_seconds, step_ms: T.countdown_step });
-    if (allowRestart) {
-      await wait(1200);
-      await reset(gameId, "during the countdown, restarts at 3");
-      emit(gameId, "countdown_started", { seconds: T.countdown_seconds, step_ms: T.countdown_step });
-    }
-    await wait(T.countdown_seconds * T.countdown_step);
+  // 1 2 3 GO! before a sequence (then "watch"), 1 2 3 BEGIN! before the turn (then "input").
+  async function countdown(gameId, then, level) {
+    emit(gameId, "countdown_started", { seconds: T.countdown_seconds, step_ms: T.countdown_step, then, level });
+    await wait(T.countdown_seconds * T.countdown_step + T.go);
   }
 
-  // One game. Returns "reset" when RESET abandoned it, else the uploaded record.
-  async function playGame({ startWith, previousGameId, resetDuringCountdown, resetAt }) {
+  // One game. Returns "reset" when START held abandoned it, else the uploaded record.
+  async function playGame({ resetAt }) {
     deviceStart = Date.now();
     const gameId = newGameId();
     const sessionId = `${o.device}-L${Date.now()}`;
-    if (startWith === "start") emit(gameId, "control_pressed", { control: "start" });
-    else if (startWith === "reset") await reset(previousGameId, "play again");
-    console.log(`game ${gameId}`);
-
-    await countdown(gameId, resetDuringCountdown);
+    emit(gameId, "control_pressed", { control: "start" });
     emit(gameId, "game_started", { lives: RULES.start_lives, level: 1 });
-    await wait(T.go);
+    console.log(`game ${gameId}`);
 
     const attempts = [];
     let level = 1;
@@ -217,9 +203,10 @@ function createDevice(o) {
 
     while (outcome === null) {
       const rule = RULES.levels[level - 1];
-      await wait(T.get_ready);
+      await countdown(gameId, "watch", level);
       emit(gameId, "playback_started", { level, attempt, sequence, cue_ms: T.cue, gap_ms: T.gap });
       await wait(sequence.length * (T.cue + T.gap));
+      await countdown(gameId, "input", level);
       emit(gameId, "input_started", { level, deadline_ms: rule.deadline_ms, expected_length: sequence.length });
 
       let result = "pass";
@@ -270,6 +257,7 @@ function createDevice(o) {
         else {
           await wait(T.retry_pause);
           attempt += 1;
+          sequence = newSequence(level); // a fail brings a NEW pattern at the same level
         }
       }
     }
@@ -325,20 +313,16 @@ async function main() {
   }
 
   const device = createDevice(o);
-  let previousGameId = null;
   let resetAt = o.resetAt;
-  let resetDuringCountdown = o.resetDuringCountdown;
   try {
     for (let game = 1; game <= o.games; game += 1) {
-      const startWith = game > 1 && o.playAgain ? "reset" : "start";
-      let played = await device.playGame({ startWith, previousGameId, resetDuringCountdown, resetAt });
-      resetDuringCountdown = false;
+      let played = await device.playGame({ resetAt });
       if (played === "reset") {
-        // RESET mid-game: a fresh game starts right away with its countdown.
+        // Back to idle; the visitor presses START again for a fresh game.
         resetAt = null;
-        played = await device.playGame({ startWith: "none", previousGameId: null, resetDuringCountdown: false, resetAt: null });
+        await sleep(2000 / o.speed);
+        played = await device.playGame({ resetAt: null });
       }
-      previousGameId = played.gameId;
       if (game < o.games) await sleep(2500 / o.speed);
     }
     await device.finish();

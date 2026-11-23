@@ -6,26 +6,28 @@
 
 import { useCallback, useEffect, useReducer, useRef } from "react"
 
-import { INITIAL_LIVE, RESTART_MS, liveReducer } from "./liveReducer"
+import { INITIAL_LIVE, liveReducer } from "./liveReducer"
 
 const CUE = 500
 const GAP = 200
 const STEP = 1000
 const GO = 600
-const READY = 350
+const COUNT = 3 * STEP + GO // 1 2 3 GO! (or BEGIN!)
 const PAUSE = 1000
 
 // level, attempt, sequence, presses [delay ms, button, ok], then the result
 // the "device" reports. The last press of a timeout attempt is the wait.
+// After a fail the same level comes back with a NEW pattern.
 const PLAN = [
   { level: 1, attempt: 1, deadline: 3000, sequence: [1, 4, 2], presses: [[650, 1], [560, 4], [520, 2]], result: ["pass", 3, 139, 139, 39] },
   { level: 2, attempt: 1, deadline: 2800, sequence: [3, 6, 2, 5], presses: [[700, 3], [640, 6], [600, 4, false]], result: ["wrong", 2, 139, 0, 0] },
-  { level: 2, attempt: 2, deadline: 2800, sequence: [3, 6, 2, 5], presses: [[620, 3], [600, 6], [580, 2], [540, 5]], result: ["pass", 2, 372, 233, 33] },
+  { level: 2, attempt: 2, deadline: 2800, sequence: [5, 1, 4, 6], presses: [[620, 5], [600, 1], [580, 4], [540, 6]], result: ["pass", 2, 372, 233, 33] },
   { level: 3, attempt: 1, deadline: 2600, sequence: [5, 1, 6, 3, 4], presses: [[700, 5], [660, 1], [2600, null]], result: ["timeout", 1, 372, 0, 0] },
-  { level: 3, attempt: 2, deadline: 2600, sequence: [5, 1, 6, 3, 4], presses: [[640, 5], [610, 2, false]], result: ["wrong", 0, 372, 0, 0] },
+  { level: 3, attempt: 2, deadline: 2600, sequence: [2, 6, 1, 5, 3], presses: [[640, 2], [610, 4, false]], result: ["wrong", 0, 372, 0, 0] },
 ]
 
-// [{ at: ms after start, event }]: countdown -> game -> plan -> game_finished.
+// [{ at: ms after start, event }]: game -> per attempt (GO countdown,
+// sequence, BEGIN countdown, turn, result) -> game_finished.
 export function demoScript(gameId) {
   const out = []
   let t = 0
@@ -34,12 +36,13 @@ export function demoScript(gameId) {
     out.push({ at: t, event: { ...event, game_id: gameId, device_id: "DEMO", t_ms: t } })
   }
 
-  add(0, { type: "countdown_started", seconds: 3, step_ms: STEP })
-  add(3 * STEP, { type: "game_started", lives: 3, level: 1 })
-  let pause = GO
+  add(0, { type: "game_started", lives: 3, level: 1 })
+  let pause = 0
   for (const step of PLAN) {
-    add(pause + READY, { type: "playback_started", level: step.level, attempt: step.attempt, sequence: step.sequence, cue_ms: CUE, gap_ms: GAP })
-    add(step.sequence.length * (CUE + GAP), { type: "input_started", level: step.level, deadline_ms: step.deadline, expected_length: step.sequence.length })
+    add(pause, { type: "countdown_started", seconds: 3, step_ms: STEP, then: "watch", level: step.level })
+    add(COUNT, { type: "playback_started", level: step.level, attempt: step.attempt, sequence: step.sequence, cue_ms: CUE, gap_ms: GAP })
+    add(step.sequence.length * (CUE + GAP), { type: "countdown_started", seconds: 3, step_ms: STEP, then: "input", level: step.level })
+    add(COUNT, { type: "input_started", level: step.level, deadline_ms: step.deadline, expected_length: step.sequence.length })
     step.presses.forEach(([delay, button, ok = true], index) => {
       if (button === null) {
         t += delay
@@ -86,29 +89,14 @@ export function useDemoGame({ auto = false } = {}) {
     runNewGame()
   }, [])
 
-  const reset = useCallback(() => {
-    clear()
-    const gameId = stateRef.current.game_id ?? undefined
-    send({ type: "control_pressed", control: "reset", game_id: gameId })
-    send({ type: "game_reset", game_id: gameId })
-    timers.current.push(setTimeout(runNewGame, RESTART_MS))
-  }, [])
-
-  // Unattended loop: start after 2 s idle, play again 4 s after game over.
+  // Unattended loop: START after 2 s idle, START again 4 s after game over.
   useEffect(() => {
-    if (!auto) return undefined
-    if (state.phase === "idle" && !state.reset) {
-      const t = setTimeout(start, 2000)
-      return () => clearTimeout(t)
-    }
-    if (state.phase === "finished") {
-      const t = setTimeout(reset, 4000)
-      return () => clearTimeout(t)
-    }
-    return undefined
-  }, [auto, state.phase, state.reset, start, reset])
+    if (!auto || !["idle", "finished"].includes(state.phase)) return undefined
+    const t = setTimeout(start, state.phase === "idle" ? 2000 : 4000)
+    return () => clearTimeout(t)
+  }, [auto, state.phase, start])
 
   useEffect(() => clear, [])
 
-  return { state, start, reset }
+  return { state, start }
 }

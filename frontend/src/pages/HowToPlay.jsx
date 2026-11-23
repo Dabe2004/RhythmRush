@@ -40,7 +40,7 @@ function Strip({ ui }) {
       <rect x="2" y="2" width="96" height="70" rx="10" fill="#fffaee" stroke="#1d1a2f" strokeWidth="3" />
       {ARCADE_COLORS.map((c, i) => (
         <circle
-          key={c.name}
+          key={i}
           cx={22 + (i % 3) * 28}
           cy={24 + Math.floor(i / 3) * 26}
           r={i === lit ? 11 : 9}

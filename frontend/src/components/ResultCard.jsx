@@ -16,6 +16,7 @@ import {
 import { visitorText } from "../content/visitorText"
 import AnimalIcon from "./animals/AnimalIcon"
 import HelpLink from "./HelpLink"
+import PlayerName from "./PlayerName"
 import RankBadge from "./RankBadge"
 import ScoreCounter from "./ScoreCounter"
 import SkillBadge from "./SkillBadge"
@@ -142,9 +143,10 @@ export default function ResultCard({ detail, nickname, children }) {
             <RankBlock rank={rank} />
           </div>
 
-          {nickname ? (
-            <p className="mt-6 truncate text-3xl font-extrabold sm:text-4xl">{nickname}</p>
-          ) : null}
+          {/* The nickname, or "Player #N" until one is saved. */}
+          <p className="mt-6 truncate text-3xl font-extrabold sm:text-4xl">
+            <PlayerName nickname={nickname} number={session.player_number} />
+          </p>
 
           <div className="mt-6">
             <ScoreCounter

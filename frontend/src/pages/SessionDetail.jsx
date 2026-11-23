@@ -179,7 +179,7 @@ export default function SessionDetail() {
         </div>
         <div className="min-w-0 border-ink px-6 py-4 md:border-l-[3px] md:border-dashed md:py-6">
           <h1 className="truncate text-3xl font-extrabold sm:text-4xl">
-            <PlayerName nickname={session.nickname} />
+            <PlayerName nickname={session.nickname} number={session.player_number} />
           </h1>
           <p className="mt-1 text-muted">{T.gameLine(session.session_id, formatDateTime(session.received_at))}</p>
         </div>

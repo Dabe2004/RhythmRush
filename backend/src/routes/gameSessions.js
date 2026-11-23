@@ -20,7 +20,7 @@ const router = express.Router();
 // Validation, following docs/session.schema.json
 // ---------------------------------------------------------------------------
 const attemptSchema = z.object({
-  level: z.number().int().min(1).max(15),
+  level: z.number().int().min(1).max(7),
   result: z.enum(["pass", "wrong", "timeout"]),
   response_ms: z.number().int().min(0),
 });

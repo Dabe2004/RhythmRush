@@ -105,7 +105,7 @@ of the current page is highlighted. The site opens on the live game. A
 - Every ticket is **one link** to `/session/:id` (keyboard focus ring,
   >= 44 px tall); tickets are keyed by `session_id`, so a refresh never
   remounts or moves them.
-- Names: the nickname, or "Mystery Player" (dark `#3a3448`, 11.4:1, but
+- Names: the nickname, or "Player #N" (dark `#3a3448`, 11.4:1, but
   regular weight and smaller than a real name).
 - Games without an ML prediction show "-" for skill and "No animal yet".
 - A failed refresh keeps the old tickets (slightly faded) and lays an
@@ -167,17 +167,19 @@ tested in `src/kioskState.test.js`; the page only sends events to it.
 ### Live game mirror (`/live`, also `/result`)
 
 While a game runs on the ESP32, `/live` shows a copy of the real control
-panel (contract: `docs/LIVE_PROTOCOL.md`): START | LCD | RESET on top, the six
-buttons in two rows of three, a speaker grille. It is **display-only**: the
+box top (contract: `docs/LIVE_PROTOCOL.md`): pink START | LCD | buzzer on
+top, the six buttons in two rows of three with a green LED above each (the
+LED lights, not the button, as on the box). It is **display-only**: the
 web cannot control the hardware ("Mirror of the device. Play on the game
 console.").
 
-- **One state machine.** idle (attract) -> countdown -> watch/input ->
+- **One state machine.** idle (attract) -> per attempt: countdown (1 2 3
+  GO!) -> watch -> countdown (1 2 3 BEGIN!) -> input -> result ->
   finished ("Final score N, saving...") -> the existing kiosk result reveal
   (`kioskState.js`, unchanged). `screenMode()` decides: the mirror wins while
   a game runs; after `game_finished` it waits until the latest-session poll
   shows that `session_id`, then the result reveal takes over (fallback: idle
-  after 15 s). `game_reset` restarts the mirror; 90 s of silence = idle.
+  after 15 s). `game_reset` (START held) goes back to idle; 90 s of silence = idle.
 - **One stream per tab.** `LiveProvider` (App.jsx) opens ONE `EventSource`
   for the whole tab (`live/useLiveGame.js`); the header and the leaderboard
   read the same state. EventSource reconnects by itself; after 3 failures it
@@ -199,18 +201,18 @@ console.").
   keeps its place when hidden, so the header never jumps. The leaderboard
   shows a slim "A game is in progress. Watch live" banner.
 - **Status:** connection chip "Live" / "Reconnecting..." / "Device offline"
-  (stream and fallback both failing); "Play sounds on this screen" (off by
+  (stream and fallback both failing); no sound on the web (removed: the box's buzzer is the only sound; was off by
   default, remembered, WebAudio C4-A4 only after a click); an `aria-live`
   region announces phase changes only (Get ready, Go, Watch, Your turn, Game
   over).
 - **Demo:** `/live?demo=1` plays a scripted game in the browser (no server):
-  START and RESET are real, keyboard-accessible buttons; a DEMO sticker is
+  START is a real, keyboard-accessible button (the box has no RESET); a DEMO sticker is
   always visible. `?auto=1` loops it for an unattended screen. `?debug=1`
   shows the connection and the time from a playback event's arrival to the
   first lit button.
-- **Sizes:** LCD text >= 32 px and button labels >= 34 px on a 1920x1080 TV;
-  the whole panel fits a 1280x720 screen; phones stack the LCD over
-  RESET/START when one row does not fit; 44 px minimum targets.
+- **Sizes:** the whole panel fits a 1280x720 screen; phones stack the LCD
+  over START and the buzzer when one row does not fit; START is at least
+  44 px.
 
 ### How to play (`/how-to-play`)
 
@@ -282,7 +284,7 @@ brochure file, in BOTH `en` and `fil`), import it in the component, run
 `npm test`. A banned word, a long sentence or an abbreviation fails the test.
 Code, comments, docs and developer tools (`/live?debug=1`) may keep technical
 words. Known exception: the panel's 20 x 4 display copies the game console's
-own text ("WATCH SEQUENCE", "SAME SEQUENCE AGAIN", see
+own text ("WATCH SEQUENCE", "NEW PATTERN NEXT", see
 `docs/LIVE_PROTOCOL.md`); changing it needs the firmware owner, so it is not
 in `visitorText.js`.
 
@@ -291,7 +293,7 @@ in `visitorText.js`.
 `/session/:id`, opened by clicking a leaderboard row (the name is a real link
 for keyboard users).
 
-- Header ticket: outcome sign, nickname (or "Mystery Player"), game id, device, local
+- Header ticket: outcome sign, nickname (or "Player #N"), game id, device, local
   time, and the score.
 - Facts: level reached, levels cleared, successful rounds, failed attempts,
   duration, success rate, average time per press, real or simulated.
@@ -566,7 +568,7 @@ Same test database as above; upload some games with the fake ESP32.
 | `src/components/ScoreCounter.jsx` | mechanical counter digits (plain number for screen readers) |
 | `src/components/RankBadge.jsx` | place ribbon for rank 1-3, numbered stub otherwise |
 | `src/components/LevelSign.jsx` | "Level N" sign (`small` for tight cards) |
-| `src/components/PlayerName.jsx` | nickname, or the dark-but-secondary "Mystery Player" |
+| `src/components/PlayerName.jsx` | nickname, or the dark-but-secondary "Player #N" |
 | `src/leaderboard.js` | Top 10 helpers: `LEADERBOARD_LIMIT`, subtitle text, podium/list split (tested) |
 | `src/components/animals/` | Chimpanzee, Bottlenose Dolphin, Elephant, Orangutan, Pig, MysteryTicket SVGs + `AnimalIcon` |
 | `src/pages/Leaderboard.jsx` | leaderboard page |
@@ -592,8 +594,8 @@ Same test database as above; upload some games with the fake ESP32.
 | `src/live/liveReducer.js` | live state, `panelView`, `screenMode`, connection status (pure, tested) |
 | `src/live/timeline.js` | sequence and countdown timelines (pure, tested) |
 | `src/live/useLiveGame.js` | the one EventSource per tab, polling fallback, hidden-tab close |
-| `src/live/usePanel.js` | panel clock (renders only at boundaries), reduced motion, sound, debug timing |
-| `src/live/demoGame.js` | `?demo=1` scripted game and its START/RESET |
+| `src/live/usePanel.js` | panel clock (renders only at boundaries), reduced motion, debug timing |
+| `src/live/demoGame.js` | `?demo=1` scripted game and its START button |
 | `src/components/LivePanel.jsx` | the control panel and the connection chip |
 | `src/components/LiveIndicator.jsx` | header LIVE sign and leaderboard banner |
 | `src/main.jsx` | BrowserRouter + React root |

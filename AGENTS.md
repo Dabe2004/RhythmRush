@@ -17,7 +17,13 @@
   panel with demo mode; tools/fake_live_game.js; ml/export_rules.py -> docs/game_rules.json; firmware
   LiveEvents module compiled, not run), and the visitor "How to play" brochure (/how-to-play, numbers built
   from game_rules.json + artifacts, print-only QR, English/Filipino) with all visitor text in
-  frontend/src/content (wording rules tested); the site opens on /live, leaderboard at /leaderboard
+  frontend/src/content (wording rules tested); the site opens on /live, leaderboard at /leaderboard;
+  the /live panel redrawn from a photo of the real box top (pink START, blue LCD, buzzer, green LED over
+  each button, no RESET button; button colours changed everywhere to match the box), and the game matched
+  to the hardware sketch + gameplay spec (7 levels, 1 2 3 GO! / 1 2 3 BEGIN! before every sequence and turn,
+  new pattern after a fail, START held 2 s = back to idle; models retrained; see "Hardware rules" in
+  docs/NOTES.md), and "Player #N" instead of "Mystery Player" (game_sessions.player_number, migration 002)
+  with "Last results" + "Leaderboard (top 5)" on /live
 - NEXT: a native speaker reviews the Filipino text; agree the live protocol and RESET/countdown behaviour with
   the firmware owner, hardware integration (game logic + pins, using the /firmware network and live layers)
   and its checklists, check /live and the printed QR on the real exhibition TV, tablet and booth Wi-Fi (and
@@ -56,18 +62,22 @@
 ## Folder layout
 /ml (game_rules.py, simulate_games.py, train_*.py, check_exports.py, data/ is gitignored)
 /backend/artifacts (exported model JSON), /backend/src, /backend/tests, /backend/data (gitignored)
-/db (migrations/001_init.sql, migrate.js, seed.js), /frontend, /tools (fake_esp32.js)
+/db (migrations/001_init.sql, 002_player_number.sql, migrate.js, seed.js), /frontend, /tools (fake_esp32.js)
 /firmware (later, not yours), /docs (NOTES.md, API.md, session.schema.json)
 
 ## Game rules
-- 6 buttons: 1 Red, 2 Orange, 3 Yellow, 4 Green, 5 Blue, 6 Purple
-- Start: 3 lives, Level 1. Sequence length = level + 2. Max Level 15 (17 steps).
-- Deadline per press (sec) = max(1.5, 3.0 - 0.2 * (level - 1))
-- Attempt result: "pass", "wrong", or "timeout". A fail loses 1 life and retries the level.
-- 3 lives lost = game over. Clear Level 15 = win.
+- 6 buttons, as on the real box: 1 Red, 2 Orange, 3 Blue (top row, left to right), 4 Blue, 5 Yellow,
+  6 Red (bottom row). The buttons cannot light up: a green LED above each one shows the sequence.
+  The box has one control, START (pink, pin 13); START held 2 s during a game = RESET back to idle.
+- Start: 3 lives, Level 1. Sequence length = level + 2. Max Level 7 (9 steps).
+- Every attempt: "1 2 3 GO!" -> the random sequence -> "1 2 3 BEGIN!" -> the player's turn.
+- Deadline per press (sec) = max(1.0, 3.0 - 0.2 * (level - 1)) (the 0.2 step is a guess until we get
+  the firmware's RhythmRushGame.h)
+- Attempt result: "pass", "wrong", or "timeout". A fail loses 1 life and retries the level with a NEW pattern.
+- 3 lives lost = game over. Clear Level 7 = win.
 - Points for a passed level = 100 * level + speed_bonus
 - speed_bonus = round(50 * (1 - response_time / (sequence_length * deadline))), clamped 0..50
-- Max total score is about 12,750, so score tiers MUST use percentiles, not fixed numbers.
+- Max total score is about 3,150, so score tiers MUST use percentiles, not fixed numbers.
 - All constants/formulas live in /ml/game_rules.py. Import them, never copy them.
 
 ## Features per finished game

@@ -21,7 +21,7 @@ export default function ArcadeButtons({ sequence = false, size = "3rem", classNa
       style={{ "--btn-size": size }}
     >
       {ARCADE_COLORS.map((color, index) => (
-        <span key={color.name} className="arcade-btn" style={{ "--paint": color.hex, "--i": index }}>
+        <span key={index} className="arcade-btn" style={{ "--paint": color.hex, "--i": index }}>
           <span className="arcade-btn-lit" />
         </span>
       ))}

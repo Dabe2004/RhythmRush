@@ -12,11 +12,11 @@ import { countdownTimeline, nextBoundary, sequenceTimeline, stepAt } from "./tim
 
 export const SILENCE_MS = 90000 // no events for this long = abandoned
 export const HANDOVER_MS = 15000 // after game_finished, wait this long for the upload
-export const RESTART_MS = 500 // "RESTARTING..." after RESET
+export const RESTART_MS = 500 // "GAME STOPPED" after RESET (START held), then idle
 export const GO_MS = 600
 const ATTRACT_STEP_MS = 300
 const ATTRACT_CYCLE_MS = 3000 // 6 x 300 chase, 300 all-six flash, 900 pause
-const FLASH_STEP_MS = 60 // RESET: buttons 6..1 flash in reverse
+const FLASH_STEP_MS = 60 // RESET: LEDs 6..1 flash in reverse
 const PRESS_MS = 400
 const OLD_GAMES_KEPT = 20
 
@@ -29,14 +29,14 @@ export const INITIAL_LIVE = Object.freeze({
   attempt: null,
   lives: null,
   score: null,
-  countdown: null, // { seconds, step_ms, at }
+  countdown: null, // { seconds, step_ms, then: "watch" | "input", at }
   playback: null, // { key, sequence, cue_ms, gap_ms, at, late }
   input: null, // { expected_length, deadline_ms, done, at, fuseAt }
   lastPress: null, // { index, button, ok, at }
   lastResult: null, // { result, points_awarded, speed_bonus, at }
   final: null, // { outcome, final_score, session_id, at }
   control: null, // { control, at }
-  reset: null, // { at, playAgain }
+  reset: null, // { at }
   idleSince: 0,
   lastEventAt: null,
   updatedAt: 0, // browser time of the last change (the view never runs behind it)
@@ -72,16 +72,23 @@ function applyEvent(state, event, at) {
   switch (event.type) {
     case "control_pressed":
       return { ...s, control: { control: event.control, at } }
-    case "countdown_started":
+    case "countdown_started": {
+      // Before every sequence (then "watch": 1 2 3 GO!) and every turn (then
+      // "input": 1 2 3 BEGIN!). Mid-game the lives, level and score stay.
+      const base = state.phase === "idle" || state.phase === "finished" ? { ...s, ...GAME_FIELDS } : s
       return {
-        ...s,
-        ...GAME_FIELDS,
+        ...base,
         phase: "countdown",
-        countdown: { seconds: event.seconds, step_ms: event.step_ms, at },
+        level: event.level ?? base.level,
+        countdown: { seconds: event.seconds, step_ms: event.step_ms, then: event.then ?? "watch", at },
+        input: null,
+        lastPress: null,
+        lastResult: null,
       }
+    }
     case "game_started":
-      if (state.phase !== "countdown" && state.phase !== "idle") return state
-      return { ...s, phase: "watch", lives: event.lives, level: event.level, score: 0 }
+      // Right after START, before the first countdown: a new game.
+      return { ...s, ...GAME_FIELDS, phase: "watch", lives: event.lives, level: event.level, score: 0 }
     case "playback_started": {
       if (state.phase === "finished") return state
       const key = playbackKey(s.game_id, event.level, event.attempt)
@@ -100,10 +107,11 @@ function applyEvent(state, event, at) {
       }
     }
     case "input_started":
-      if (state.phase !== "watch" && state.phase !== "input") return state
+      if (!["watch", "input", "countdown"].includes(state.phase)) return state
       return {
         ...s,
         phase: "input",
+        countdown: null,
         input: { expected_length: event.expected_length, deadline_ms: event.deadline_ms, done: 0, at, fuseAt: at },
       }
     case "press": {
@@ -140,7 +148,7 @@ function applyEvent(state, event, at) {
         ...GAME_FIELDS,
         phase: "idle",
         idleSince: at + RESTART_MS,
-        reset: { at, playAgain: state.phase === "finished" },
+        reset: { at },
       }
     case "abandoned":
       return { ...s, ...GAME_FIELDS, phase: "idle", idleSince: at }
@@ -172,7 +180,9 @@ function fromSnapshot(state, snapshot, now) {
     attempt: server.attempt,
     lives: server.lives,
     score: server.score,
-    countdown: server.countdown ? { seconds: server.countdown.seconds, step_ms: server.countdown.step_ms, at: at(server.countdown.startedAt) } : null,
+    countdown: server.countdown
+      ? { seconds: server.countdown.seconds, step_ms: server.countdown.step_ms, then: server.countdown.then ?? "watch", at: at(server.countdown.startedAt) }
+      : null,
     // A late joiner never sees a partial replay: the same key keeps its
     // original timing, anything else is marked late (WATCH only).
     playback: seq
@@ -292,12 +302,12 @@ function viewFor(state, now, reducedMotion) {
     return idleView({ ...state, idleSince: state.lastEventAt + SILENCE_MS }, now, reducedMotion)
   }
 
-  // RESET: reverse flash 6..1, LCD wiped, then RESTARTING... / PLAY AGAIN!
+  // RESET (START held): reverse flash 6..1, LCD wiped, GAME STOPPED, then idle.
   const resetAt = state.reset?.at
   const countdownAfterReset = state.countdown && state.countdown.at >= resetAt
   if (resetAt != null && now - resetAt < RESTART_MS && !countdownAfterReset) {
     const t = now - resetAt
-    const view = base(state, "reset", ["", "", t < 120 ? "" : state.reset.playAgain ? "PLAY AGAIN!" : "RESTARTING...", ""].map(centre))
+    const view = base(state, "reset", ["", "", t < 120 ? "" : "GAME STOPPED", ""].map(centre))
     view.lives = null
     if (!reducedMotion && t < 6 * FLASH_STEP_MS) {
       view.lit = [6 - Math.floor(t / FLASH_STEP_MS)]
@@ -311,16 +321,21 @@ function viewFor(state, now, reducedMotion) {
 
   switch (state.phase) {
     case "countdown": {
-      const { steps, duration } = countdownTimeline(state.countdown.seconds, state.countdown.step_ms, GO_MS)
+      const turn = state.countdown.then === "input"
+      const { steps, duration } = countdownTimeline(state.countdown.seconds, state.countdown.step_ms, GO_MS, turn ? "BEGIN!" : "GO!")
       const t = now - state.countdown.at
       const step = stepAt(steps, t) ?? (t >= duration ? steps[steps.length - 1] : steps[0])
-      const go = step.label === "GO!"
-      const view = base(state, "countdown", [centre("GET READY!"), "", centre(step.label), ""].map(centre))
+      const last = step === steps[steps.length - 1]
+      const inGame = state.lives != null
+      const lines = inGame
+        ? [...statusLines(state), centre(step.label), centre(turn ? "YOUR TURN NEXT" : "WATCH THE LIGHTS")]
+        : [centre("GET READY!"), "", centre(step.label), ""]
+      const view = base(state, "countdown", lines)
       view.overlay = t < duration ? step.label : null
       view.overlayKey = `${state.countdown.at}|${step.label}`
-      view.dim = !go
-      view.lives = null
-      view.announce = go ? "Go" : "Get ready"
+      view.dim = !last
+      if (!inGame) view.lives = null
+      view.announce = last ? (turn ? "Begin" : "Go") : "Get ready"
       view.nextAt = state.countdown.at + nextBoundary(steps, t)
       return view
     }
@@ -329,7 +344,7 @@ function viewFor(state, now, reducedMotion) {
       view.announce = "Watch"
       const playback = state.playback
       if (!playback) {
-        view.lcd[2] = centre("GO!")
+        view.lcd[2] = centre("GET READY!")
         return view
       }
       const { steps, duration } = sequenceTimeline(playback.sequence, playback.cue_ms, playback.gap_ms)
@@ -365,7 +380,7 @@ function viewFor(state, now, reducedMotion) {
       const lines =
         r.result === "pass"
           ? [centre(`NICE! +${r.points_awarded}`), centre(`SPEED BONUS +${r.speed_bonus}`)]
-          : [centre(r.result === "timeout" ? "TIME'S UP!" : "OOPS!"), centre("SAME SEQUENCE AGAIN")]
+          : [centre(r.result === "timeout" ? "TIME'S UP!" : "OOPS!"), centre("NEW PATTERN NEXT")]
       const view = base(state, "result", [...statusLines(state), ...lines])
       const press = state.lastPress
       if (press && !press.ok && now - press.at < PRESS_MS) {
@@ -380,7 +395,7 @@ function viewFor(state, now, reducedMotion) {
       const view = base(state, "finished", [
         centre(final.outcome === "win" ? "YOU WIN!" : "GAME OVER"),
         centre(`FINAL SCORE ${pad4(final.final_score)}`),
-        centre("PRESS RESET TO"),
+        centre("PRESS START TO"),
         centre("PLAY AGAIN"),
       ])
       view.announce = final.outcome === "win" ? "You win" : "Game over"

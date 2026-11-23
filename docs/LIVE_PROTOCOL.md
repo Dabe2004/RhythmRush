@@ -7,8 +7,8 @@ firmware owner before it is final. The web side is built and tested against
 While a game is played on the ESP32, the device also sends small **live
 events**. The server keeps the current game in memory and pushes every event
 to the web page `/live` (Server-Sent Events), which mirrors the panel:
-attract animation, 3-2-1 countdown, the sequence, the presses, level, score
-and lives.
+attract animation, the 1 2 3 GO! and 1 2 3 BEGIN! countdowns, the sequence,
+the presses, level, score and lives.
 
 **The web page is display-only.** It can NOT start, reset or control the
 hardware in any way. (Demo mode, `/live?demo=1`, plays a scripted game in the
@@ -23,41 +23,46 @@ of truth for scores, the leaderboard and the ML results.
 ## 1. Controls (PROPOSED, needs agreement)
 
 The original guide had a 2 s hold on an "Admin Reset" button that returned to
-idle. Proposal: the button is called **RESET** and means "restart / play
+idle. Proposal: the action is called **RESET** and means "restart / play
 again". There is no admin function on the device.
+
+**The real box has one control, the pink START button on pin 13** (photo
+and hardware sketch, November 2026). The sketch's rule: RESET = **START held
+2 s** during play, back to **idle**. The events stay `control_pressed reset`
++ `game_reset`; the web draws a RESET as a press of START.
 
 | Control | When | Action |
 |---|---|---|
-| **START** | idle, or after a finished game | begins a game (countdown first) |
-| START | game in progress or countdown running | ignored |
-| **RESET** (hold ~1 s) | game in progress (watch or input phase) | abandons the game (**not uploaded**) and starts a fresh game with the countdown. A short tap does nothing, so a bump cannot end a game. |
-| RESET (short tap) | idle, after game over, after a win | "play again": a fresh game with the countdown |
-| RESET (short tap) | during the countdown | restarts the countdown from 3 (never two countdowns at once) |
+| **START** (short press) | idle, after game over, after a win | a new game (`game_started`, then the first countdown) |
+| START (short press) | during a game or a countdown | ignored |
+| **START held 2 s** (`RESET_HOLD_MS`) | during a game or a countdown | abandons the game (**not uploaded**) and goes back to **idle**. Release before starting again. |
 
-The web page does not care how long RESET was held: it only reacts to
+The web page does not care how long START was held: it only reacts to
 `control_pressed reset` and `game_reset`. There is **no** "reset held"
 progress event.
 
-During the countdown the six game buttons are **ignored** by the firmware (no
-`press` events are sent).
+During both countdowns the six game buttons are **ignored** by the firmware
+(no `press` events are sent).
 
-## 2. Countdown (3-2-1, then GO!)
+## 2. Countdowns (1 2 3 GO! and 1 2 3 BEGIN!)
 
-`COUNTDOWN_SECONDS` = 3 steps of `COUNTDOWN_STEP_MS` = 1000 ms, then "GO!"
-for `GO_MS` = 600 ms, then the first sequence. It does not affect scoring:
-the reaction timer starts when playback ends.
+Every attempt (the first try, every retry and every new level) runs:
 
-| Situation | Countdown? |
-|---|---|
-| START from idle | **yes** |
-| RESET held mid-game | **yes** |
-| RESET after game over / win (play again) | **yes** |
-| RESET during the countdown | **yes**, restarts at 3 |
-| retry after a failed attempt | no: "SAME SEQUENCE AGAIN" for `RETRY_PAUSE_MS` (1 s), then the same sequence |
-| next level after a pass | no: "NICE!" for `NEXT_LEVEL_PAUSE_MS` (1 s), then the new sequence |
+1. **1 2 3 GO!**: `countdown_started` with `"then": "watch"`. The LCD counts
+   up 1, 2, 3 (`COUNTDOWN_STEP_MS` = 1000 ms each), then "GO!" for `GO_MS` =
+   600 ms.
+2. The random sequence plays (`playback_started`).
+3. **1 2 3 BEGIN!**: `countdown_started` with `"then": "input"`, same timing.
+4. The player's turn (`input_started`). The reaction timer starts here, so
+   the countdowns never change scoring.
+5. `attempt_result`. A pass shows the points gained ("NICE! +points") for
+   `NEXT_LEVEL_PAUSE_MS` (1 s), then the next level starts at step 1. A fail
+   costs a life and shows "NEW PATTERN NEXT" for `RETRY_PAUSE_MS` (1 s); the
+   same level starts again at step 1 with a **new random pattern**. 3 lives
+   lost = game over; clearing level 7 = win.
 
-After RESET the device shows "RESTARTING..." (or "PLAY AGAIN!" after a
-finished game) for `RESTART_MS` = 500 ms, then starts the countdown.
+After RESET the device shows "GAME STOPPED" for `RESTART_MS` = 500 ms, then
+idle ("PRESS START").
 
 Optional: a short **"get ready" pause** of `GET_READY_MS` (300-400 ms, 350
 proposed) before every playback, so the first cue is not missed.
@@ -94,21 +99,21 @@ writes them to `docs/game_rules.json` for JavaScript tools.
 | type | fields | when |
 |---|---|---|
 | `control_pressed` | `control`: `"start"` or `"reset"` | a START/RESET press that does something (press animation); sent immediately |
-| `countdown_started` | `seconds` (1-5), `step_ms` (500-1500) | a countdown begins; sent **again** when RESET restarts it (the page restarts from 3) |
-| `game_started` | `lives`, `level` | right after the countdown (GO!) |
+| `game_started` | `lives`, `level` | right after START, before the first countdown (a new game) |
+| `countdown_started` | `seconds` (1-5), `step_ms` (500-1500), `then` (`"watch"` or `"input"`, default `"watch"`), `level` (optional) | 1 2 3 GO! before every playback (`watch`), 1 2 3 BEGIN! before every turn (`input`) |
 | `playback_started` | `level`, `attempt`, `sequence` (buttons 1-6), `cue_ms`, `gap_ms` | one event per playback (not one per cue) |
 | `input_started` | `level`, `deadline_ms`, `expected_length` | playback ended, the player's turn |
 | `press` | `index`, `button`, `expected`, `ok` | each game-button press during input |
 | `attempt_result` | `level`, `result` (`pass`/`wrong`/`timeout`), `lives`, `score`, `points_awarded`, `speed_bonus` | end of an attempt |
 | `game_finished` | `outcome` (`game_over`/`win`), `final_score`, `highest_level_completed`, `session_id` | the game is over; `session_id` = the id the final upload uses |
-| `game_reset` | none | RESET abandoned or restarted the game; always followed by a new `game_id` or a new `countdown_started` |
+| `game_reset` | none | START held: the game is abandoned and the device is idle; the next game has a new `game_id` |
 
 `attempt` counts the tries of the same level (1 = first try, 2 = first
 retry, ...). `index` is 0-based within the sequence.
 
 ### Limits (the server answers 400 above them)
 
-sequence length 1-17, buttons 1-6, level 1-15, lives 0-3, countdown seconds
+sequence length 1-17, buttons 1-6, level 1-7, lives 0-3, countdown seconds
 1-5, step_ms 500-1500, at most **20 events per request**, body at most
 **8 KB**. A per-device rate limit answers 429 (default 600 requests per
 minute; far above 4 batches/s).

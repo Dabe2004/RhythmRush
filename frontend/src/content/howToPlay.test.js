@@ -57,6 +57,18 @@ describe("brochure numbers come from the files", () => {
   })
 })
 
+describe("brochure follows the hardware game flow", () => {
+  it("1 2 3 Go!, watch, 1 2 3 Begin!, your turn; a fail brings a new pattern; hold START to stop", () => {
+    expect(text("how")).toContain("1, 2, 3, Go!")
+    expect(text("how")).toContain("1, 2, 3, Begin!")
+    expect(text("how").indexOf("Go!")).toBeLessThan(text("how").indexOf("Begin!"))
+    expect(text("how")).toContain(`hold START for ${rules.timing_ms.reset_hold / 1000} seconds`)
+    expect(text("lives")).toContain("a new pattern at the same level")
+    expect(text("lives")).toContain("No lives left? Game over.")
+    expect(text("how", brochure("fil"))).toContain("1, 2, 3, Begin!")
+  })
+})
+
 describe("visitor wording rules", () => {
   const sets = {
     "brochure (English)": allStrings(BROCHURE_TEXT.en),

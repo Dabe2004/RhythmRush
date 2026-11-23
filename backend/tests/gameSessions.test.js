@@ -165,6 +165,23 @@ describe("POST /api/game-sessions", () => {
     expect(counts()).toEqual({ sessions: 1, attempts: 3, features: 1, predictions: 1 });
   });
 
+  it("numbers every saved game Player 1, 2, 3...; a duplicate upload takes no number", async () => {
+    const game = (id) => ({ ...exampleRecord(), session_id: id });
+    await postSession(game("RR01-P1"));
+    await postSession(game("RR01-P1")); // the ESP32 retried the same game
+    await postSession(game("RR01-P2"));
+    await postSession(game("RR01-P3"));
+
+    const numbers = db.prepare("SELECT session_id, player_number FROM game_sessions ORDER BY player_number").all();
+    expect(numbers).toEqual([
+      { session_id: "RR01-P1", player_number: 1 },
+      { session_id: "RR01-P2", player_number: 2 },
+      { session_id: "RR01-P3", player_number: 3 },
+    ]);
+    const recent = await request(app).get("/api/game-sessions/recent?limit=1");
+    expect(recent.body.sessions[0]).toMatchObject({ session_id: "RR01-P3", player_number: 3, nickname: null });
+  });
+
   it("computes the AGENTS.md example features correctly", async () => {
     await postSession(exampleRecord());
 
@@ -235,9 +252,9 @@ describe("POST /api/game-sessions", () => {
     expect(res.body.error).toBe("invalid_body");
   });
 
-  it("rejects level 16", async () => {
+  it("rejects level 8 (the game has 7 levels)", async () => {
     const record = exampleRecord();
-    record.attempts[0].level = 16;
+    record.attempts[0].level = 8;
 
     const res = await postSession(record);
 

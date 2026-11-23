@@ -647,17 +647,17 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
 5. **Stale and new games.** A new `game_id` switches the device's game; ids
    seen before (last 50) are ignored, so a late batch from an abandoned game
    cannot overwrite the new one.
-6. **RESET timing in the protocol.** After RESET the device shows
-   "RESTARTING..." / "PLAY AGAIN!" for 500 ms and only then sends
-   `countdown_started`, so the web's reverse flash and the device stay in
-   step. If both arrive together, the countdown wins.
+6. **RESET timing in the protocol.** After RESET (START held 2 s) the
+   device shows "GAME STOPPED" for 500 ms and then goes idle. (Before the
+   hardware rules it restarted with a countdown; see "Hardware rules".)
 7. **No formula copied into JavaScript.** `fake_live_game.js` reads deadlines,
    sequence lengths and base points from `docs/game_rules.json`, and the speed
    bonus from a per-level step table that `export_rules.py` computes with
    `game_rules.speed_bonus` (and self-checks). This also keeps Python's
    round-half-to-even exactly.
-8. **LCD is 20 x 4.** "PRESS RESET TO PLAY AGAIN" has 25 characters, so it is
-   split over lines 3 and 4 ("PRESS RESET TO" / "PLAY AGAIN").
+8. **LCD is 20 x 4.** "PRESS START TO PLAY AGAIN" has 25 characters, so it is
+   split over lines 3 and 4 ("PRESS START TO" / "PLAY AGAIN"). (It said RESET
+   until the box turned out to have no RESET button.)
 9. **"Last results" needed a newest-first list**, so `GET
    /api/game-sessions/recent?limit=5` was added (the leaderboard is by
    score). It replaces the kiosk's old "Hall of Fame" top 5 on `/live`.
@@ -723,8 +723,92 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
 4. **Rate limiter and live state are per server process** (memory).
 5. **Demo mode is a script**: its numbers are what a device would send, not
    computed rules.
-6. **Sound** plays only after a click on the page (browser autoplay rules) and
-   is off by default; the hardware plays its own sound.
+6. **No sound on the web.** The "Play sounds on this screen" button and its
+   WebAudio beeps were removed (November 2026): the box's buzzer is the only
+   sound, and a TV beeping a little later than the box sounded like an echo.
+
+### "Player #N" and the dashboard lists (November 2026)
+
+1. **Every saved game gets the next number** (`game_sessions.player_number`,
+   migration `db/migrations/002_player_number.sql`): Player #1, #2, #3... It
+   is set inside the upload transaction as `MAX(player_number) + 1`, so a
+   duplicate upload takes no number, and a game stopped with START held is
+   never uploaded, so it takes none either. The migration numbers games that
+   already exist, oldest first. A deleted game leaves a gap; numbers are
+   never reused (a UNIQUE index enforces it).
+2. **"Mystery Player" is gone**: a game without a nickname shows "Player #N"
+   everywhere (result card, Last results, leaderboard, game page). A saved
+   nickname still replaces it.
+3. **/live shows "Last results" AND "Leaderboard (top 5)"**. Both refresh every
+   10 s and at once when the kiosk sees a new game (the latest-game poll,
+   every 2 s). At 1920x1080 both fit next to the panel; at 1280x720 the
+   right column is taller than the screen (the panel still fits).
+4. **Fake and test games take numbers too.** Before the event, clear the
+   database (README, "Moderation") so the first visitor is Player #1.
+
+### Hardware rules: 7 levels and two countdowns (November 2026)
+
+Source: the hardware's Arduino sketch (pins, `rr_default_config()` values,
+START on pin 13) and the team's "Updated Gameplay" text. The sketch's game
+logic file (`RhythmRushGame.h`) was **not** available.
+
+1. **Changed in `ml/game_rules.py`:** `MAX_LEVEL` 15 -> **7**,
+   `MIN_DEADLINE_SEC` 1.5 -> **1.0** (the sketch's `minimum_deadline_ms`),
+   `RESET_HOLD_MS` 1000 -> **2000** (START held 2 s = back to idle). Kept:
+   3 lives, 3.0 s first limit, 100 points x level, bonus up to 50, cue 500 ms,
+   countdown steps of 1 s (all the same as the sketch).
+2. **Not known, kept as before (guesses):** sequence length = level + 2 and
+   the time limit shrinking 0.2 s per level (so level 7 gives 1.8 s and the
+   1.0 s floor is never reached), and the speed bonus formula. Copy the real
+   ones from `RhythmRushGame.h` into `ml/game_rules.py` when we get it, then
+   rerun the commands below.
+3. **Every attempt counts down twice:** "1 2 3 GO!" before the sequence and
+   "1 2 3 BEGIN!" before the turn (counting UP, as the spec says).
+   `countdown_started` got `then` ("watch"/"input") and `level`;
+   `game_started` now comes right after START, before the first countdown.
+   A fail brings a NEW random pattern at the same level (the sketch says so).
+   The LCD text on the web ("WATCH THE LIGHTS", "YOUR TURN NEXT", "NEW
+   PATTERN NEXT", "GAME STOPPED") is ours: the real LCD text is in the
+   missing `rr_render()`; change `liveReducer.js` to match once we see it.
+4. **Models retrained** on a new simulation (seed 42, 2,000 games): wins
+   74.1 % (was 16.5 %), mean score 2,621, median 3,027, max 3,076 (theory
+   about 3,150). Skill tree accuracy 70.75 %; difficulty R2 0.8186, MAE
+   0.2882; `check_exports.py` all checks passed. The old "Metrics" section
+   below is from the 15-level game. **Most simulated players win**, because
+   the simulated skills were tuned for 15 levels: retrain with real games.
+5. **Limits:** level 1-7 in uploads, `/api/difficulty/next` and live events
+   (`docs/session.schema.json` too). Sequence length stays capped at 17 (7
+   levels with +2 steps every level reach 15).
+6. **Commands:** `python ml/game_rules.py`, `python ml/export_rules.py`,
+   `python ml/simulate_games.py`, `python ml/train_skill.py`,
+   `python ml/train_animal.py`, `python ml/train_difficulty.py`,
+   `python ml/check_exports.py`, `python ml/export_test_vectors.py`.
+
+### Panel copied from the box (November 2026)
+
+A photo of the real box top replaced the written description.
+
+1. **Button colours changed everywhere** to match the box: 1 Red, 2 Orange,
+   3 Blue, 4 Blue, 5 Yellow, 6 Red (`ml/game_rules.py` BUTTONS ->
+   `docs/game_rules.json`, `frontend/src/theme.js`, brochure text, bunting,
+   button strip). Red and blue repeat, so the colour name no longer tells
+   two buttons apart: the position does.
+2. **Assumption: buttons are numbered in reading order** (top row 1-3, bottom
+   row 4-6, left to right). The firmware's pin order must match, or the
+   mirror lights the wrong LED. Not checked on the hardware.
+3. **The LED above a button lights, not the button** (the box's buttons cannot
+   light up). The tones stay C4-A4 per button number.
+4. **No RESET button on the box.** The web panel shows only START; a
+   `control_pressed reset` animates START. The hardware sketch confirms
+   RESET = START held (2 s, back to idle). The brochure and the LCD say
+   "Press START" to play again.
+5. **Checked by screenshots** (headless browser, demo mode): 1920x1080 (panel
+   ends at about 870 px) and 1280x720 (fits, ends at about 665 px). At 390 px
+   the page is wider than the screen, but the old panel did the same in the
+   same headless browser, so it was not caused by this change; check on a
+   real phone.
+6. **The Filipino brochure line** only swapped "RESET" for "START"; the native
+   speaker review is still open.
 
 ## How to play brochure and visitor wording
 

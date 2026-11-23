@@ -143,7 +143,7 @@ def build_difficulty_cases(data, difficulty: dict, picker: random.Random) -> lis
             target,
             difficulty,
             rr_choices=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-            level_choices=[1, 4, 8, 12, 15],
+            level_choices=[1, 2, 4, 6, 7],
         )
         inputs.append((case, None))
 
@@ -155,10 +155,10 @@ def build_difficulty_cases(data, difficulty: dict, picker: random.Random) -> lis
         {"accuracy": 0.0, "reaction_ratio": 1.2, "level": 3},
     ]
     above = [
-        {"accuracy": 1.0, "reaction_ratio": 0.0, "level": 15},
-        {"accuracy": 1.0, "reaction_ratio": 0.2, "level": 15},
-        {"accuracy": 0.95, "reaction_ratio": 0.0, "level": 14},
-        {"accuracy": 1.0, "reaction_ratio": 0.4, "level": 15},
+        {"accuracy": 1.0, "reaction_ratio": 0.0, "level": 7},
+        {"accuracy": 1.0, "reaction_ratio": 0.2, "level": 7},
+        {"accuracy": 0.95, "reaction_ratio": 0.0, "level": 6},
+        {"accuracy": 1.0, "reaction_ratio": 0.4, "level": 7},
     ]
     for case in below + above:
         inputs.append((case, None))
@@ -167,10 +167,10 @@ def build_difficulty_cases(data, difficulty: dict, picker: random.Random) -> lis
     extras = [
         {"accuracy": 0.0, "reaction_ratio": 0.0, "level": 1},
         {"accuracy": 1.0, "reaction_ratio": 0.0, "level": 1},
-        {"accuracy": 0.0, "reaction_ratio": 2.0, "level": 15},
-        {"accuracy": 1.0, "reaction_ratio": 2.0, "level": 15},
-        {"accuracy": 0.5, "reaction_ratio": 1.0, "level": 7},
-        {"accuracy": 0.75, "reaction_ratio": 0.5, "level": 10},
+        {"accuracy": 0.0, "reaction_ratio": 2.0, "level": 7},
+        {"accuracy": 1.0, "reaction_ratio": 2.0, "level": 7},
+        {"accuracy": 0.5, "reaction_ratio": 1.0, "level": 4},
+        {"accuracy": 0.75, "reaction_ratio": 0.5, "level": 5},
     ]
     for case in extras:
         inputs.append((case, None))

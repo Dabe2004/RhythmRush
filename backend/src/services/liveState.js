@@ -48,22 +48,29 @@ function reduceLive(state, event, now) {
     case "control_pressed":
       return ok({ ...s, lastControl: { control: event.control, at: now } });
 
-    case "countdown_started":
-      // A second countdown_started (RESET during the countdown) restarts it.
+    case "countdown_started": {
+      // Every attempt counts twice: before the sequence (then "watch") and
+      // before the player's turn (then "input"). Mid-game the lives, level
+      // and score stay; from idle it is a fresh game.
+      const fresh = state.phase === "idle" || state.phase === "result_pending";
+      const base = fresh ? { ...emptyState(state.device_id, state.game_id), lastControl: state.lastControl, resetAt: state.resetAt, lastEventAt: now } : s;
+      const then = event.then ?? "watch";
       return ok({
-        ...s,
+        ...base,
         phase: "countdown",
-        countdown: { seconds: event.seconds, step_ms: event.step_ms, startedAt: now },
-        sequence: null,
+        level: event.level ?? base.level,
+        countdown: { seconds: event.seconds, step_ms: event.step_ms, then, startedAt: now },
+        sequence: then === "watch" ? null : base.sequence,
         input: null,
         lastPress: null,
         lastResult: null,
         final: null,
       });
+    }
 
     case "game_started":
-      if (state.phase !== "countdown" && state.phase !== "idle") return ignore;
-      return ok({ ...s, phase: "watch", lives: event.lives, level: event.level, score: 0, attempt: null });
+      // Sent right after START, before the first countdown: a new game.
+      return ok({ ...emptyState(state.device_id, state.game_id), lastControl: state.lastControl, resetAt: state.resetAt, lastEventAt: now, phase: "watch", lives: event.lives, level: event.level, score: 0 });
 
     case "playback_started":
       // Accepted from idle too: a server restart mid-game must not freeze the mirror.
@@ -88,10 +95,11 @@ function reduceLive(state, event, now) {
       });
 
     case "input_started":
-      if (!IN_GAME.has(state.phase)) return ignore;
+      if (!IN_GAME.has(state.phase) && state.phase !== "countdown") return ignore;
       return ok({
         ...s,
         phase: "input",
+        countdown: null,
         input: { expected_length: event.expected_length, deadline_ms: event.deadline_ms, done: 0, startedAt: now },
       });
 
@@ -109,7 +117,7 @@ function reduceLive(state, event, now) {
       if (!IN_GAME.has(state.phase)) return ignore;
       return ok({
         ...s,
-        phase: "watch", // waiting for the next playback (NICE! / SAME SEQUENCE AGAIN)
+        phase: "watch", // waiting for the next countdown (NICE! / life lost)
         lives: event.lives,
         score: event.score,
         input: null,

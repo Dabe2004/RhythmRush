@@ -29,8 +29,9 @@
                           rrQueueSession(session);   // saved to flash first, uploaded as id
 
   Live mirror (optional, RR_LIVE_EVENTS): call liveNewGame() before the
-  START control_pressed (and after RESET's game_reset), then live...() at
-  each step. See README.md "Live events" and docs/LIVE_PROTOCOL.md.
+  START control_pressed, then live...() at each step: per attempt
+  liveCountdown("watch") -> livePlayback -> liveCountdown("input") ->
+  liveInputStarted. See README.md "Live events" and docs/LIVE_PROTOCOL.md.
 
   Blocking: nothing here calls a long delay(). Uploads only run while the
   game is NOT active. One upload attempt waits at most about 1.5 s for the
@@ -121,7 +122,7 @@ struct RRAttempt {
 };
 
 struct RRSession {
-  bool     win;                    // true = cleared level 15, false = game over
+  bool     win;                    // true = cleared level 7, false = game over
   uint32_t finalScore;
   uint8_t  highestLevelCompleted;
   uint8_t  finalSequenceLength;    // level of the last attempt + 2
@@ -148,7 +149,7 @@ String rrReserveSessionId();
 // Live events (docs/LIVE_PROTOCOL.md); all of them only enqueue, never block.
 void liveNewGame();
 void liveControlPressed(const char* control);
-void liveCountdown(uint8_t seconds, uint16_t stepMs);
+void liveCountdown(uint8_t seconds, uint16_t stepMs, const char* then, uint8_t level);
 void liveGameStarted(uint8_t lives, uint8_t level);
 void livePlayback(uint8_t level, uint8_t attempt, const uint8_t* sequence, uint8_t length, uint16_t cueMs, uint16_t gapMs);
 void liveInputStarted(uint8_t level, uint32_t deadlineMs, uint8_t expectedLength);
@@ -471,8 +472,10 @@ void liveControlPressed(const char* control) {
   liveEnqueue(true, "\"type\":\"control_pressed\",\"control\":\"%s\"}", control);
 }
 
-void liveCountdown(uint8_t seconds, uint16_t stepMs) {
-  liveEnqueue(true, "\"type\":\"countdown_started\",\"seconds\":%u,\"step_ms\":%u}", seconds, stepMs);
+// then = "watch" (1 2 3 GO! before a sequence) or "input" (1 2 3 BEGIN! before the turn).
+void liveCountdown(uint8_t seconds, uint16_t stepMs, const char* then, uint8_t level) {
+  liveEnqueue(true, "\"type\":\"countdown_started\",\"seconds\":%u,\"step_ms\":%u,\"then\":\"%s\",\"level\":%u}",
+              seconds, stepMs, then, level);
 }
 
 void liveGameStarted(uint8_t lives, uint8_t level) {
@@ -826,10 +829,11 @@ static void demoSerialCommands() {
     case 'w':
       RR_LOG("Wi-Fi status %d, IP %s", (int)WiFi.status(), WiFi.localIP().toString().c_str());
       break;
-    case 'l':   // the web /live page should show START + the 3-2-1 countdown
+    case 'l':   // the web /live page should show START + the 1 2 3 GO! countdown
       liveNewGame();
       liveControlPressed("start");
-      liveCountdown(3, 1000);
+      liveGameStarted(3, 1);
+      liveCountdown(3, 1000, "watch", 1);
       RR_LOG("Live test sent (game id %s)", gLiveGameId);
       break;
     case 'h':

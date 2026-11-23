@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 
-import { getLatestSession, getRecentSessions } from "../api"
+import { getLatestSession, getLeaderboard, getRecentSessions } from "../api"
 import ArcadeButtons from "../components/ArcadeButtons"
 import { Confetti, MarqueeBulbs } from "../components/Decor"
 import LivePanel, { ConnectionChip } from "../components/LivePanel"
@@ -35,7 +35,7 @@ import {
 } from "../kioskState"
 import { useDemoGame } from "../live/demoGame"
 import { screenMode } from "../live/liveReducer"
-import { useFirstCueDelay, useLiveClock, usePanelSound, usePanelView } from "../live/usePanel"
+import { useFirstCueDelay, useLiveClock, usePanelView } from "../live/usePanel"
 import useLiveGame from "../live/useLiveGame"
 import usePolling from "../usePolling"
 import useSession from "../useSession"
@@ -127,7 +127,15 @@ function LiveKiosk({ debug }) {
   }, [state.activeId])
 
   if (screenMode(live.state, state.activeId, now) === "mirror") {
-    return <LiveStage state={live.state} connection={live.connection} label={live.label} debug={debug} />
+    return (
+      <LiveStage
+        state={live.state}
+        connection={live.connection}
+        label={live.label}
+        debug={debug}
+        latestId={latest.data?.session?.session_id ?? null}
+      />
+    )
   }
 
   // key: a new game gets a fresh form, fresh rank, fresh everything.
@@ -249,41 +257,8 @@ function Countdown({ secondsLeft, paused, onClose }) {
 // ---------------------------------------------------------------------------
 // Live mirror: the control panel left, "Last results" right (phones: panel first)
 // ---------------------------------------------------------------------------
-const SOUND_KEY = "rhythmRushSound"
-
-// Off by default and remembered. Audio starts only after a click on this page.
-function useSoundSetting() {
-  const [on, setOn] = useState(() => {
-    try {
-      return localStorage.getItem(SOUND_KEY) === "on"
-    } catch {
-      return false
-    }
-  })
-  const [clicked, setClicked] = useState(false)
-  useEffect(() => {
-    const unlock = () => setClicked(true)
-    document.addEventListener("pointerdown", unlock, { once: true })
-    return () => document.removeEventListener("pointerdown", unlock)
-  }, [])
-  const toggle = () => {
-    setClicked(true)
-    setOn((value) => {
-      try {
-        localStorage.setItem(SOUND_KEY, value ? "off" : "on")
-      } catch {
-        // Private mode: the setting is just not remembered.
-      }
-      return !value
-    })
-  }
-  return { on, playing: on && clicked, toggle }
-}
-
-function LiveStage({ state, connection, label, debug, demo = null }) {
+function LiveStage({ state, connection, label, debug, demo = null, latestId = null }) {
   const view = usePanelView(state)
-  const sound = useSoundSetting()
-  usePanelSound(view, sound.playing)
   const firstCue = useFirstCueDelay(state, view)
 
   return (
@@ -294,7 +269,7 @@ function LiveStage({ state, connection, label, debug, demo = null }) {
           {demo ? (
             <p className="sign absolute -top-4 left-6 z-20 -rotate-3 bg-paint-yellow px-4 py-0.5 text-xl text-ink">{V.demo}</p>
           ) : null}
-          <LivePanel view={view} interactive={Boolean(demo)} onStart={demo?.start} onReset={demo?.reset} />
+          <LivePanel view={view} interactive={Boolean(demo)} onStart={demo?.start} />
           <p className="sr-only" aria-live="polite">
             {view.announce ?? ""}
           </p>
@@ -313,23 +288,18 @@ function LiveStage({ state, connection, label, debug, demo = null }) {
               ? V.demoNote
               : V.note}
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            {demo ? null : <ConnectionChip connection={connection} label={label} />}
-            <button
-              type="button"
-              aria-pressed={sound.on}
-              onClick={sound.toggle}
-              className="sign min-h-[44px] bg-ticket px-4 py-1.5 text-sm text-ink transition-transform hover:-translate-y-0.5"
-            >
-              <span aria-hidden="true">{sound.on ? "[x] " : "[ ] "}</span>{V.sound}
-            </button>
-          </div>
+          {demo ? null : (
+            <div>
+              <ConnectionChip connection={connection} label={label} />
+            </div>
+          )}
           {debug ? (
             <p className="self-start bg-ink px-3 py-1 font-mono text-sm text-cream">
               debug: connection {connection}; playback arrival to first lit cue: {firstCue ?? "-"} ms
             </p>
           ) : null}
-          <LastResults />
+          <LastResults latestId={latestId} />
+          <TopScores latestId={latestId} />
         </div>
       </div>
     </Stage>
@@ -341,35 +311,52 @@ function DemoScreen({ auto, debug }) {
   return <LiveStage state={demo.state} connection="live" label="Live" debug={debug} demo={demo} />
 }
 
-function LastResults() {
-  const { data, error } = usePolling(() => getRecentSessions(5), 10000)
-  const sessions = Array.isArray(data?.sessions) ? data.sessions : []
+// "Last results" (newest first) and the leaderboard's top 5. Both refresh
+// every 10 s and at once when a new game is saved (latestId changes).
+const LOAD_RECENT = () => getRecentSessions(5)
+const LOAD_TOP = () => getLeaderboard(5)
+
+function ScoreList({ title, load, pick, latestId, ranked = false, tilt }) {
+  const { data, error, retry } = usePolling(load, 10000)
+  useEffect(() => {
+    if (latestId) retry()
+  }, [latestId, retry])
+  const rows = Array.isArray(pick(data)) ? pick(data) : []
 
   return (
-    <div className="ticket rotate-[1.5deg] px-5 pb-5 pt-4 sm:px-7">
-      <h2 className="font-sign text-2xl text-tent sm:text-3xl">{V.lastResults}</h2>
-      {sessions.length === 0 ? (
-        <p className="mt-3 text-xl font-extrabold">{error ? V.resultsUnavailable : V.noResults}</p>
+    <div className={`ticket px-5 pb-3 pt-3 sm:px-7 ${tilt}`}>
+      <h2 className="font-sign text-2xl text-tent sm:text-3xl">{title}</h2>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-xl font-extrabold">{error ? V.resultsUnavailable : V.noResults}</p>
       ) : (
-        <ol className="mt-3">
-          {sessions.map((session) => (
+        <ol className="mt-1">
+          {rows.map((row) => (
             <li
-              key={session.session_id}
-              className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-t-0"
+              key={row.session_id}
+              className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-2 first:border-t-0"
             >
               <Link
-                to={`/session/${encodeURIComponent(session.session_id)}`}
-                className="min-w-0 truncate text-xl font-extrabold sm:text-2xl xl:text-3xl"
+                to={`/session/${encodeURIComponent(row.session_id)}`}
+                className="min-w-0 truncate text-xl font-extrabold sm:text-2xl"
               >
-                <PlayerName nickname={session.nickname} />
+                {ranked ? <span className="mr-2 font-sign text-tent">{row.rank}.</span> : null}
+                <PlayerName nickname={row.nickname} number={row.player_number} />
               </Link>
-              <ScoreCounter value={session.final_score} className="shrink-0 text-lg sm:text-xl xl:text-2xl" />
+              <ScoreCounter value={row.final_score} className="shrink-0 text-lg sm:text-xl" />
             </li>
           ))}
         </ol>
       )}
     </div>
   )
+}
+
+function LastResults({ latestId }) {
+  return <ScoreList title={V.lastResults} load={LOAD_RECENT} pick={(d) => d?.sessions} latestId={latestId} tilt="rotate-[1.5deg]" />
+}
+
+function TopScores({ latestId }) {
+  return <ScoreList title={V.leaderboard} load={LOAD_TOP} pick={(d) => d?.entries} latestId={latestId} ranked tilt="-rotate-1" />
 }
 
 // ---------------------------------------------------------------------------

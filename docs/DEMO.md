@@ -134,10 +134,10 @@ Use the three devices you will really use: **(a)** the ESP32 game box,
 **(b)** the kiosk display, **(c)** the laptop (a PowerShell in `backend/`).
 
 1. **(a)** Play one short game on the ESP32 (fail on purpose at level 1-2).
-   **(b)** While playing, the kiosk mirrors the panel: START press, 3-2-1-GO,
-   the sequence, your presses, level/score/lives on the LCD. A retry or the
-   next level has **no** countdown. After the game it shows "Final score N,
-   saving...".
+   **(b)** While playing, the kiosk mirrors the panel: START press, 1 2 3
+   GO!, the sequence, 1 2 3 BEGIN!, your presses, level/score/lives on the
+   LCD. Every retry (with a new pattern) and every level counts down again.
+   After the game it shows "Final score N, saving...".
 2. **(b)** Within about 2 seconds the kiosk shows "Game Over", the score, the
    level, the skill and the animal. Type a test nickname and press Save:
    "Saved! You are ...".
@@ -156,10 +156,10 @@ Use the three devices you will really use: **(a)** the ESP32 game box,
    belong to RR01), or reset the whole database (README, "Moderation"). The
    leaderboard is empty again.
 
-8. **RESET.** Hold RESET about 1 s during a game: the kiosk flashes the
-   buttons backwards, shows "RESTARTING..." and a new countdown; the
-   abandoned game never appears on the leaderboard. A short tap mid-game
-   does nothing. RESET after game over says "PLAY AGAIN!".
+8. **RESET (START held).** The box has no RESET button. Hold START for
+   2 s during a game: the kiosk flashes the LEDs backwards, shows "GAME
+   STOPPED" and goes back to "PRESS START"; the abandoned game never appears
+   on the leaderboard. A short tap mid-game does nothing.
 9. **Delay.** Film the panel and the TV together in slow motion and count the
    frames between a lit LED ring and the lit button on screen; note it in
    `docs/NOTES.md`.

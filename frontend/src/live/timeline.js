@@ -15,14 +15,15 @@ export function sequenceTimeline(sequence, cueMs, gapMs) {
   return { steps, duration: sequence.length * period }
 }
 
-// 3, 2, 1 (one step each), then "GO!".
-export function countdownTimeline(seconds, stepMs, goMs = 600) {
+// 1, 2, 3 (counting up, one step each, as on the LCD), then the final word:
+// "GO!" before a sequence, "BEGIN!" before the player's turn.
+export function countdownTimeline(seconds, stepMs, goMs = 600, final = "GO!") {
   const steps = Array.from({ length: seconds }, (_, i) => ({
-    label: String(seconds - i),
+    label: String(i + 1),
     at: i * stepMs,
     until: (i + 1) * stepMs,
   }))
-  steps.push({ label: "GO!", at: seconds * stepMs, until: seconds * stepMs + goMs })
+  steps.push({ label: final, at: seconds * stepMs, until: seconds * stepMs + goMs })
   return { steps, duration: seconds * stepMs + goMs }
 }
 

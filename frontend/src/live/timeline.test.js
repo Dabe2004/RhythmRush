@@ -31,22 +31,22 @@ describe("sequenceTimeline", () => {
 })
 
 describe("countdownTimeline", () => {
-  it("is 3, 2, 1 one step each, then GO!", () => {
+  it("counts up 1, 2, 3 one step each, then GO!", () => {
     const { steps, duration } = countdownTimeline(3, 1000, 600)
     expect(steps.map((s) => [s.label, s.at, s.until])).toEqual([
-      ["3", 0, 1000],
+      ["1", 0, 1000],
       ["2", 1000, 2000],
-      ["1", 2000, 3000],
+      ["3", 2000, 3000],
       ["GO!", 3000, 3600],
     ])
     expect(duration).toBe(3600)
-    expect(stepAt(steps, 2999).label).toBe("1")
+    expect(stepAt(steps, 2999).label).toBe("3")
     expect(stepAt(steps, 3000).label).toBe("GO!")
   })
 
-  it("follows the event's seconds and step", () => {
-    const { steps } = countdownTimeline(5, 500)
-    expect(steps.map((s) => s.label)).toEqual(["5", "4", "3", "2", "1", "GO!"])
+  it("follows the event's seconds and step, and ends with BEGIN! before a turn", () => {
+    const { steps } = countdownTimeline(5, 500, 600, "BEGIN!")
+    expect(steps.map((s) => s.label)).toEqual(["1", "2", "3", "4", "5", "BEGIN!"])
     expect(steps[4].at).toBe(2000)
   })
 })

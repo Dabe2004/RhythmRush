@@ -191,6 +191,7 @@ describe("GET /api/game-sessions/latest", () => {
     expect(res.body.session).toEqual({
       session_id: "NEW",
       nickname: "Alice",
+      player_number: null, // inserted by hand here; uploads get a number
       final_score: 900,
       highest_level_completed: 1,
       outcome: "game_over",

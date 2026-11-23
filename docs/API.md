@@ -83,7 +83,7 @@ Request body (all fields required, see `docs/session.schema.json`):
 ```
 
 * `outcome`: `"game_over"` or `"win"`.
-* `attempts[].level`: 1-15, `result`: `"pass" | "wrong" | "timeout"`,
+* `attempts[].level`: 1-7, `result`: `"pass" | "wrong" | "timeout"`,
   `response_ms >= 0`, at most 200 attempts.
 
 Response `201` (new session; the ML fields are `null` when the models could
@@ -149,6 +149,7 @@ fields):
       "rank": 1,
       "session_id": "RR01-000999",
       "nickname": "Alice",
+      "player_number": 12,
       "final_score": 2470,
       "highest_level_completed": 5,
       "outcome": "win",
@@ -188,8 +189,9 @@ Response `200`:
   "session": {
     "session_id": "SIM01-422019119",
     "nickname": null,
-    "final_score": 12442,
-    "highest_level_completed": 15,
+    "player_number": 7,
+    "final_score": 3042,
+    "highest_level_completed": 7,
     "outcome": "win",
     "received_at": "2026-11-20 05:22:51"
   }
@@ -339,8 +341,8 @@ Request body:
 
 * `accuracy`: number `0..1`.
 * `reactionRatio`: number `>= 0`.
-* `level`: integer `1..15`.
-* `currentLength`: integer `3..17` (level + 2, so level 15 is 17).
+* `level`: integer `1..7`.
+* `currentLength`: integer `3..17` (starts at 3; 17 is a safe cap).
 
 Response `200`:
 
@@ -428,9 +430,14 @@ Query: `limit` 1-20 (default 5); anything else is `400 {"error":"invalid_limit"}
 
 Response `200`:
 
+`player_number` (also in the leaderboard, `/latest` and one session): the
+game's number, 1, 2, 3... in the order games were saved. The web shows
+"Player #N" for a game without a nickname. A duplicate upload takes no
+number; an abandoned game (START held) is never uploaded, so it takes none.
+
 ```json
 { "sessions": [
-  { "session_id": "RR01-000128", "nickname": null, "final_score": 1290,
+  { "session_id": "RR01-000128", "nickname": null, "player_number": 4, "final_score": 1290,
     "highest_level_completed": 5, "outcome": "game_over", "received_at": "2026-11-21 10:04:31" }
 ] }
 ```
@@ -458,13 +465,15 @@ Device auth (`X-API-Key`, like uploads). Body at most **8 KB**, 1-20 events:
   "game_id": "RR01-L-000128",
   "events": [
     { "type": "control_pressed", "t_ms": 0, "control": "start" },
-    { "type": "countdown_started", "t_ms": 4, "seconds": 3, "step_ms": 1000 }
+    { "type": "game_started", "t_ms": 3, "lives": 3, "level": 1 },
+    { "type": "countdown_started", "t_ms": 4, "seconds": 3, "step_ms": 1000, "then": "watch", "level": 1 }
   ]
 }
 ```
 
 Event types and fields: see LIVE_PROTOCOL.md. Limits: sequence 1-17 buttons
-of 1-6, level 1-15, lives 0-3, countdown seconds 1-5, step_ms 500-1500.
+of 1-6, level 1-7, lives 0-3, countdown seconds 1-5, step_ms 500-1500,
+countdown `then` `"watch"` or `"input"`.
 
 | Status | Body | When |
 |---|---|---|

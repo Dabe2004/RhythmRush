@@ -14,13 +14,14 @@ const { predictSteps, modelVersions } = require("../services/ml");
 
 const router = express.Router();
 
-// Longest legal sequence: level 15 -> 17 steps.
+// Longest legal sequence. 7 levels starting at 3 steps with at most +2 per
+// level reach 15; 17 is kept as a safe cap.
 const MAX_SEQUENCE_LENGTH = 17;
 
 const bodySchema = z.object({
   accuracy: z.number().min(0).max(1),
   reactionRatio: z.number().min(0),
-  level: z.number().int().min(1).max(15),
+  level: z.number().int().min(1).max(7),
   currentLength: z.number().int().min(3).max(MAX_SEQUENCE_LENGTH),
 });
 

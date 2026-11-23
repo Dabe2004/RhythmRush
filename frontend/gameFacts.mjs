@@ -31,16 +31,18 @@ function leafFor(nodes, values) {
 }
 
 // Speed ranges per rank, ONLY if the tree's answer depends on speed alone
-// (checked over many values of the other three inputs). Otherwise null, and
-// the brochure gives no numbers.
+// (checked at every split point of the other three inputs, just at and just
+// above it, so it holds for any score scale or number of levels). Otherwise
+// null, and the brochure gives no numbers.
 export function speedRanges(skill) {
   const speed = skill.features.indexOf("avg_reaction_sec")
   if (speed < 0) return null
-  const others = [
-    [0, 3000, 6000, 9000, 12497, 12498, 13000],
-    [3, 6, 10, 14, 17],
-    [0, 0.3, 0.6, 0.9, 1],
-  ]
+  const probes = (name) => {
+    const feature = skill.features.indexOf(name)
+    const cuts = skill.nodes.filter((n) => n.feature === feature).map((n) => n.threshold)
+    return [0, ...cuts.flatMap((t) => [t, t + 1e-6])]
+  }
+  const others = ["final_score", "highest_sequence_length", "success_rate"].map(probes)
   const ranges = []
   for (let ms = 200; ms <= 3000; ms += 5) {
     const seconds = ms / 1000
@@ -75,6 +77,7 @@ export function buildGameFacts(rules, skill, animal) {
   return {
     lives: rules.start_lives,
     levels: rules.max_level,
+    holdSeconds: rules.timing_ms.reset_hold / 1000,
     pointsPerLevel: first.base_points / first.level,
     bonusMax: Math.max(...levels.flatMap((l) => l.speed_bonus_steps.map(([, bonus]) => bonus))),
     firstLimitSeconds: first.deadline_ms / 1000,

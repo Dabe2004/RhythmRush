@@ -17,7 +17,7 @@ const { createLiveStore } = require("../services/liveState");
 
 const tMs = z.number().int().min(0);
 const button = z.number().int().min(1).max(6);
-const level = z.number().int().min(1).max(15);
+const level = z.number().int().min(1).max(7);
 const lives = z.number().int().min(0).max(3);
 const count = z.number().int().min(0);
 
@@ -28,6 +28,9 @@ const eventSchema = z.discriminatedUnion("type", [
     t_ms: tMs,
     seconds: z.number().int().min(1).max(5),
     step_ms: z.number().int().min(500).max(1500),
+    // "watch": 1 2 3 GO! before a sequence; "input": 1 2 3 BEGIN! before the turn.
+    then: z.enum(["watch", "input"]).optional(),
+    level: level.optional(),
   }),
   z.object({ type: z.literal("game_started"), t_ms: tMs, lives, level }),
   z.object({
@@ -69,7 +72,7 @@ const eventSchema = z.discriminatedUnion("type", [
     t_ms: tMs,
     outcome: z.enum(["game_over", "win"]),
     final_score: count,
-    highest_level_completed: z.number().int().min(0).max(15),
+    highest_level_completed: z.number().int().min(0).max(7),
     session_id: z.string().min(1).max(64),
   }),
   z.object({ type: z.literal("game_reset"), t_ms: tMs }),

@@ -89,7 +89,7 @@ function ChampionCard({ entry, index }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-2xl font-extrabold sm:text-3xl">
-              <PlayerName nickname={entry.nickname} />
+              <PlayerName nickname={entry.nickname} number={entry.player_number} />
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
               <LevelSign level={entry.highest_level_completed} />
@@ -136,7 +136,7 @@ function RunnerUpCard({ entry, index }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-extrabold">
-              <PlayerName nickname={entry.nickname} />
+              <PlayerName nickname={entry.nickname} number={entry.player_number} />
             </p>
             <LevelSign level={entry.highest_level_completed} small className="mt-0.5" />
           </div>
@@ -192,8 +192,8 @@ function ListRow({ entry, index }) {
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-extrabold" title={entry.nickname || visitorText.common.mysteryPlayer}>
-            <PlayerName nickname={entry.nickname} />
+          <p className="truncate text-lg font-extrabold" title={entry.nickname || visitorText.common.player(entry.player_number)}>
+            <PlayerName nickname={entry.nickname} number={entry.player_number} />
           </p>
           <p className="mt-0.5 font-sign text-xs text-muted">Level {entry.highest_level_completed}</p>
         </div>
