@@ -34,8 +34,7 @@ export function useLiveClock(state, everyMs = null) {
   return [Math.max(clock, state.updatedAt ?? 0), setClock]
 }
 
-// The panel view, re-rendered only at its next boundary. A hidden tab does
-// not run the decorative attract loop.
+// The panel view, re-rendered only at its next boundary.
 export function usePanelView(state) {
   const reducedMotion = usePrefersReducedMotion()
   const [now, setClock] = useLiveClock(state)
@@ -44,7 +43,6 @@ export function usePanelView(state) {
 
   useEffect(() => {
     if (!Number.isFinite(nextAt)) return undefined
-    if (document.hidden && litKind === "attract") return undefined
     const timer = setTimeout(() => setClock(performance.now()), Math.max(0, nextAt - performance.now()) + 5)
     return () => clearTimeout(timer)
   }, [nextAt, litKind, setClock])

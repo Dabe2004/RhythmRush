@@ -8,12 +8,12 @@ import { useCallback, useEffect, useReducer, useRef } from "react"
 
 import { INITIAL_LIVE, liveReducer } from "./liveReducer"
 
-const CUE = 500
-const GAP = 200
 const STEP = 1000
-const GO = 600
-const COUNT = 3 * STEP + GO // 1 2 3 GO! (or BEGIN!)
-const PAUSE = 1000
+const GO = 500
+const COUNT = 3 * STEP + GO // 1 2 3 Go! (or Begin!)
+const PAUSE = 2000 // the box shows each result for 2 s
+// Cue and gap per level, as the box plays them (the lights get faster).
+const LIGHTS = { 1: [500, 200], 2: [455, 185], 3: [410, 170] }
 
 // level, attempt, sequence, presses [delay ms, button, ok], then the result
 // the "device" reports. The last press of a timeout attempt is the wait.
@@ -39,9 +39,10 @@ export function demoScript(gameId) {
   add(0, { type: "game_started", lives: 3, level: 1 })
   let pause = 0
   for (const step of PLAN) {
+    const [cue, gap] = LIGHTS[step.level]
     add(pause, { type: "countdown_started", seconds: 3, step_ms: STEP, then: "watch", level: step.level })
-    add(COUNT, { type: "playback_started", level: step.level, attempt: step.attempt, sequence: step.sequence, cue_ms: CUE, gap_ms: GAP })
-    add(step.sequence.length * (CUE + GAP), { type: "countdown_started", seconds: 3, step_ms: STEP, then: "input", level: step.level })
+    add(COUNT, { type: "playback_started", level: step.level, attempt: step.attempt, sequence: step.sequence, cue_ms: cue, gap_ms: gap })
+    add(step.sequence.length * (cue + gap), { type: "countdown_started", seconds: 3, step_ms: STEP, then: "input", level: step.level })
     add(COUNT, { type: "input_started", level: step.level, deadline_ms: step.deadline, expected_length: step.sequence.length })
     step.presses.forEach(([delay, button, ok = true], index) => {
       if (button === null) {

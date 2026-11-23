@@ -5,18 +5,20 @@
 //   screenMode(...)                   mirror or the kiosk result reveal
 //   nextConnection(...)               stream / polling connection status
 // The UI never computes score, lives or deadlines: it shows what the device
-// sent. Times are browser ms (performance or Date clock, injected).
+// sent. The LCD text and the LEDs copy the box's firmware (RhythmRushGame.h:
+// rr_render and rr_leds). Times are browser ms (performance or Date clock,
+// injected).
 
 import { visitorText } from "../content/visitorText"
 import { countdownTimeline, nextBoundary, sequenceTimeline, stepAt } from "./timeline"
 
 export const SILENCE_MS = 90000 // no events for this long = abandoned
 export const HANDOVER_MS = 15000 // after game_finished, wait this long for the upload
-export const RESTART_MS = 500 // "GAME STOPPED" after RESET (START held), then idle
-export const GO_MS = 600
-const ATTRACT_STEP_MS = 300
-const ATTRACT_CYCLE_MS = 3000 // 6 x 300 chase, 300 all-six flash, 900 pause
-const FLASH_STEP_MS = 60 // RESET: LEDs 6..1 flash in reverse
+export const WORD_MS = 500 // the box's word_ms: "Go!" / "Begin!" after 1 2 3
+const RESULT_MS = 2000 // the box's result_ms: a fail is shown this long
+const BLINK_MS = 120 // rr_leds: blink and chase speed
+const LEVELS = 7 // the box's LCD says "Level 3/7"
+const ALL_LEDS = [1, 2, 3, 4, 5, 6]
 const PRESS_MS = 400
 const OLD_GAMES_KEPT = 20
 
@@ -36,7 +38,6 @@ export const INITIAL_LIVE = Object.freeze({
   lastResult: null, // { result, points_awarded, speed_bonus, at }
   final: null, // { outcome, final_score, session_id, at }
   control: null, // { control, at }
-  reset: null, // { at }
   idleSince: 0,
   lastEventAt: null,
   updatedAt: 0, // browser time of the last change (the view never runs behind it)
@@ -143,13 +144,8 @@ function applyEvent(state, event, at) {
         final: { outcome: event.outcome, final_score: event.final_score, session_id: event.session_id, at },
       }
     case "game_reset":
-      return {
-        ...s,
-        ...GAME_FIELDS,
-        phase: "idle",
-        idleSince: at + RESTART_MS,
-        reset: { at },
-      }
+      // START pressed during a game: the box goes straight back to idle.
+      return { ...s, ...GAME_FIELDS, phase: "idle", idleSince: at }
     case "abandoned":
       return { ...s, ...GAME_FIELDS, phase: "idle", idleSince: at }
     default:
@@ -222,28 +218,21 @@ export function liveReducer(state, action, now) {
 }
 
 // ---------------------------------------------------------------------------
-// What the panel shows at `now`
+// What the panel shows at `now`: the box's LCD rows and LEDs, phase by phase
 // ---------------------------------------------------------------------------
-const LCD_WIDTH = 20
+const TITLE = "    Rhythm Rush"
 
-export function centre(text) {
-  const t = String(text).slice(0, LCD_WIDTH)
-  const left = Math.floor((LCD_WIDTH - t.length) / 2)
-  return " ".repeat(left) + t.padEnd(LCD_WIDTH - left)
-}
+// rr_line: left-aligned, cut or padded to the 20 x 4 display.
+const row = (text) => String(text).slice(0, 20).padEnd(20)
+// Unknown (e.g. joined after a server restart): a dash, never a made-up 0.
+const n = (value) => (value == null ? "-" : value)
+const levelLives = (state) => `Level ${n(state.level)}/${LEVELS}  Lives:${n(state.lives)}`
+const gameOverRows = (score) => [TITLE, "     GAME OVER!", `Points: ${n(score)}`, "Press START to play"]
 
-// Unknown (e.g. joined after a server restart): dashes, never a made-up 0.
-const pad2 = (n) => (n == null ? "--" : String(n).padStart(2, "0"))
-const pad4 = (n) => (n == null ? "----" : String(n).padStart(4, "0"))
-
-function statusLines(state) {
-  return [centre(`LEVEL ${pad2(state.level)} SCORE ${pad4(state.score)}`), centre(`LIVES ${state.lives ?? "-"}`)]
-}
-
-function base(state, mode, lcd) {
+function base(state, mode, rows) {
   return {
     mode,
-    lcd: lcd.map(centre),
+    lcd: rows.map(row),
     lit: [],
     litKind: null,
     overlay: null,
@@ -258,24 +247,28 @@ function base(state, mode, lcd) {
   }
 }
 
-function idleView(state, now, reducedMotion) {
-  const view = base(state, "idle", ["", centre("PRESS START"), centre("TO PLAY"), ""].map(centre))
+// rr_leds: all six LEDs blink (120 ms on, 120 ms off) for `ms` after `from`.
+function blink(view, from, now, ms, reducedMotion) {
+  const t = now - from
+  if (reducedMotion || t < 0 || t >= ms) return
+  view.lit = Math.floor(t / BLINK_MS) % 2 === 0 ? ALL_LEDS : []
+  view.litKind = "blink"
+  view.nextAt = Math.min(view.nextAt, from + (Math.floor(t / BLINK_MS) + 1) * BLINK_MS)
+}
+
+// rr_leds on a win: one LED at a time, 1..6, every 120 ms for 2.4 s.
+function chase(view, from, now, reducedMotion) {
+  const t = now - from
+  if (reducedMotion || t < 0 || t >= 20 * BLINK_MS) return
+  view.lit = [(Math.floor(t / BLINK_MS) % 6) + 1]
+  view.litKind = "chase"
+  view.nextAt = Math.min(view.nextAt, from + (Math.floor(t / BLINK_MS) + 1) * BLINK_MS)
+}
+
+// Idle: the box's LEDs are dark; the LCD invites the next player.
+function idleView(state) {
+  const view = base(state, "idle", [TITLE, "7 Levels / 3 Lives", "Press START to play", "START again = reset"])
   view.lives = null
-  const startPressed = state.control?.control === "start" && now - state.control.at < 5000
-  if (reducedMotion || startPressed) return view
-  const since = Math.max(0, now - state.idleSince)
-  const t = since % ATTRACT_CYCLE_MS
-  const cycleStart = now - t
-  if (t < 6 * ATTRACT_STEP_MS) {
-    view.lit = [Math.floor(t / ATTRACT_STEP_MS) + 1]
-    view.nextAt = cycleStart + (Math.floor(t / ATTRACT_STEP_MS) + 1) * ATTRACT_STEP_MS
-  } else if (t < 7 * ATTRACT_STEP_MS) {
-    view.lit = [1, 2, 3, 4, 5, 6]
-    view.nextAt = cycleStart + 7 * ATTRACT_STEP_MS
-  } else {
-    view.nextAt = cycleStart + ATTRACT_CYCLE_MS
-  }
-  view.litKind = "attract"
   return view
 }
 
@@ -298,58 +291,47 @@ export function panelView(state, now, { reducedMotion = false } = {}) {
 
 function viewFor(state, now, reducedMotion) {
   // 90 s of silence: the game was abandoned.
-  if (state.phase !== "idle" && state.lastEventAt !== null && now - state.lastEventAt > SILENCE_MS) {
-    return idleView({ ...state, idleSince: state.lastEventAt + SILENCE_MS }, now, reducedMotion)
-  }
-
-  // RESET (START held): reverse flash 6..1, LCD wiped, GAME STOPPED, then idle.
-  const resetAt = state.reset?.at
-  const countdownAfterReset = state.countdown && state.countdown.at >= resetAt
-  if (resetAt != null && now - resetAt < RESTART_MS && !countdownAfterReset) {
-    const t = now - resetAt
-    const view = base(state, "reset", ["", "", t < 120 ? "" : "GAME STOPPED", ""].map(centre))
-    view.lives = null
-    if (!reducedMotion && t < 6 * FLASH_STEP_MS) {
-      view.lit = [6 - Math.floor(t / FLASH_STEP_MS)]
-      view.litKind = "flash"
-      view.nextAt = resetAt + (Math.floor(t / FLASH_STEP_MS) + 1) * FLASH_STEP_MS
-    } else {
-      view.nextAt = resetAt + (t < 120 ? 120 : RESTART_MS)
-    }
-    return view
-  }
+  if (state.phase !== "idle" && state.lastEventAt !== null && now - state.lastEventAt > SILENCE_MS) return idleView(state)
 
   switch (state.phase) {
     case "countdown": {
       const turn = state.countdown.then === "input"
-      const { steps, duration } = countdownTimeline(state.countdown.seconds, state.countdown.step_ms, GO_MS, turn ? "BEGIN!" : "GO!")
+      const { steps, duration } = countdownTimeline(state.countdown.seconds, state.countdown.step_ms, WORD_MS, turn ? "BEGIN!" : "GO!")
       const t = now - state.countdown.at
       const step = stepAt(steps, t) ?? (t >= duration ? steps[steps.length - 1] : steps[0])
       const last = step === steps[steps.length - 1]
-      const inGame = state.lives != null
-      const lines = inGame
-        ? [...statusLines(state), centre(step.label), centre(turn ? "YOUR TURN NEXT" : "WATCH THE LIGHTS")]
-        : [centre("GET READY!"), "", centre(step.label), ""]
-      const view = base(state, "countdown", lines)
+      const word = turn ? "       Begin!" : "        Go!"
+      const view = base(state, "countdown", [
+        TITLE,
+        levelLives(state),
+        turn ? "Repeat after Begin!" : "Watch after Go!",
+        last ? word : `         ${step.label}`,
+      ])
       view.overlay = t < duration ? step.label : null
       view.overlayKey = `${state.countdown.at}|${step.label}`
       view.dim = !last
-      if (!inGame) view.lives = null
+      if (state.lives == null) view.lives = null
       view.announce = last ? (turn ? "Begin" : "Go") : "Get ready"
       view.nextAt = state.countdown.at + nextBoundary(steps, t)
       return view
     }
     case "watch": {
-      const view = base(state, "watch", [...statusLines(state), centre("WATCH SEQUENCE"), ""])
-      view.announce = "Watch"
       const playback = state.playback
-      if (!playback) {
-        view.lcd[2] = centre("GET READY!")
-        return view
-      }
+      // Between START and the first countdown: the box's default rows.
+      if (!playback) return base(state, "watch", [TITLE, levelLives(state), `Score: ${n(state.score)}`, ""])
       const { steps, duration } = sequenceTimeline(playback.sequence, playback.cue_ms, playback.gap_ms)
       const t = now - playback.at
-      if (!playback.late && t < duration) {
+      const playing = !playback.late && t < duration
+      // "Cue 2/4": the cue lit now, or the one just shown (also in its gap).
+      const shown = playing ? Math.max(1, steps.filter((s) => s.on <= t).length) : steps.length
+      const view = base(state, "watch", [
+        TITLE,
+        levelLives(state),
+        "Watch the sequence",
+        `Cue ${shown}/${steps.length} Score:${n(state.score)}`,
+      ])
+      view.announce = "Watch"
+      if (playing) {
         const step = stepAt(steps, t)
         view.lit = step ? [step.button] : []
         view.litKind = "cue"
@@ -359,51 +341,75 @@ function viewFor(state, now, reducedMotion) {
     }
     case "input": {
       const { input } = state
-      const view = base(state, "input", [...statusLines(state), centre(`YOUR TURN ${input.done}/${input.expected_length}`), ""])
+      // "Next press: 2.4s": time left for this press, in tenths, rounded up.
+      const left = Math.max(0, input.deadline_ms - (now - input.fuseAt))
+      const tenths = Math.ceil(left / 100)
+      const view = base(state, "input", [
+        `Lv ${n(state.level)}/${LEVELS}  Lives:${n(state.lives)}`,
+        `Score: ${n(state.score)}`,
+        `Repeat: ${Math.min(input.done + 1, input.expected_length)}/${input.expected_length}`,
+        `Next press: ${Math.floor(tenths / 10)}.${tenths % 10}s`,
+      ])
       view.announce = "Your turn"
       view.fuse = { key: input.fuseAt, ms: input.deadline_ms }
       view.progress = { done: input.done, total: input.expected_length }
+      if (left > 0) view.nextAt = input.fuseAt + input.deadline_ms - (tenths - 1) * 100
       const press = state.lastPress
       if (press && now - press.at < PRESS_MS) {
         view.press = { button: press.button, ok: press.ok, key: press.at }
-        view.nextAt = press.at + PRESS_MS
+        view.nextAt = Math.min(view.nextAt, press.at + PRESS_MS)
         if (press.ok) {
           view.lit = [press.button]
           view.litKind = "press"
         }
       }
-      if (press && !press.ok) view.lcd[2] = centre("OOPS!")
       return view
     }
     case "result": {
       const r = state.lastResult
-      const lines =
-        r.result === "pass"
-          ? [centre(`NICE! +${r.points_awarded}`), centre(`SPEED BONUS +${r.speed_bonus}`)]
-          : [centre(r.result === "timeout" ? "TIME'S UP!" : "OOPS!"), centre("NEW PATTERN NEXT")]
-      const view = base(state, "result", [...statusLines(state), ...lines])
+      let view
+      if (r.result === "pass") {
+        view = base(state, "result", [
+          "      Correct!",
+          `Points gained: +${r.points_awarded}`,
+          `Score: ${n(state.score)}`,
+          state.level < LEVELS ? `Next: Level ${state.level + 1}` : `All ${LEVELS} levels clear!`,
+        ])
+      } else if (state.lives === 0) {
+        // The last life: the box goes straight to GAME OVER (LEDs blink 1.2 s).
+        view = base(state, "result", gameOverRows(state.score))
+        blink(view, r.at, now, 10 * BLINK_MS, reducedMotion)
+      } else {
+        view = base(state, "result", [
+          r.result === "timeout" ? "    Time is up!" : "  Wrong sequence!",
+          `Lives remaining: ${n(state.lives)}`,
+          "New pattern, same Lv",
+          `Retrying Level ${n(state.level)}`,
+        ])
+        blink(view, r.at, now, RESULT_MS, reducedMotion)
+      }
       const press = state.lastPress
       if (press && !press.ok && now - press.at < PRESS_MS) {
         view.press = { button: press.button, ok: false, key: press.at }
-        view.nextAt = press.at + PRESS_MS
+        view.nextAt = Math.min(view.nextAt, press.at + PRESS_MS)
       }
       return view
     }
     case "finished": {
       const { final } = state
-      if (now - final.at > HANDOVER_MS) return idleView({ ...state, idleSince: final.at + HANDOVER_MS }, now, reducedMotion)
-      const view = base(state, "finished", [
-        centre(final.outcome === "win" ? "YOU WIN!" : "GAME OVER"),
-        centre(`FINAL SCORE ${pad4(final.final_score)}`),
-        centre("PRESS START TO"),
-        centre("PLAY AGAIN"),
-      ])
-      view.announce = final.outcome === "win" ? "You win" : "Game over"
-      view.nextAt = final.at + HANDOVER_MS + 1
+      if (now - final.at > HANDOVER_MS) return idleView(state)
+      const win = final.outcome === "win"
+      const view = win
+        ? base(state, "finished", ["      YOU WIN!", `${LEVELS} levels completed`, `Points: ${final.final_score}`, "Press START to play"])
+        : base(state, "finished", gameOverRows(final.final_score))
+      if (win) chase(view, final.at, now, reducedMotion)
+      else blink(view, state.lastResult?.at ?? final.at, now, 10 * BLINK_MS, reducedMotion)
+      view.announce = win ? "You win" : "Game over"
+      view.nextAt = Math.min(view.nextAt, final.at + HANDOVER_MS + 1)
       return view
     }
     default:
-      return idleView(state, now, reducedMotion)
+      return idleView(state)
   }
 }
 
@@ -413,7 +419,7 @@ function viewFor(state, now, reducedMotion) {
 // ---------------------------------------------------------------------------
 export function isGameActive(state, now) {
   if (state.lastEventAt !== null && now - state.lastEventAt > SILENCE_MS) return false
-  return ["countdown", "watch", "input", "result"].includes(state.phase) || (state.reset !== null && now - state.reset.at < RESTART_MS)
+  return ["countdown", "watch", "input", "result"].includes(state.phase)
 }
 
 export function screenMode(state, kioskActiveId, now) {

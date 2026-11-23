@@ -69,7 +69,6 @@ export function speedRanges(skill) {
 export function buildGameFacts(rules, skill, animal) {
   const levels = rules.levels
   const first = levels[0]
-  const shortestMs = Math.min(...levels.map((l) => l.deadline_ms))
   const exampleMs = Math.round((first.sequence_length * first.deadline_ms) / 2)
   const exampleBonus = bonusAt(first, exampleMs)
   const tiers = [...animal.tiers].sort((a, b) => b.percentile_min - a.percentile_min)
@@ -77,12 +76,11 @@ export function buildGameFacts(rules, skill, animal) {
   return {
     lives: rules.start_lives,
     levels: rules.max_level,
-    holdSeconds: rules.timing_ms.reset_hold / 1000,
     pointsPerLevel: first.base_points / first.level,
     bonusMax: Math.max(...levels.flatMap((l) => l.speed_bonus_steps.map(([, bonus]) => bonus))),
     firstLimitSeconds: first.deadline_ms / 1000,
-    shortestLimitSeconds: shortestMs / 1000,
-    shortestFromLevel: levels.find((l) => l.deadline_ms === shortestMs).level,
+    // The time per press adapts to the player; this is the floor.
+    minLimitSeconds: rules.min_deadline_ms / 1000,
     startLights: first.sequence_length,
     example: {
       lights: first.sequence_length,

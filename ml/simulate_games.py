@@ -32,8 +32,11 @@ from game_rules import (
     DEFAULT_AVG_REACTION_SEC,
     MAX_LEVEL,
     MAX_SPEED_BONUS,
+    MIN_DEADLINE_MS,
     START_LIVES,
     deadline_seconds,
+    max_deadline_ms,
+    next_deadline_ms,
     points_for_pass,
     reaction_ratio,
     sequence_length,
@@ -154,9 +157,9 @@ def make_player(rng: np.random.Generator) -> dict:
 # One level attempt
 # ---------------------------------------------------------------------------
 
-def simulate_attempt(rng: np.random.Generator, level: int, player: dict) -> dict:
+def simulate_attempt(rng: np.random.Generator, level: int, player: dict, deadline_ms: int) -> dict:
     """
-    Simulate one try at one level.
+    Simulate one try at one level with the box's current time per press.
 
     A press can be:
       - too slow  -> result "timeout" (the per-press deadline is exceeded)
@@ -166,7 +169,7 @@ def simulate_attempt(rng: np.random.Generator, level: int, player: dict) -> dict
     The game checks presses in order and stops at the first failure.
     """
     seq_len = sequence_length(level)
-    deadline = deadline_seconds(level)
+    deadline = deadline_ms / 1000
 
     # Reaction time for each press, in seconds.
     press_times = rng.normal(player["press_mean"], player["press_sd"], size=seq_len)
@@ -274,19 +277,19 @@ def simulate_game(
     score = 0
     attempt_number = 1
     attempts: list[dict] = []
+    deadline_ms = max_deadline_ms(1)  # adapts after every pass, like the box
 
     while True:
-        attempt = simulate_attempt(rng, level, player)
+        attempt = simulate_attempt(rng, level, player, deadline_ms)
         passed = attempt["result"] == "pass"
 
         bonus = 0
         points = 0
         if passed:
-            # Use the exact deadline from game_rules, not the rounded CSV value.
             bonus = speed_bonus(
                 response_seconds=attempt["response_ms"] / 1000.0,
                 seq_len=attempt["sequence_length"],
-                deadline=deadline_seconds(level),
+                deadline=deadline_ms / 1000,
             )
             points = points_for_pass(level, bonus)
             score += points
@@ -310,6 +313,7 @@ def simulate_game(
             if level == MAX_LEVEL:
                 outcome = "win"
                 break
+            deadline_ms = next_deadline_ms(level, deadline_ms, attempt["response_ms"], attempt["sequence_length"])
             level += 1
             attempt_number = 1
         else:
@@ -392,8 +396,10 @@ def validate(games: pd.DataFrame, attempts: pd.DataFrame) -> None:
     # Sequence length and deadline must come from the shared game rules.
     expected_seq = attempts["level"].apply(sequence_length)
     assert (attempts["sequence_length"] == expected_seq).all(), "bad sequence length"
-    expected_deadline = attempts["level"].apply(deadline_seconds).round(3)
-    assert (attempts["deadline_sec"] == expected_deadline).all(), "bad deadline"
+    # The time per press adapts to the player, between 1 s and the level cap.
+    cap = attempts["level"].apply(deadline_seconds)
+    assert attempts["deadline_sec"].between(MIN_DEADLINE_MS / 1000, 99).all(), "deadline below 1 s"
+    assert (attempts["deadline_sec"] <= cap + 1e-9).all(), "deadline above the level cap"
 
     # Points and bonuses must follow the game rules.
     passed = attempts[attempts["result"] == "pass"]

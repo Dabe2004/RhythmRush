@@ -10,15 +10,17 @@ import { visitorText } from "./content/visitorText"
 // The source of truth is ml/game_rules.py (sequence_length, deadline_seconds).
 // The browser cannot import Python, so these two one-liners are mirrored here
 // and the unit test compares them with values printed by game_rules.py.
+// deadlineSeconds is the LONGEST time per press at a level: the box gives
+// quick players less, and the upload does not say how much.
 const BASE_DEADLINE_SEC = 3.0
 const DEADLINE_REDUCTION_PER_LEVEL = 0.2
-const MIN_DEADLINE_SEC = 1.5
+const MIN_DEADLINE_SEC = 1.0
 
 export function sequenceLength(level) {
   return level + 2
 }
 
-// Seconds allowed for ONE press at this level.
+// The longest seconds allowed for ONE press at this level.
 export function deadlineSeconds(level) {
   return Math.max(MIN_DEADLINE_SEC, BASE_DEADLINE_SEC - DEADLINE_REDUCTION_PER_LEVEL * (level - 1))
 }

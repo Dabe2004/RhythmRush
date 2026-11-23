@@ -40,34 +40,33 @@ def build() -> dict:
         "buttons": [
             {"button": b, "color": gr.BUTTONS[b], "note": gr.BUTTON_NOTES[b]} for b in sorted(gr.BUTTONS)
         ],
+        "min_deadline_ms": gr.MIN_DEADLINE_MS,
         "timing_ms": {
-            "cue": gr.CUE_MS,
-            "gap": gr.CUE_GAP_MS,
             "countdown_seconds": gr.COUNTDOWN_SECONDS,
             "countdown_step": gr.COUNTDOWN_STEP_MS,
             "go": gr.GO_MS,
-            "get_ready": gr.GET_READY_MS,
             "retry_pause": gr.RETRY_PAUSE_MS,
             "next_level_pause": gr.NEXT_LEVEL_PAUSE_MS,
-            "restart": gr.RESTART_MS,
-            "reset_hold": gr.RESET_HOLD_MS,
         },
         "levels": [
             {
                 "level": level,
                 "sequence_length": gr.sequence_length(level),
-                "deadline_ms": round(gr.deadline_seconds(level) * 1000),
+                "deadline_ms": gr.max_deadline_ms(level),
+                "cue_ms": gr.cue_ms(level),
+                "gap_ms": gr.gap_ms(level),
                 "base_points": gr.points_for_pass(level, 0),
                 "speed_bonus_steps": bonus_steps(level),
             }
             for level in range(1, gr.MAX_LEVEL + 1)
         ],
         "notes": [
-            "deadline_ms is per press; it restarts after every correct press.",
+            "deadline_ms is the LONGEST time per press at that level; it restarts after every correct press.",
+            "Quick players get less: after a pass the box sets max(min_deadline_ms, min(next cap, current, (3 x current + 2 x average press + 300) / 4)).",
             "points for a pass = base_points + the speed bonus for the attempt's response_ms.",
             "A fail costs one life; the same level comes back with a NEW random pattern.",
             "Every attempt: 1 2 3 GO!, the sequence plays, 1 2 3 BEGIN!, then the player's turn.",
-            "START held for reset_hold ms during a game stops it and goes back to idle.",
+            "START pressed during a game resets it to idle (no hold).",
         ],
     }
 

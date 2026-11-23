@@ -451,7 +451,7 @@ carnival: the red stage, the awning, the "Last results" ticket.
   connection chip has text and a different shape per state.
 - **START** is drawn without text, like the box. In the mirror it is
   `aria-hidden`; in demo mode it is a real button named "Start". A RESET from
-  the device (START held) plays the START press animation.
+  the device (START pressed during a game) plays the START press animation.
 - **Contrast (WCAG):** LCD text `#eef3ff` on `#2438b5` about 8:1. The grid is
   `aria-hidden`; phases are announced through the `aria-live` region.
 

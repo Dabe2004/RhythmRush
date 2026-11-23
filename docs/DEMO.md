@@ -156,10 +156,9 @@ Use the three devices you will really use: **(a)** the ESP32 game box,
    belong to RR01), or reset the whole database (README, "Moderation"). The
    leaderboard is empty again.
 
-8. **RESET (START held).** The box has no RESET button. Hold START for
-   2 s during a game: the kiosk flashes the LEDs backwards, shows "GAME
-   STOPPED" and goes back to "PRESS START"; the abandoned game never appears
-   on the leaderboard. A short tap mid-game does nothing.
+8. **RESET (START during a game).** The box has no RESET button. Press
+   START during a game: the box and the kiosk go straight back to "Press
+   START to play"; the abandoned game never appears on the leaderboard.
 9. **Delay.** Film the panel and the TV together in slow motion and count the
    frames between a lit LED ring and the lit button on screen; note it in
    `docs/NOTES.md`.

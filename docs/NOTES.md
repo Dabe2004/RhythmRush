@@ -647,9 +647,9 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
 5. **Stale and new games.** A new `game_id` switches the device's game; ids
    seen before (last 50) are ignored, so a late batch from an abandoned game
    cannot overwrite the new one.
-6. **RESET timing in the protocol.** After RESET (START held 2 s) the
-   device shows "GAME STOPPED" for 500 ms and then goes idle. (Before the
-   hardware rules it restarted with a countdown; see "Hardware rules".)
+6. **RESET in the protocol.** START pressed during a game sends
+   `control_pressed reset` + `game_reset`; the box and the web go straight
+   to idle (see "Firmware rules").
 7. **No formula copied into JavaScript.** `fake_live_game.js` reads deadlines,
    sequence lengths and base points from `docs/game_rules.json`, and the speed
    bonus from a per-level step table that `export_rules.py` computes with
@@ -727,12 +727,53 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
    WebAudio beeps were removed (November 2026): the box's buzzer is the only
    sound, and a TV beeping a little later than the box sounded like an echo.
 
+### Firmware rules: matched to RhythmRushGame.h (November 2026)
+
+The team shared the box's real firmware (`RhythmRushGame.h`,
+`RhythmRushTelemetry.h`, `RhythmRushNetwork.cpp`). Everything that was a
+guess in "Hardware rules" below now copies it:
+
+1. **Time per press adapts** (`rr_next_deadline`): 3000 ms at level 1;
+   after a pass `max(1000, min(cap, current, (3 x current + 2 x average press
+   + 300) / 4))`, cap = 3000 - 200 x (level - 1). A fail keeps it.
+   `ml/game_rules.py` has `next_deadline_ms()`; the simulator uses it, so
+   quick simulated players get less time, like on the box.
+   `docs/game_rules.json` `levels[].deadline_ms` is now the LONGEST time
+   at a level, plus `min_deadline_ms`.
+2. **Speed bonus rounds half up in whole ms** (`rr_pass`), not Python's
+   round-half-to-even. **Lights get faster**: cue 500 - 45 ms per level (min
+   180), gap 200 - 15 ms (min 80), exported per level as `cue_ms`/`gap_ms`.
+3. **Timing:** "Go!"/"Begin!" 500 ms (was 600); results 2 s (was 1 s).
+4. **START during a game = reset at once** (no 2 s hold; `RESET_HOLD_MS`
+   and `RESTART_MS` removed). The brochure says "Press START during a game
+   to stop it."
+5. **Two buttons at once = a mistake** (the brochure says so). The box shows
+   "One button at a time"; the web shows "Wrong sequence!" because the
+   live `attempt_result` only says "wrong".
+6. **The /live LCD copies `rr_render` row for row** ("Watch after Go!",
+   "Watch the sequence", "Cue 2/4 Score:140", "Repeat: 2/4", "Next press:
+   2.4s" counting down in tenths, "Correct!", "Points gained: +N", "Wrong
+   sequence!", "Lives remaining: 2", "GAME OVER!", "YOU WIN!"...), and the
+   LEDs copy `rr_leds`: dark when idle (the web's attract chase was
+   removed), all six blink after a fail (2 s) and at game over (1.2 s), a
+   1..6 chase after a win (2.4 s). Reduced motion: no blink or chase.
+   Not copied: "Release all buttons" (the live events do not say a button
+   is still held).
+7. **Retrained** (seed 42, 2,000 games): mean score 2,598, median 3,026,
+   max 3,064; skill tree accuracy 67.00 %; difficulty R2 0.7902, MAE
+   0.3138; `check_exports.py` all checks passed. The box does not call
+   `/api/difficulty/next` (its sequence is always level + 2), so model 1 is
+   unused by this firmware.
+8. **The session chart's timeout bar** shows the level's longest time
+   (the upload does not say the adapted limit). The fake live device also
+   uses the longest time (marked `shortcut:` in `tools/fake_live_game.js`).
+
 ### "Player #N" and the dashboard lists (November 2026)
 
 1. **Every saved game gets the next number** (`game_sessions.player_number`,
    migration `db/migrations/002_player_number.sql`): Player #1, #2, #3... It
    is set inside the upload transaction as `MAX(player_number) + 1`, so a
-   duplicate upload takes no number, and a game stopped with START held is
+   duplicate upload takes no number, and a game stopped with START is
    never uploaded, so it takes none either. The migration numbers games that
    already exist, oldest first. A deleted game leaves a gap; numbers are
    never reused (a UNIQUE index enforces it).
@@ -799,9 +840,8 @@ A photo of the real box top replaced the written description.
 3. **The LED above a button lights, not the button** (the box's buttons cannot
    light up). The tones stay C4-A4 per button number.
 4. **No RESET button on the box.** The web panel shows only START; a
-   `control_pressed reset` animates START. The hardware sketch confirms
-   RESET = START held (2 s, back to idle). The brochure and the LCD say
-   "Press START" to play again.
+   `control_pressed reset` animates START. The firmware: a START press
+   during a game resets to idle (see "Firmware rules").
 5. **Checked by screenshots** (headless browser, demo mode): 1920x1080 (panel
    ends at about 870 px) and 1280x720 (fits, ends at about 665 px). At 390 px
    the page is wider than the screen, but the old panel did the same in the

@@ -29,11 +29,10 @@ function prose(panel) {
 describe("brochure numbers come from the files", () => {
   it("lives, levels, points, bonus and time limits", () => {
     const levels = rules.levels
-    const shortest = Math.min(...levels.map((l) => l.deadline_ms))
     expect(text("lives")).toContain(`You have ${rules.start_lives} lives.`)
     expect(text("lives")).toContain(`There are ${rules.max_level} levels.`)
     expect(text("lives")).toContain(`At level 1 you get ${levels[0].deadline_ms / 1000} seconds`)
-    expect(text("lives")).toContain(`From level ${levels.find((l) => l.deadline_ms === shortest).level} you get ${shortest / 1000} seconds.`)
+    expect(text("lives")).toContain(`The shortest is ${rules.min_deadline_ms / 1000} second`)
     expect(text("score")).toContain(`gives ${levels[0].base_points} points times the level number`)
     const bonusMax = Math.max(...levels.flatMap((l) => l.speed_bonus_steps.map(([, b]) => b)))
     expect(text("score")).toContain(`up to ${bonusMax} bonus points`)
@@ -58,11 +57,13 @@ describe("brochure numbers come from the files", () => {
 })
 
 describe("brochure follows the hardware game flow", () => {
-  it("1 2 3 Go!, watch, 1 2 3 Begin!, your turn; a fail brings a new pattern; hold START to stop", () => {
+  it("1 2 3 Go!, watch, 1 2 3 Begin!, your turn; a fail brings a new pattern; press START to stop", () => {
     expect(text("how")).toContain("1, 2, 3, Go!")
     expect(text("how")).toContain("1, 2, 3, Begin!")
     expect(text("how").indexOf("Go!")).toBeLessThan(text("how").indexOf("Begin!"))
-    expect(text("how")).toContain(`hold START for ${rules.timing_ms.reset_hold / 1000} seconds`)
+    expect(text("how")).toContain("Press START during a game to stop it.")
+    expect(text("how")).toContain("one at a time")
+    expect(text("lives")).toContain("two at once")
     expect(text("lives")).toContain("a new pattern at the same level")
     expect(text("lives")).toContain("No lives left? Game over.")
     expect(text("how", brochure("fil"))).toContain("1, 2, 3, Begin!")

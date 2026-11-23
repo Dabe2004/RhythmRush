@@ -23,7 +23,7 @@ const USAGE = `Usage: node tools/fake_live_game.js [options]
   --games N                 games in a row (default 1)
   --seed N                  random seed (default 42)
   --speed X                 time multiplier, 2 = twice as fast (default 1)
-  --reset-at N              hold START during attempt N: back to idle (no upload), then START again
+  --reset-at N              press START during attempt N: back to idle (no upload), then START again
   --latency-ms N            delay every batch by N ms (+-30 %)
   --spike                   sometimes delay a batch by 2-4 s
   --help
@@ -168,12 +168,11 @@ function createDevice(o) {
     if (IMMEDIATE.has(type)) flush();
   }
 
-  // START held during a game: back to idle (the box has no RESET button).
-  async function reset(gameId, label) {
+  // START pressed during a game: straight back to idle (the box has no RESET button).
+  function reset(gameId, label) {
     emit(gameId, "control_pressed", { control: "reset" });
     emit(gameId, "game_reset");
     console.log(`  RESET (${label})`);
-    await wait(T.restart);
   }
 
   // 1 2 3 GO! before a sequence (then "watch"), 1 2 3 BEGIN! before the turn (then "input").
@@ -204,16 +203,18 @@ function createDevice(o) {
     while (outcome === null) {
       const rule = RULES.levels[level - 1];
       await countdown(gameId, "watch", level);
-      emit(gameId, "playback_started", { level, attempt, sequence, cue_ms: T.cue, gap_ms: T.gap });
-      await wait(sequence.length * (T.cue + T.gap));
+      emit(gameId, "playback_started", { level, attempt, sequence, cue_ms: rule.cue_ms, gap_ms: rule.gap_ms });
+      await wait(sequence.length * (rule.cue_ms + rule.gap_ms));
       await countdown(gameId, "input", level);
+      // shortcut: uses the level's LONGEST time per press; the real box gives quick
+      // players less (docs/game_rules.json notes). Fine for a fake device.
       emit(gameId, "input_started", { level, deadline_ms: rule.deadline_ms, expected_length: sequence.length });
 
       let result = "pass";
       let elapsed = 0;
       for (let index = 0; index < sequence.length; index += 1) {
         if (resetAt !== null && attempts.length + 1 === resetAt && index === 1) {
-          await reset(gameId, `held mid-game at attempt ${resetAt}, not uploaded`);
+          reset(gameId, `START pressed mid-game at attempt ${resetAt}, not uploaded`);
           return "reset";
         }
         const delay = random() < skill.timeout ? rule.deadline_ms + 1 : between(skill.minMs, skill.maxMs);

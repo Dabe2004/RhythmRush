@@ -29,17 +29,20 @@ BUTTONS = {
     6: "Red",
 }
 
+# All rules below are copied from the box's firmware, RhythmRushGame.h
+# (rr_default_config, rr_next_deadline, rr_pass, rr_cue_ms, rr_gap_ms).
 START_LIVES = 3          # a player starts with 3 lives
-MAX_LEVEL = 7            # clearing level 7 wins the game (the hardware sketch)
+MAX_LEVEL = 7            # clearing level 7 wins the game
 MAX_SPEED_BONUS = 50     # speed bonus is clamped to 0..50
 
-# Deadline formula: deadline = max(1.0, 3.0 - 0.2 * (level - 1))
-# 3.0 and 1.0 match the sketch's initial_deadline_ms / minimum_deadline_ms.
-# shortcut: the 0.2 s per level step is still our own guess; copy the real
-# step from the firmware's RhythmRushGame.h once we have that file.
-BASE_DEADLINE_SEC = 3.0
-DEADLINE_REDUCTION_PER_LEVEL = 0.2
-MIN_DEADLINE_SEC = 1.0
+# Time per press. Level 1 gives 3000 ms. After every PASSED level the box
+# sets the next limit (rr_next_deadline): never above the level cap
+# (3000 - 200 x (level - 1)), never above the current limit, and lower for
+# quick players: (3 x current + 2 x average press + 300) / 4. Never below
+# 1000 ms. A fail keeps the same limit.
+BASE_DEADLINE_MS = 3000
+DEADLINE_DROP_MS = 200
+MIN_DEADLINE_MS = 1000
 
 # Scoring formula: points = 100 * level + speed_bonus
 POINTS_PER_LEVEL = 100
@@ -51,19 +54,23 @@ DEFAULT_AVG_REACTION_SEC = 3.0
 # Hardware timing (ESP32 panel; also drives the live web mirror and the fake
 # live device through docs/game_rules.json, written by ml/export_rules.py)
 # ---------------------------------------------------------------------------
-BUTTON_NOTES = {1: "C4", 2: "D4", 3: "E4", 4: "F4", 5: "G4", 6: "A4"}
-CUE_MS = 500             # one cue: LED ring lit + tone
-CUE_GAP_MS = 200         # dark gap after each cue
+BUTTON_NOTES = {1: "C5", 2: "D5", 3: "E5", 4: "F5", 5: "G5", 6: "A5"}  # rr_note: 523..880 Hz
+# The lights get faster every level: one cue (LED lit) and the dark gap after it.
+CUE_MS = 500             # level 1
+CUE_DROP_MS = 45         # per level
+MIN_CUE_MS = 180
+CUE_GAP_MS = 200         # level 1
+GAP_DROP_MS = 15         # per level
+MIN_GAP_MS = 80
 # Every attempt: "1 2 3 GO!" -> the sequence plays -> "1 2 3 BEGIN!" -> the
 # player's turn. Retries and new levels count again too.
 COUNTDOWN_SECONDS = 3    # 1, 2, 3 (counting up, as on the LCD)
 COUNTDOWN_STEP_MS = 1000
-GO_MS = 600              # "GO!" before a sequence, "BEGIN!" before a turn
-GET_READY_MS = 350       # optional pause before every playback
-RETRY_PAUSE_MS = 1000    # life lost, shown before the NEW pattern of the same level
-NEXT_LEVEL_PAUSE_MS = 1000   # "NICE! +points" before the next level
-RESTART_MS = 500         # "GAME STOPPED" after RESET, then idle
-RESET_HOLD_MS = 2000     # START held this long during a game = RESET to idle (the box has no RESET button)
+GO_MS = 500              # word_ms: "Go!" before a sequence, "Begin!" before a turn
+RETRY_PAUSE_MS = 2000    # result_ms: "Wrong sequence!" / "Time is up!", then a NEW pattern
+NEXT_LEVEL_PAUSE_MS = 2000   # result_ms: "Correct!" + points gained, then the next level
+# The box has one control, START: a press starts a game from idle, game over
+# or a win; a press DURING a game resets it to idle (no hold needed).
 
 
 # ---------------------------------------------------------------------------
@@ -75,25 +82,53 @@ def sequence_length(level: int) -> int:
     return level + 2
 
 
+def max_deadline_ms(level: int) -> int:
+    """The LONGEST time per press at a level (the cap; quick players get less)."""
+    drop = DEADLINE_DROP_MS * (level - 1)
+    return BASE_DEADLINE_MS - drop if BASE_DEADLINE_MS > drop else MIN_DEADLINE_MS
+
+
 def deadline_seconds(level: int) -> float:
-    """Seconds allowed for each press at a level."""
-    return max(
-        MIN_DEADLINE_SEC,
-        BASE_DEADLINE_SEC - DEADLINE_REDUCTION_PER_LEVEL * (level - 1),
-    )
+    """The longest seconds per press at a level (max_deadline_ms in seconds)."""
+    return max_deadline_ms(level) / 1000
+
+
+def next_deadline_ms(passed_level: int, current_ms: int, total_ms: int, seq_len: int) -> int:
+    """
+    Time per press for the level after `passed_level` (the box's rr_next_deadline).
+
+    total_ms is the passed attempt's total response time, so total_ms // seq_len
+    is the player's average press. Integer maths, exactly like the C code.
+    """
+    average = total_ms // seq_len
+    adapted = (3 * current_ms + 2 * average + 300) // 4
+    return max(MIN_DEADLINE_MS, min(max_deadline_ms(passed_level + 1), current_ms, adapted))
+
+
+def cue_ms(level: int) -> int:
+    """How long one cue (LED) is lit at a level."""
+    return max(MIN_CUE_MS, CUE_MS - CUE_DROP_MS * (level - 1))
+
+
+def gap_ms(level: int) -> int:
+    """The dark gap after each cue at a level."""
+    return max(MIN_GAP_MS, CUE_GAP_MS - GAP_DROP_MS * (level - 1))
 
 
 def speed_bonus(response_seconds: float, seq_len: int, deadline: float) -> int:
     """
-    Speed bonus for a passed level, clamped to 0..50.
+    Speed bonus for a passed level, 0..50 (the box's rr_pass).
 
-    response_seconds is the total time from the end of playback to the last
-    correct press. seq_len * deadline is the slowest allowed total time.
+    response_seconds is the total time of the player's turn; seq_len *
+    deadline is the slowest allowed total. The box rounds half up in whole ms:
+    (50 x unused + available / 2) / available.
     """
-    raw_bonus = round(
-        MAX_SPEED_BONUS * (1 - response_seconds / (seq_len * deadline))
-    )
-    return max(0, min(MAX_SPEED_BONUS, int(raw_bonus)))
+    total = int(round(response_seconds * 1000))
+    available = int(round(seq_len * deadline * 1000))
+    if available <= 0:
+        return 0
+    unused = max(0, available - total)
+    return min(MAX_SPEED_BONUS, (MAX_SPEED_BONUS * unused + available // 2) // available)
 
 
 def points_for_pass(level: int, bonus: int) -> int:
@@ -130,8 +165,19 @@ def _self_test() -> None:
     assert sequence_length(MAX_LEVEL) == 9
 
     assert deadline_seconds(1) == 3.0
-    assert round(deadline_seconds(MAX_LEVEL), 3) == 1.8
-    assert deadline_seconds(11) == 1.0  # the floor (beyond the last level today)
+    assert max_deadline_ms(MAX_LEVEL) == 1800
+    assert max_deadline_ms(20) == MIN_DEADLINE_MS  # the floor
+    # Slow player (average press 1.5 s): only the level cap applies.
+    assert next_deadline_ms(1, 3000, 4500, 3) == 2800
+    # Quick player (average press 0.5 s): (3 x 3000 + 2 x 500 + 300) / 4 = 2575.
+    assert next_deadline_ms(1, 3000, 1500, 3) == 2575
+    # Never below 1 second.
+    assert next_deadline_ms(6, 1000, 900, 8) == MIN_DEADLINE_MS
+    assert (cue_ms(1), gap_ms(1), cue_ms(7), gap_ms(7)) == (500, 200, 230, 110)
+    assert cue_ms(20) == MIN_CUE_MS and gap_ms(20) == MIN_GAP_MS
+    # Half rounds up, like the C code: 50 x 0.3 of the time unused = 15.
+    assert speed_bonus(6.3, 3, 3.0) == 15
+    assert speed_bonus(0.09, 3, 3.0) == 50  # 49.5 rounds up
 
     # A perfect instant response gets the maximum bonus.
     assert speed_bonus(0.0, 3, 3.0) == 50

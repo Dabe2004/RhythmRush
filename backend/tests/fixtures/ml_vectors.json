@@ -3,21 +3,21 @@
   "skill": [
     {
       "input": {
-        "final_score": 3050.0,
-        "avg_reaction_sec": 0.664,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
+        "final_score": 1654.0,
+        "avg_reaction_sec": 0.976,
+        "highest_sequence_length": 8,
+        "success_rate": 0.625
       },
-      "expected": "Pro"
+      "expected": "Beginner"
     },
     {
       "input": {
-        "final_score": 3009.0,
-        "avg_reaction_sec": 0.947,
+        "final_score": 3030.0,
+        "avg_reaction_sec": 0.781,
         "highest_sequence_length": 9,
-        "success_rate": 0.778
+        "success_rate": 1.0
       },
-      "expected": "Beginner"
+      "expected": "Intermediate"
     },
     {
       "input": {
@@ -30,78 +30,6 @@
     },
     {
       "input": {
-        "final_score": 3042.0,
-        "avg_reaction_sec": 0.717,
-        "highest_sequence_length": 9,
-        "success_rate": 0.778
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3022.0,
-        "avg_reaction_sec": 0.854,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 368.0,
-        "avg_reaction_sec": 0.936,
-        "highest_sequence_length": 5,
-        "success_rate": 0.4
-      },
-      "expected": "Beginner"
-    },
-    {
-      "input": {
-        "final_score": 375.0,
-        "avg_reaction_sec": 0.725,
-        "highest_sequence_length": 5,
-        "success_rate": 0.4
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3010.0,
-        "avg_reaction_sec": 0.932,
-        "highest_sequence_length": 9,
-        "success_rate": 0.875
-      },
-      "expected": "Beginner"
-    },
-    {
-      "input": {
-        "final_score": 1674.0,
-        "avg_reaction_sec": 0.767,
-        "highest_sequence_length": 8,
-        "success_rate": 0.625
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3040.0,
-        "avg_reaction_sec": 0.749,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3068.0,
-        "avg_reaction_sec": 0.542,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Pro"
-    },
-    {
-      "input": {
         "final_score": 2308.0,
         "avg_reaction_sec": 0.77,
         "highest_sequence_length": 9,
@@ -111,8 +39,71 @@
     },
     {
       "input": {
-        "final_score": 2291.0,
-        "avg_reaction_sec": 0.896,
+        "final_score": 3053.0,
+        "avg_reaction_sec": 0.6,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 3019.0,
+        "avg_reaction_sec": 0.871,
+        "highest_sequence_length": 9,
+        "success_rate": 0.778
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 1660.0,
+        "avg_reaction_sec": 0.918,
+        "highest_sequence_length": 8,
+        "success_rate": 0.625
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3026.0,
+        "avg_reaction_sec": 0.824,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3003.0,
+        "avg_reaction_sec": 0.984,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3014.0,
+        "avg_reaction_sec": 0.913,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3016.0,
+        "avg_reaction_sec": 0.883,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 2296.0,
+        "avg_reaction_sec": 0.833,
         "highest_sequence_length": 9,
         "success_rate": 0.667
       },
@@ -120,89 +111,8 @@
     },
     {
       "input": {
-        "final_score": 1138.0,
-        "avg_reaction_sec": 0.842,
-        "highest_sequence_length": 7,
-        "success_rate": 0.571
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 714.0,
-        "avg_reaction_sec": 0.68,
-        "highest_sequence_length": 6,
-        "success_rate": 0.5
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 704.0,
-        "avg_reaction_sec": 0.856,
-        "highest_sequence_length": 6,
-        "success_rate": 0.5
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3045.0,
-        "avg_reaction_sec": 0.696,
-        "highest_sequence_length": 9,
-        "success_rate": 0.875
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3023.0,
-        "avg_reaction_sec": 0.838,
-        "highest_sequence_length": 9,
-        "success_rate": 0.778
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 1132.0,
-        "avg_reaction_sec": 0.908,
-        "highest_sequence_length": 7,
-        "success_rate": 0.571
-      },
-      "expected": "Beginner"
-    },
-    {
-      "input": {
-        "final_score": 3057.0,
-        "avg_reaction_sec": 0.618,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Pro"
-    },
-    {
-      "input": {
-        "final_score": 3069.0,
-        "avg_reaction_sec": 0.537,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Pro"
-    },
-    {
-      "input": {
-        "final_score": 3029.0,
-        "avg_reaction_sec": 0.8,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3015.0,
-        "avg_reaction_sec": 0.892,
+        "final_score": 3019.0,
+        "avg_reaction_sec": 0.861,
         "highest_sequence_length": 9,
         "success_rate": 1.0
       },
@@ -210,26 +120,8 @@
     },
     {
       "input": {
-        "final_score": 3028.0,
-        "avg_reaction_sec": 0.82,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 706.0,
-        "avg_reaction_sec": 0.811,
-        "highest_sequence_length": 6,
-        "success_rate": 0.5
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3041.0,
-        "avg_reaction_sec": 0.723,
+        "final_score": 3032.0,
+        "avg_reaction_sec": 0.792,
         "highest_sequence_length": 9,
         "success_rate": 0.875
       },
@@ -237,39 +129,21 @@
     },
     {
       "input": {
-        "final_score": 3056.0,
-        "avg_reaction_sec": 0.624,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Pro"
-    },
-    {
-      "input": {
-        "final_score": 3050.0,
-        "avg_reaction_sec": 0.667,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Pro"
-    },
-    {
-      "input": {
-        "final_score": 3024.0,
-        "avg_reaction_sec": 0.85,
-        "highest_sequence_length": 9,
-        "success_rate": 0.875
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3056.0,
-        "avg_reaction_sec": 0.618,
+        "final_score": 3049.0,
+        "avg_reaction_sec": 0.659,
         "highest_sequence_length": 9,
         "success_rate": 0.778
       },
       "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 3032.0,
+        "avg_reaction_sec": 0.785,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Intermediate"
     },
     {
       "input": {
@@ -282,17 +156,107 @@
     },
     {
       "input": {
-        "final_score": 373.0,
-        "avg_reaction_sec": 0.794,
-        "highest_sequence_length": 5,
-        "success_rate": 0.4
+        "final_score": 3022.0,
+        "avg_reaction_sec": 0.838,
+        "highest_sequence_length": 9,
+        "success_rate": 0.778
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 1131.0,
+        "avg_reaction_sec": 0.908,
+        "highest_sequence_length": 7,
+        "success_rate": 0.571
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 2293.0,
+        "avg_reaction_sec": 0.877,
+        "highest_sequence_length": 9,
+        "success_rate": 0.667
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3046.0,
+        "avg_reaction_sec": 0.683,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 3053.0,
+        "avg_reaction_sec": 0.575,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 2313.0,
+        "avg_reaction_sec": 0.683,
+        "highest_sequence_length": 9,
+        "success_rate": 0.667
       },
       "expected": "Intermediate"
     },
     {
       "input": {
-        "final_score": 3054.0,
-        "avg_reaction_sec": 0.637,
+        "final_score": 3037.0,
+        "avg_reaction_sec": 0.718,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Intermediate"
+    },
+    {
+      "input": {
+        "final_score": 705.0,
+        "avg_reaction_sec": 0.811,
+        "highest_sequence_length": 6,
+        "success_rate": 0.5
+      },
+      "expected": "Intermediate"
+    },
+    {
+      "input": {
+        "final_score": 133.0,
+        "avg_reaction_sec": 1.029,
+        "highest_sequence_length": 4,
+        "success_rate": 0.25
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 1662.0,
+        "avg_reaction_sec": 0.899,
+        "highest_sequence_length": 8,
+        "success_rate": 0.625
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3034.0,
+        "avg_reaction_sec": 0.76,
+        "highest_sequence_length": 9,
+        "success_rate": 0.778
+      },
+      "expected": "Intermediate"
+    },
+    {
+      "input": {
+        "final_score": 3045.0,
+        "avg_reaction_sec": 0.662,
         "highest_sequence_length": 9,
         "success_rate": 0.778
       },
@@ -300,43 +264,79 @@
     },
     {
       "input": {
-        "final_score": 3033.0,
-        "avg_reaction_sec": 0.785,
+        "final_score": 3049.0,
+        "avg_reaction_sec": 0.64,
         "highest_sequence_length": 9,
         "success_rate": 1.0
       },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 1149.0,
-        "avg_reaction_sec": 0.692,
-        "highest_sequence_length": 7,
-        "success_rate": 0.571
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3037.0,
-        "avg_reaction_sec": 0.755,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
-    },
-    {
-      "input": {
-        "final_score": 3041.0,
-        "avg_reaction_sec": 0.742,
-        "highest_sequence_length": 9,
-        "success_rate": 1.0
-      },
-      "expected": "Intermediate"
+      "expected": "Pro"
     },
     {
       "input": {
         "final_score": 3043.0,
+        "avg_reaction_sec": 0.71,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 3023.0,
+        "avg_reaction_sec": 0.847,
+        "highest_sequence_length": 9,
+        "success_rate": 0.778
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3042.0,
+        "avg_reaction_sec": 0.685,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Intermediate"
+    },
+    {
+      "input": {
+        "final_score": 3056.0,
+        "avg_reaction_sec": 0.587,
+        "highest_sequence_length": 9,
+        "success_rate": 1.0
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 1662.0,
+        "avg_reaction_sec": 0.896,
+        "highest_sequence_length": 8,
+        "success_rate": 0.625
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3047.0,
+        "avg_reaction_sec": 0.629,
+        "highest_sequence_length": 9,
+        "success_rate": 0.875
+      },
+      "expected": "Pro"
+    },
+    {
+      "input": {
+        "final_score": 1136.0,
+        "avg_reaction_sec": 0.844,
+        "highest_sequence_length": 7,
+        "success_rate": 0.571
+      },
+      "expected": "Beginner"
+    },
+    {
+      "input": {
+        "final_score": 3040.0,
         "avg_reaction_sec": 0.721,
         "highest_sequence_length": 9,
         "success_rate": 0.875
@@ -345,171 +345,171 @@
     },
     {
       "input": {
-        "final_score": 365.0,
-        "avg_reaction_sec": 0.995,
-        "highest_sequence_length": 5,
-        "success_rate": 0.4
+        "final_score": 1672.0,
+        "avg_reaction_sec": 0.801,
+        "highest_sequence_length": 8,
+        "success_rate": 0.625
       },
-      "expected": "Beginner"
+      "expected": "Intermediate"
     },
     {
       "input": {
-        "final_score": 3041.0,
-        "avg_reaction_sec": 0.728,
+        "final_score": 3058.0,
+        "avg_reaction_sec": 0.559,
         "highest_sequence_length": 9,
-        "success_rate": 0.875
+        "success_rate": 0.778
       },
-      "expected": "Intermediate"
+      "expected": "Pro"
     }
   ],
   "difficulty": [
     {
       "input": {
         "accuracy": 0.875,
-        "reaction_ratio": 0.3777777777777778,
+        "reaction_ratio": 0.3766666666666667,
         "level": 7
       },
-      "expected_raw": 1.6375885636792935,
+      "expected_raw": 1.6318824737563824,
       "expected_steps": 2
     },
     {
       "input": {
-        "accuracy": 1.0,
-        "reaction_ratio": 0.3838888888888889,
+        "accuracy": 0.667,
+        "reaction_ratio": 0.5322222222222222,
         "level": 7
       },
-      "expected_raw": 2.150468531256957,
-      "expected_steps": 2
+      "expected_raw": 0.7516744081270464,
+      "expected_steps": 1
     },
     {
       "input": {
         "accuracy": 0.5,
-        "reaction_ratio": 0.4091666666666667,
+        "reaction_ratio": 0.29583333333333334,
         "level": 4
       },
-      "expected_raw": 0.094599303647139,
+      "expected_raw": 0.16505243834452793,
       "expected_steps": 0
-    },
-    {
-      "input": {
-        "accuracy": 0.875,
-        "reaction_ratio": 0.4805555555555556,
-        "level": 7
-      },
-      "expected_raw": 1.6027052729182807,
-      "expected_steps": 2
     },
     {
       "input": {
         "accuracy": 0.571,
-        "reaction_ratio": 0.3145454545454545,
+        "reaction_ratio": 0.3090909090909091,
         "level": 5
       },
-      "expected_raw": 0.41503261163487587,
+      "expected_raw": 0.4324415411103173,
+      "expected_steps": 0
+    },
+    {
+      "input": {
+        "accuracy": 0.625,
+        "reaction_ratio": 0.448,
+        "level": 6
+      },
+      "expected_raw": 0.6133506302120253,
+      "expected_steps": 1
+    },
+    {
+      "input": {
+        "accuracy": 0.5,
+        "reaction_ratio": 0.2975,
+        "level": 4
+      },
+      "expected_raw": 0.16483786704605863,
       "expected_steps": 0
     },
     {
       "input": {
         "accuracy": 0.875,
-        "reaction_ratio": 0.4594444444444445,
+        "reaction_ratio": 0.5322222222222222,
         "level": 7
       },
-      "expected_raw": 1.6098704893989213,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 0.875,
-        "reaction_ratio": 0.5266666666666667,
-        "level": 7
-      },
-      "expected_raw": 1.5870549316579343,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 1.0,
-        "reaction_ratio": 0.42111111111111116,
-        "level": 7
-      },
-      "expected_raw": 2.1378351232516173,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 0.875,
-        "reaction_ratio": 0.5622222222222223,
-        "level": 7
-      },
-      "expected_raw": 1.5749871986379083,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 1.0,
-        "reaction_ratio": 0.43388888888888894,
-        "level": 7
-      },
-      "expected_raw": 2.133498281697545,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 1.0,
-        "reaction_ratio": 0.41611111111111115,
-        "level": 7
-      },
-      "expected_raw": 2.139532148207558,
-      "expected_steps": 2
-    },
-    {
-      "input": {
-        "accuracy": 0.625,
-        "reaction_ratio": 0.4285,
-        "level": 6
-      },
-      "expected_raw": 0.5946405076106286,
-      "expected_steps": 1
-    },
-    {
-      "input": {
-        "accuracy": 0.625,
-        "reaction_ratio": 0.4195,
-        "level": 6
-      },
-      "expected_raw": 0.5976951525313227,
-      "expected_steps": 1
-    },
-    {
-      "input": {
-        "accuracy": 1.0,
-        "reaction_ratio": 0.48111111111111116,
-        "level": 7
-      },
-      "expected_raw": 2.117470823780323,
+      "expected_raw": 1.6118558192325803,
       "expected_steps": 2
     },
     {
       "input": {
         "accuracy": 0.778,
-        "reaction_ratio": 0.4511111111111112,
+        "reaction_ratio": 0.5533333333333333,
         "level": 7
       },
-      "expected_raw": 1.2130944755936777,
+      "expected_raw": 1.2079956234396128,
       "expected_steps": 1
     },
     {
       "input": {
-        "accuracy": 0.875,
-        "reaction_ratio": 0.5822222222222223,
+        "accuracy": 0.778,
+        "reaction_ratio": 0.40499999999999997,
         "level": 7
       },
-      "expected_raw": 1.5681990988141437,
+      "expected_raw": 1.2270924690033813,
+      "expected_steps": 1
+    },
+    {
+      "input": {
+        "accuracy": 0.778,
+        "reaction_ratio": 0.5072222222222222,
+        "level": 7
+      },
+      "expected_raw": 1.213932096030597,
+      "expected_steps": 1
+    },
+    {
+      "input": {
+        "accuracy": 1.0,
+        "reaction_ratio": 0.5072222222222222,
+        "level": 7
+      },
+      "expected_raw": 2.1320103328836186,
       "expected_steps": 2
     },
     {
       "input": {
-        "accuracy": 0.5616561917433796,
+        "accuracy": 0.875,
+        "reaction_ratio": 0.34555555555555556,
+        "level": 7
+      },
+      "expected_raw": 1.635887804661143,
+      "expected_steps": 2
+    },
+    {
+      "input": {
+        "accuracy": 1.0,
+        "reaction_ratio": 0.41055555555555556,
+        "level": 7
+      },
+      "expected_raw": 2.1444554681948387,
+      "expected_steps": 2
+    },
+    {
+      "input": {
+        "accuracy": 0.625,
+        "reaction_ratio": 0.3615,
+        "level": 6
+      },
+      "expected_raw": 0.6244868806025823,
+      "expected_steps": 1
+    },
+    {
+      "input": {
+        "accuracy": 1.0,
+        "reaction_ratio": 0.3983333333333333,
+        "level": 7
+      },
+      "expected_raw": 2.1460289910502803,
+      "expected_steps": 2
+    },
+    {
+      "input": {
+        "accuracy": 0.778,
+        "reaction_ratio": 0.5022222222222222,
+        "level": 7
+      },
+      "expected_raw": 1.214575809926005,
+      "expected_steps": 1
+    },
+    {
+      "input": {
+        "accuracy": 0.5539936498804459,
         "reaction_ratio": 0.0,
         "level": 1
       },
@@ -518,16 +518,16 @@
     },
     {
       "input": {
-        "accuracy": 0.5616561674693719,
+        "accuracy": 0.5539936256995002,
         "reaction_ratio": 0.0,
         "level": 1
       },
-      "expected_raw": 0.49999990000000033,
+      "expected_raw": 0.49999989999999994,
       "expected_steps": 0
     },
     {
       "input": {
-        "accuracy": 0.5616562160173871,
+        "accuracy": 0.5539936740613916,
         "reaction_ratio": 0.0,
         "level": 1
       },
@@ -536,7 +536,7 @@
     },
     {
       "input": {
-        "accuracy": 0.8043962685174108,
+        "accuracy": 0.7958031069491256,
         "reaction_ratio": 0.0,
         "level": 1
       },
@@ -545,16 +545,16 @@
     },
     {
       "input": {
-        "accuracy": 0.8043962442434032,
+        "accuracy": 0.7958030827681798,
         "reaction_ratio": 0.0,
         "level": 1
       },
-      "expected_raw": 1.4999999000000004,
+      "expected_raw": 1.4999999,
       "expected_steps": 1
     },
     {
       "input": {
-        "accuracy": 0.8043962927914184,
+        "accuracy": 0.7958031311300713,
         "reaction_ratio": 0.0,
         "level": 1
       },
@@ -567,7 +567,7 @@
         "reaction_ratio": 1.5,
         "level": 1
       },
-      "expected_raw": -2.322924797906585,
+      "expected_raw": -1.9841480123611628,
       "expected_steps": 0
     },
     {
@@ -576,7 +576,7 @@
         "reaction_ratio": 1.8,
         "level": 2
       },
-      "expected_raw": -2.42892183296173,
+      "expected_raw": -2.0472945424637654,
       "expected_steps": 0
     },
     {
@@ -585,7 +585,7 @@
         "reaction_ratio": 2.0,
         "level": 1
       },
-      "expected_raw": -2.0806640061483175,
+      "expected_raw": -1.634970646562756,
       "expected_steps": 0
     },
     {
@@ -594,7 +594,7 @@
         "reaction_ratio": 1.2,
         "level": 3
       },
-      "expected_raw": -2.2294543759474665,
+      "expected_raw": -1.9945725713929412,
       "expected_steps": 0
     },
     {
@@ -603,7 +603,7 @@
         "reaction_ratio": 0.0,
         "level": 7
       },
-      "expected_raw": 2.280762336207551,
+      "expected_raw": 2.197311531384445,
       "expected_steps": 2
     },
     {
@@ -612,7 +612,7 @@
         "reaction_ratio": 0.2,
         "level": 7
       },
-      "expected_raw": 2.2128813379699044,
+      "expected_raw": 2.171562975568128,
       "expected_steps": 2
     },
     {
@@ -621,7 +621,7 @@
         "reaction_ratio": 0.0,
         "level": 6
       },
-      "expected_raw": 2.078956230230034,
+      "expected_raw": 2.015060850092972,
       "expected_steps": 2
     },
     {
@@ -630,7 +630,7 @@
         "reaction_ratio": 0.4,
         "level": 7
       },
-      "expected_raw": 2.1450003397322575,
+      "expected_raw": 2.1458144197518108,
       "expected_steps": 2
     },
     {
@@ -639,7 +639,7 @@
         "reaction_ratio": 0.0,
         "level": 1
       },
-      "expected_raw": -1.8138173111242353,
+      "expected_raw": -1.791033843738785,
       "expected_steps": 0
     },
     {
@@ -648,7 +648,7 @@
         "reaction_ratio": 0.0,
         "level": 1
       },
-      "expected_raw": 2.3058155623996046,
+      "expected_raw": 2.344453709653207,
       "expected_steps": 2
     },
     {
@@ -657,7 +657,7 @@
         "reaction_ratio": 2.0,
         "level": 7
       },
-      "expected_raw": -2.5176805196927554,
+      "expected_raw": -2.1956615801707176,
       "expected_steps": 0
     },
     {
@@ -666,7 +666,7 @@
         "reaction_ratio": 2.0,
         "level": 7
       },
-      "expected_raw": 1.6019523538310845,
+      "expected_raw": 1.9398259732212748,
       "expected_steps": 2
     },
     {
@@ -675,7 +675,7 @@
         "reaction_ratio": 1.0,
         "level": 4
       },
-      "expected_raw": -0.10593247864657535,
+      "expected_raw": 0.07439606474124502,
       "expected_steps": 0
     },
     {
@@ -684,395 +684,395 @@
         "reaction_ratio": 0.5,
         "level": 5
       },
-      "expected_raw": 1.0895026976298254,
+      "expected_raw": 1.1481156462519084,
       "expected_steps": 1
     },
     {
       "input": {
         "accuracy": 0.571,
-        "reaction_ratio": 0.4709090909090909,
+        "reaction_ratio": 0.31545454545454543,
         "level": 5
       },
-      "expected_raw": 0.36196201301271586,
+      "expected_raw": 0.43162226887979815,
       "expected_steps": 0
+    },
+    {
+      "input": {
+        "accuracy": 1.0,
+        "reaction_ratio": 0.37833333333333335,
+        "level": 7
+      },
+      "expected_raw": 2.1486038466319117,
+      "expected_steps": 2
+    },
+    {
+      "input": {
+        "accuracy": 1.0,
+        "reaction_ratio": 0.5144444444444445,
+        "level": 7
+      },
+      "expected_raw": 2.131080523923585,
+      "expected_steps": 2
     },
     {
       "input": {
         "accuracy": 0.5,
-        "reaction_ratio": 0.4379166666666667,
+        "reaction_ratio": 0.33625000000000005,
         "level": 4
       },
-      "expected_raw": 0.0848414101504773,
+      "expected_raw": 0.1598490843566472,
       "expected_steps": 0
-    },
-    {
-      "input": {
-        "accuracy": 0.571,
-        "reaction_ratio": 0.41363636363636364,
-        "level": 5
-      },
-      "expected_raw": 0.3814006625080419,
-      "expected_steps": 0
-    },
-    {
-      "input": {
-        "accuracy": 0.875,
-        "reaction_ratio": 0.5466666666666667,
-        "level": 7
-      },
-      "expected_raw": 1.5802668318341697,
-      "expected_steps": 2
     }
   ],
   "animal": [
     {
       "features": [
-        3001.197864704643,
-        0.9504233939765303,
-        9.004991223552086,
-        0.785856810574657
+        3001.014838135956,
+        0.9512388200783796,
+        9.005235716329402,
+        0.7860407286678844
       ],
       "expected": {
-        "id": "SYN-000219",
-        "distance": 0.04703322525466474,
-        "percentile": 0.314,
+        "id": "SYN-001909",
+        "distance": 0.04832267250238993,
+        "percentile": 0.31775,
         "animal": "Orangutan"
       }
     },
     {
       "features": [
-        2995.5929108397736,
-        0.9257309342966806,
-        8.93634203266866,
-        0.8873643167189604
+        3004.1376491962956,
+        0.8646165423121094,
+        8.933223776580009,
+        0.7906537498844165
       ],
       "expected": {
-        "id": "SYN-001298",
-        "distance": 0.09817518214400549,
-        "percentile": 0.332,
+        "id": "SYN-000311",
+        "distance": 0.09880112652750199,
+        "percentile": 0.4205,
         "animal": "Orangutan"
       }
     },
     {
       "features": [
-        3024.4923391144794,
-        0.9533917397751032,
-        9.133519092477584,
-        0.7684074702055198
+        3048.855766504767,
+        0.7789648252960696,
+        9.140059463471562,
+        0.9901829210997135
       ],
       "expected": {
-        "id": "SYN-000219",
-        "distance": 0.14753403447296953,
-        "percentile": 0.314,
-        "animal": "Orangutan"
-      }
-    },
-    {
-      "features": [
-        663.9632677466349,
-        0.8916971403965183,
-        5.9921705851200215,
-        0.48985773117252485
-      ],
-      "expected": {
-        "id": "SYN-001993",
-        "distance": 0.07791027849198869,
-        "percentile": 0.04825,
-        "animal": "Pig"
-      }
-    },
-    {
-      "features": [
-        2883.647075538116,
-        0.6787017983184721,
-        8.918481828559106,
-        0.9831624225885129
-      ],
-      "expected": {
-        "id": "SYN-001255",
-        "distance": 0.24186854422204634,
-        "percentile": 0.7325,
+        "id": "SYN-001143",
+        "distance": 0.1458698615981057,
+        "percentile": 0.6125,
         "animal": "Elephant"
       }
     },
     {
       "features": [
-        642.9938353442338,
-        0.8633464361677903,
-        6.011757276657927,
-        0.4878117263962244
+        3011.094440718763,
+        0.6798970156874083,
+        8.99178706485314,
+        0.9896203133646211
       ],
       "expected": {
-        "id": "SYN-000576",
-        "distance": 0.10829817101801907,
-        "percentile": 0.051,
-        "animal": "Pig"
-      }
-    },
-    {
-      "features": [
-        3099.6179590302545,
-        0.777833445777063,
-        8.992324739708902,
-        1.0117167995396965
-      ],
-      "expected": {
-        "id": "SYN-000792",
-        "distance": 0.10677495106020561,
-        "percentile": 0.62175,
+        "id": "SYN-001258",
+        "distance": 0.06856811495895763,
+        "percentile": 0.69375,
         "animal": "Elephant"
       }
     },
     {
       "features": [
-        282.5287210150459,
-        1.0363382406486608,
-        3.9421660982179323,
-        0.27296401413927557
+        2864.6273890533876,
+        0.7349801169345419,
+        8.914488698632285,
+        0.7607682759939546
       ],
       "expected": {
-        "id": "SYN-001147",
-        "distance": 0.24496128964132546,
-        "percentile": 0.00375,
-        "animal": "Pig"
-      }
-    },
-    {
-      "features": [
-        2912.703111940824,
-        0.6889719572614346,
-        8.923986043384142,
-        1.0034350157698222
-      ],
-      "expected": {
-        "id": "SYN-001199",
-        "distance": 0.18677399306260878,
-        "percentile": 0.74775,
+        "id": "SYN-001594",
+        "distance": 0.2478829740045938,
+        "percentile": 0.62825,
         "animal": "Elephant"
       }
     },
     {
       "features": [
-        3040.124485463462,
-        0.7668520033086801,
-        8.98937571371245,
-        0.800627742091893
+        1058.5861793627287,
+        1.0407089722437095,
+        7.012333201417412,
+        0.5585264141795633
       ],
       "expected": {
-        "id": "SYN-001741",
-        "distance": 0.13258137975352194,
-        "percentile": 0.6475,
-        "animal": "Elephant"
-      }
-    },
-    {
-      "features": [
-        199.16218408815462,
-        0.8451769248616157,
-        4.066548842995788,
-        0.30825920838219756
-      ],
-      "expected": {
-        "id": "SYN-000601",
-        "distance": 0.36101103576182664,
-        "percentile": 0.00725,
+        "id": "SYN-000261",
+        "distance": 0.10794967755326279,
+        "percentile": 0.077,
         "animal": "Pig"
       }
     },
     {
       "features": [
-        2981.9624054617584,
-        0.8935757013595924,
-        9.0462028315627,
-        0.7804079550756757
+        3098.1807179408192,
+        0.7771931412360733,
+        8.991948770633263,
+        0.886991075139139
       ],
       "expected": {
-        "id": "SYN-001699",
-        "distance": 0.06503079141158842,
-        "percentile": 0.372,
-        "animal": "Orangutan"
+        "id": "SYN-000664",
+        "distance": 0.10719441885792187,
+        "percentile": 0.62825,
+        "animal": "Elephant"
       }
     },
     {
       "features": [
-        2971.6379148248343,
-        0.5173296684221045,
-        8.967944154192372,
-        1.002915185046308
+        3201.0364439257023,
+        0.6418578234419144,
+        8.939333131286649,
+        1.0235015729429673
       ],
       "expected": {
-        "id": "SYN-000428",
-        "distance": 0.1325353817044709,
-        "percentile": 0.99475,
+        "id": "SYN-000935",
+        "distance": 0.23730490247378283,
+        "percentile": 0.94125,
         "animal": "Chimpanzee"
       }
     },
     {
       "features": [
-        2118.4780560766862,
-        0.7636557310141852,
-        8.737649375757316,
-        0.6587067195245392
+        2902.4823297624052,
+        0.6907612159500893,
+        8.92026253487489,
+        0.8785154251859063
       ],
       "expected": {
-        "id": "SYN-000493",
-        "distance": 0.3577271557635645,
-        "percentile": 0.24425,
+        "id": "SYN-000723",
+        "distance": 0.18968555816756638,
+        "percentile": 0.73025,
+        "animal": "Elephant"
+      }
+    },
+    {
+      "features": [
+        3053.1743227541374,
+        0.624499087986324,
+        8.988855287962265,
+        0.8011574291882076
+      ],
+      "expected": {
+        "id": "SYN-000252",
+        "distance": 0.13273651819732477,
+        "percentile": 0.875,
+        "animal": "Bottlenose Dolphin"
+      }
+    },
+    {
+      "features": [
+        1744.6438756234604,
+        0.6509299218134559,
+        8.069808707291866,
+        0.6846229834683831
+      ],
+      "expected": {
+        "id": "SYN-001641",
+        "distance": 0.3553992631933591,
+        "percentile": 0.192,
         "animal": "Pig"
       }
     },
     {
       "features": [
-        375.61021858183466,
-        0.9191054297487942,
-        4.972258556702296,
-        0.37452338001079516
+        3005.163933774347,
+        0.7135218382168937,
+        9.048466055898524,
+        1.0024643222875216
       ],
       "expected": {
-        "id": "SYN-001814",
-        "distance": 0.15207504458036863,
-        "percentile": 0.01675,
+        "id": "SYN-001285",
+        "distance": 0.0638399138869,
+        "percentile": 0.69375,
+        "animal": "Elephant"
+      }
+    },
+    {
+      "features": [
+        2930.3774026530386,
+        0.7657056462985854,
+        8.966373913410942,
+        0.8779834258763533
+      ],
+      "expected": {
+        "id": "SYN-000596",
+        "distance": 0.13220752061493132,
+        "percentile": 0.59675,
+        "animal": "Elephant"
+      }
+    },
+    {
+      "features": [
+        2096.9852341891396,
+        0.9133090404578441,
+        8.72479825176292,
+        0.6585125842177052
+      ],
+      "expected": {
+        "id": "SYN-000889",
+        "distance": 0.3571974641678578,
+        "percentile": 0.217,
         "animal": "Pig"
       }
     },
     {
       "features": [
-        2254.1197693857816,
-        0.6960534229108319,
-        8.96915501378834,
-        0.6605499799747788
+        3052.7887430679225,
+        0.6598649210644031,
+        8.970899654932454,
+        0.7519270042517295
       ],
       "expected": {
-        "id": "SYN-000788",
-        "distance": 0.09210900184903041,
-        "percentile": 0.25525,
-        "animal": "Pig"
+        "id": "SYN-000179",
+        "distance": 0.15146173075953803,
+        "percentile": 0.8905,
+        "animal": "Bottlenose Dolphin"
       }
     },
     {
       "features": [
-        2947.230034731889,
-        0.8281192008859146,
-        9.196170319317464,
-        0.7679904250823146
+        2959.715067630861,
+        0.8476793658502815,
+        8.96764408640421,
+        0.8683989930860094
       ],
       "expected": {
-        "id": "SYN-001694",
-        "distance": 0.2273120967724951,
-        "percentile": 0.46925,
+        "id": "SYN-001166",
+        "distance": 0.0900322172206044,
+        "percentile": 0.43325,
         "animal": "Orangutan"
       }
     },
     {
       "features": [
-        3016.2667155569,
-        0.8560764682663785,
-        9.09591583913647,
-        1.0340771576024994
+        2946.3822077059713,
+        0.8200229571007591,
+        9.205779631682724,
+        0.7677561134726117
       ],
       "expected": {
-        "id": "SYN-000934",
-        "distance": 0.22099270822320932,
-        "percentile": 0.43375,
+        "id": "SYN-000154",
+        "distance": 0.2262377635421751,
+        "percentile": 0.478,
         "animal": "Orangutan"
       }
     },
     {
       "features": [
-        3056.1703151025094,
-        0.9260593827316876,
-        8.911754950923946,
-        0.7600159496986305
+        1655.0853041275002,
+        0.923498155339029,
+        8.100614232156603,
+        0.6598748611730908
       ],
       "expected": {
-        "id": "SYN-001987",
-        "distance": 0.14790991926232286,
-        "percentile": 0.34525,
-        "animal": "Orangutan"
-      }
-    },
-    {
-      "features": [
-        1734.9175964985213,
-        0.9625716188288495,
-        7.83124793640437,
-        0.6177161661518554
-      ],
-      "expected": {
-        "id": "SYN-000404",
-        "distance": 0.2004711670016304,
-        "percentile": 0.13375,
+        "id": "SYN-000037",
+        "distance": 0.2208688995381357,
+        "percentile": 0.14725,
         "animal": "Pig"
       }
     },
     {
       "features": [
-        696.4061740776925,
-        0.9628958324331176,
-        5.991069388339226,
-        0.5030346275531118
+        3072.2299439690646,
+        0.8257974581449827,
+        8.907432308007271,
+        0.856594965609921
+      ],
+      "expected": {
+        "id": "SYN-001673",
+        "distance": 0.14793396075336152,
+        "percentile": 0.5315,
+        "animal": "Orangutan"
+      }
+    },
+    {
+      "features": [
+        3091.698511166634,
+        0.924437002335028,
+        8.822981694615018,
+        0.7705456607260205
+      ],
+      "expected": {
+        "id": "SYN-001991",
+        "distance": 0.19965274180081014,
+        "percentile": 0.35625,
+        "animal": "Orangutan"
+      }
+    },
+    {
+      "features": [
+        3044.345326753164,
+        0.6248826087458719,
+        8.990631926457327,
+        1.0031056643826142
       ],
       "expected": {
         "id": "SYN-000143",
-        "distance": 0.0201201258409239,
-        "percentile": 0.03725,
+        "distance": 0.020120125840924104,
+        "percentile": 0.85775,
+        "animal": "Bottlenose Dolphin"
+      }
+    },
+    {
+      "features": [
+        3181.1643992753916,
+        0.7707953175203933,
+        9.04424489495349,
+        0.8619095773484375
+      ],
+      "expected": {
+        "id": "SYN-000763",
+        "distance": 0.20319855134333567,
+        "percentile": 0.62825,
+        "animal": "Elephant"
+      }
+    },
+    {
+      "features": [
+        2445.2210001547,
+        0.8943684165673362,
+        9.042043429111086,
+        0.6645731800107795
+      ],
+      "expected": {
+        "id": "SYN-001189",
+        "distance": 0.19644664203667583,
+        "percentile": 0.22825,
         "animal": "Pig"
       }
     },
     {
       "features": [
-        3177.7683476908796,
-        0.7726207146048596,
-        9.042178786599132,
-        0.8622089986662136
-      ],
-      "expected": {
-        "id": "SYN-000758",
-        "distance": 0.20078322831567097,
-        "percentile": 0.62175,
-        "animal": "Elephant"
-      }
-    },
-    {
-      "features": [
-        3184.7090470613753,
-        0.7718625142667724,
-        9.040080122830812,
-        0.8726286894208665
-      ],
-      "expected": {
-        "id": "SYN-000758",
-        "distance": 0.19505613045382647,
-        "percentile": 0.62175,
-        "animal": "Elephant"
-      }
-    },
-    {
-      "features": [
-        670.5343998346729,
-        0.9305409193458108,
-        6.011368140829558,
-        0.47088299244165766
+        2975.8431803814833,
+        0.9596095870556198,
+        9.011925003950461,
+        0.9702013997699577
       ],
       "expected": {
         "id": "SYN-000467",
-        "distance": 0.1745537821739651,
-        "percentile": 0.04025,
-        "animal": "Pig"
+        "distance": 0.17455378217396592,
+        "percentile": 0.312,
+        "animal": "Orangutan"
       }
     },
     {
       "features": [
-        3105.3679793877413,
-        0.721321288412515,
-        8.92516196952816,
-        0.995862419259747
+        3088.8075815311813,
+        0.8390123766941174,
+        8.921496063217221,
+        0.995765563677817
       ],
       "expected": {
-        "id": "SYN-001454",
-        "distance": 0.11107659003593857,
-        "percentile": 0.74775,
-        "animal": "Elephant"
+        "id": "SYN-001941",
+        "distance": 0.11105597977319683,
+        "percentile": 0.5035,
+        "animal": "Orangutan"
       }
     }
   ]

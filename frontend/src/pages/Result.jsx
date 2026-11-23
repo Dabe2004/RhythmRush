@@ -96,7 +96,7 @@ function LiveKiosk({ debug }) {
   const [state, dispatch] = useReducer(nextKioskState, INITIAL_KIOSK_STATE)
   const live = useLiveGame()
   // screenMode also depends on time (15 s upload wait, 90 s silence).
-  const liveBusy = live.state.phase !== "idle" || live.state.reset !== null
+  const liveBusy = live.state.phase !== "idle"
   const [now] = useLiveClock(live.state, liveBusy ? 1000 : null)
 
   // usePolling skips refreshes while the tab is hidden.

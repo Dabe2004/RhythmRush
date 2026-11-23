@@ -169,7 +169,7 @@ Calls from the game code (all non-blocking):
 
 ```cpp
 liveNewGame();                       // new game_id, BEFORE the START press event
-liveControlPressed("start");         // or "reset" (START held 2 s)
+liveControlPressed("start");         // or "reset" (START pressed during a game)
 liveGameStarted(3, 1);               // right after START, before the first countdown
 // every attempt (first try, retry, next level):
 liveCountdown(3, 1000, "watch", level);              // 1 2 3 GO!
@@ -181,10 +181,10 @@ liveAttemptResult(level, RR_PASS, lives, score, points, bonus);
 String id = rrReserveSessionId();    // game over / win
 liveGameFinished(win, score, highestLevel, id);
 rrQueueSession(session);             // uploads with the SAME id
-liveReset();                         // START held 2 s: game abandoned, back to idle
+liveReset();                         // START during a game: abandoned, back to idle
 ```
 
-An abandoned game (START held mid-game) is **not** uploaded: do not call
+An abandoned game (START pressed mid-game) is **not** uploaded: do not call
 `rrQueueSession()` for it. The next START calls `liveNewGame()` again.
 Serial test: `l` sends START + game + countdown, so `/live` shows 1 2 3 GO!.
 
@@ -193,18 +193,17 @@ Serial test: `l` sends START + game + countdown, so `/live` shows 1 2 3 GO!.
 This matches the hardware sketch (one START button on pin 13, 7 levels,
 3 lives):
 
-- **START** (short press) begins a game from idle, after game over or after a
-  win; ignored during a game.
-- **START held 2 s** (`RESET_HOLD_MS`) during a game = RESET: the game is
-  abandoned (not uploaded) and the box goes back to **idle**. Show
-  "GAME STOPPED" for `RESTART_MS` = 500 ms. Release before starting again.
-- **Every attempt** (first try, retry and next level): "1 2 3 GO!"
-  (`COUNTDOWN_STEP_MS` = 1 s each, then 600 ms) -> the sequence plays ->
-  "1 2 3 BEGIN!" -> the player's turn. The six game buttons are ignored
-  during both countdowns.
-- **Pass**: show the points ("NICE! +points", 1 s), then the next level.
-  **Fail** (wrong or timeout): lose a life, then a **new random pattern** at
-  the same level. 3 lives lost = game over; clear level 7 = win.
+- **START** begins a game from idle, after game over or after a win.
+- **START during a game** = RESET: the game is abandoned (not uploaded) and
+  the box goes straight back to **idle**. One action per press.
+- **Every attempt** (first try, retry and next level): "1 2 3 Go!"
+  (`COUNTDOWN_STEP_MS` = 1 s each, then 500 ms) -> the sequence plays ->
+  "1 2 3 Begin!" -> the player's turn. The six game buttons are ignored
+  during both countdowns. Two buttons at once = a mistake.
+- **Pass**: "Correct!" and the points (2 s), then the next level.
+  **Fail** (wrong or timeout): lose a life (LEDs blink, 2 s), then a **new
+  random pattern** at the same level. 3 lives lost = game over; clear level
+  7 = win.
 - The reaction timer starts when the player's turn starts (after BEGIN!), so
   the countdowns never change scoring.
 
@@ -222,11 +221,10 @@ All these times are in `ml/game_rules.py` (exported to `docs/game_rules.json`).
       counting up (`RR01-L-...`).
 - [ ] **10 games in a row** with `/live` open: every game is mirrored, every
       upload arrives once, the result screen appears after each game.
-- [ ] **START held 2 s mid-game** goes back to idle on the box AND the web
-      ("GAME STOPPED"); the abandoned game is NOT on the leaderboard. **A
-      short tap mid-game does nothing.**
-- [ ] **Every attempt** shows 1 2 3 GO! before the lights and 1 2 3 BEGIN!
-      before the turn, on the LCD and the web at the same time.
+- [ ] **START pressed mid-game** goes back to idle on the box AND the web;
+      the abandoned game is NOT on the leaderboard.
+- [ ] **Every attempt** shows 1 2 3 Go! before the lights and 1 2 3 Begin!
+      before the turn, with the same LCD text on the box and the web.
 - [ ] **START after game over** starts a new game (web too).
 - [ ] **Film the panel and the web side by side** in slow motion and count
       the frames between a lit LED ring and the lit button on screen. Write

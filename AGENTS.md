@@ -21,9 +21,10 @@
   the /live panel redrawn from a photo of the real box top (pink START, blue LCD, buzzer, green LED over
   each button, no RESET button; button colours changed everywhere to match the box), and the game matched
   to the hardware sketch + gameplay spec (7 levels, 1 2 3 GO! / 1 2 3 BEGIN! before every sequence and turn,
-  new pattern after a fail, START held 2 s = back to idle; models retrained; see "Hardware rules" in
-  docs/NOTES.md), and "Player #N" instead of "Mystery Player" (game_sessions.player_number, migration 002)
-  with "Last results" + "Leaderboard (top 5)" on /live
+  new pattern after a fail; models retrained; see "Hardware rules" in docs/NOTES.md), "Player #N" instead
+  of "Mystery Player" (game_sessions.player_number, migration 002) with "Last results" + "Leaderboard (top 5)"
+  on /live, and everything matched to the box's firmware RhythmRushGame.h (adaptive time per press, faster
+  lights, START during a game = reset, the /live LCD and LEDs copy rr_render/rr_leds; see "Firmware rules")
 - NEXT: a native speaker reviews the Filipino text; agree the live protocol and RESET/countdown behaviour with
   the firmware owner, hardware integration (game logic + pins, using the /firmware network and live layers)
   and its checklists, check /live and the printed QR on the real exhibition TV, tablet and booth Wi-Fi (and
@@ -68,15 +69,18 @@
 ## Game rules
 - 6 buttons, as on the real box: 1 Red, 2 Orange, 3 Blue (top row, left to right), 4 Blue, 5 Yellow,
   6 Red (bottom row). The buttons cannot light up: a green LED above each one shows the sequence.
-  The box has one control, START (pink, pin 13); START held 2 s during a game = RESET back to idle.
+  The box has one control, START (pink, pin 13); START during a game = RESET straight back to idle.
 - Start: 3 lives, Level 1. Sequence length = level + 2. Max Level 7 (9 steps).
 - Every attempt: "1 2 3 GO!" -> the random sequence -> "1 2 3 BEGIN!" -> the player's turn.
-- Deadline per press (sec) = max(1.0, 3.0 - 0.2 * (level - 1)) (the 0.2 step is a guess until we get
-  the firmware's RhythmRushGame.h)
+- Deadline per press: level 1 = 3.0 s. After each pass the box sets the next one (rr_next_deadline):
+  max(1.0 s, min(level cap 3.0 - 0.2 * (level - 1), current, (3 * current + 2 * average press + 0.3 s) / 4)).
+  A fail keeps it. The lights get faster: cue 500 - 45 ms per level (min 180), gap 200 - 15 ms (min 80).
+- Two buttons at once = a mistake. Results show 2 s; "Go!"/"Begin!" 0.5 s.
 - Attempt result: "pass", "wrong", or "timeout". A fail loses 1 life and retries the level with a NEW pattern.
 - 3 lives lost = game over. Clear Level 7 = win.
 - Points for a passed level = 100 * level + speed_bonus
-- speed_bonus = round(50 * (1 - response_time / (sequence_length * deadline))), clamped 0..50
+- speed_bonus = round(50 * (1 - response_time / (sequence_length * deadline))), clamped 0..50,
+  rounded half up in whole ms like the firmware: (50 * unused + available / 2) / available
 - Max total score is about 3,150, so score tiers MUST use percentiles, not fixed numbers.
 - All constants/formulas live in /ml/game_rules.py. Import them, never copy them.
 

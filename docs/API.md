@@ -433,7 +433,7 @@ Response `200`:
 `player_number` (also in the leaderboard, `/latest` and one session): the
 game's number, 1, 2, 3... in the order games were saved. The web shows
 "Player #N" for a game without a nickname. A duplicate upload takes no
-number; an abandoned game (START held) is never uploaded, so it takes none.
+number; an abandoned game (START pressed mid-game) is never uploaded, so it takes none.
 
 ```json
 { "sessions": [

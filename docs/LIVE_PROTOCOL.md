@@ -7,8 +7,9 @@ firmware owner before it is final. The web side is built and tested against
 While a game is played on the ESP32, the device also sends small **live
 events**. The server keeps the current game in memory and pushes every event
 to the web page `/live` (Server-Sent Events), which mirrors the panel:
-attract animation, the 1 2 3 GO! and 1 2 3 BEGIN! countdowns, the sequence,
-the presses, level, score and lives.
+the 1 2 3 Go! and 1 2 3 Begin! countdowns, the sequence, the presses,
+level, score and lives. Its LCD text and LEDs copy the box's firmware
+(`RhythmRushGame.h`, `rr_render` and `rr_leds`).
 
 **The web page is display-only.** It can NOT start, reset or control the
 hardware in any way. (Demo mode, `/live?demo=1`, plays a scripted game in the
@@ -26,20 +27,16 @@ The original guide had a 2 s hold on an "Admin Reset" button that returned to
 idle. Proposal: the action is called **RESET** and means "restart / play
 again". There is no admin function on the device.
 
-**The real box has one control, the pink START button on pin 13** (photo
-and hardware sketch, November 2026). The sketch's rule: RESET = **START held
-2 s** during play, back to **idle**. The events stay `control_pressed reset`
-+ `game_reset`; the web draws a RESET as a press of START.
+**The real box has one control, the pink START button on pin 13**
+(firmware `rr_tick`, November 2026). One action per press: the button must
+be released before it counts again. The events for a reset are
+`control_pressed reset` + `game_reset`; the web draws them as a press of
+START.
 
 | Control | When | Action |
 |---|---|---|
-| **START** (short press) | idle, after game over, after a win | a new game (`game_started`, then the first countdown) |
-| START (short press) | during a game or a countdown | ignored |
-| **START held 2 s** (`RESET_HOLD_MS`) | during a game or a countdown | abandons the game (**not uploaded**) and goes back to **idle**. Release before starting again. |
-
-The web page does not care how long START was held: it only reacts to
-`control_pressed reset` and `game_reset`. There is **no** "reset held"
-progress event.
+| **START** | idle, after game over, after a win | a new game (`game_started`, then the first countdown) |
+| **START** | during a game (any phase) | RESET: abandons the game (**not uploaded**) and goes straight back to **idle** (the LCD says "START again = reset") |
 
 During both countdowns the six game buttons are **ignored** by the firmware
 (no `press` events are sent).
@@ -48,21 +45,24 @@ During both countdowns the six game buttons are **ignored** by the firmware
 
 Every attempt (the first try, every retry and every new level) runs:
 
-1. **1 2 3 GO!**: `countdown_started` with `"then": "watch"`. The LCD counts
-   up 1, 2, 3 (`COUNTDOWN_STEP_MS` = 1000 ms each), then "GO!" for `GO_MS` =
-   600 ms.
-2. The random sequence plays (`playback_started`).
-3. **1 2 3 BEGIN!**: `countdown_started` with `"then": "input"`, same timing.
+1. **1 2 3 Go!**: `countdown_started` with `"then": "watch"`. The LCD counts
+   up 1, 2, 3 (`COUNTDOWN_STEP_MS` = 1000 ms each), then "Go!" for `GO_MS` =
+   500 ms (`word_ms`).
+2. The random sequence plays (`playback_started`). The lights get faster
+   every level: cue 500 ms - 45 ms per level (at least 180), gap 200 ms -
+   15 ms per level (at least 80); the event carries both.
+3. **1 2 3 Begin!**: `countdown_started` with `"then": "input"`, same timing.
 4. The player's turn (`input_started`). The reaction timer starts here, so
-   the countdowns never change scoring.
-5. `attempt_result`. A pass shows the points gained ("NICE! +points") for
-   `NEXT_LEVEL_PAUSE_MS` (1 s), then the next level starts at step 1. A fail
-   costs a life and shows "NEW PATTERN NEXT" for `RETRY_PAUSE_MS` (1 s); the
-   same level starts again at step 1 with a **new random pattern**. 3 lives
-   lost = game over; clearing level 7 = win.
+   the countdowns never change scoring. `deadline_ms` adapts to the player
+   (see `docs/game_rules.json` notes). Two buttons at once = a mistake.
+5. `attempt_result`. A pass shows "Correct!" and the points gained for 2 s
+   (`NEXT_LEVEL_PAUSE_MS`), then the next level starts at step 1. A fail
+   costs a life and shows "Wrong sequence!" / "Time is up!" for 2 s
+   (`RETRY_PAUSE_MS`) while all LEDs blink; the same level starts again at
+   step 1 with a **new random pattern**. 3 lives lost = game over; clearing
+   level 7 = win.
 
-After RESET the device shows "GAME STOPPED" for `RESTART_MS` = 500 ms, then
-idle ("PRESS START").
+After RESET the box is idle at once.
 
 Optional: a short **"get ready" pause** of `GET_READY_MS` (300-400 ms, 350
 proposed) before every playback, so the first cue is not missed.
@@ -106,7 +106,7 @@ writes them to `docs/game_rules.json` for JavaScript tools.
 | `press` | `index`, `button`, `expected`, `ok` | each game-button press during input |
 | `attempt_result` | `level`, `result` (`pass`/`wrong`/`timeout`), `lives`, `score`, `points_awarded`, `speed_bonus` | end of an attempt |
 | `game_finished` | `outcome` (`game_over`/`win`), `final_score`, `highest_level_completed`, `session_id` | the game is over; `session_id` = the id the final upload uses |
-| `game_reset` | none | START held: the game is abandoned and the device is idle; the next game has a new `game_id` |
+| `game_reset` | none | START pressed during a game: the game is abandoned and the device is idle; the next game has a new `game_id` |
 
 `attempt` counts the tries of the same level (1 = first try, 2 = first
 retry, ...). `index` is 0-based within the sequence.

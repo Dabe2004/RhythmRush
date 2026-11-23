@@ -10,51 +10,51 @@
     {
       "id": 0,
       "feature": 1,
-      "threshold": 0.8145000040531158,
+      "threshold": 0.820499986410141,
       "left": 1,
       "right": 8
     },
     {
       "id": 1,
-      "feature": 1,
-      "threshold": 0.6724999845027924,
+      "feature": 0,
+      "threshold": 3042.5,
       "left": 2,
       "right": 5
     },
     {
       "id": 2,
       "feature": 1,
-      "threshold": 0.6245000064373016,
+      "threshold": 0.7514999806880951,
       "left": 3,
       "right": 4
     },
     {
       "id": 3,
-      "leaf": "Pro"
+      "leaf": "Intermediate"
     },
     {
       "id": 4,
-      "leaf": "Pro"
+      "leaf": "Intermediate"
     },
     {
       "id": 5,
-      "feature": 0,
-      "threshold": 3038.5,
+      "feature": 1,
+      "threshold": 0.6304999887943268,
       "left": 6,
       "right": 7
     },
     {
       "id": 6,
-      "leaf": "Intermediate"
+      "leaf": "Pro"
     },
     {
       "id": 7,
-      "leaf": "Intermediate"
+      "leaf": "Pro"
     },
     {
       "id": 8,
       "feature": 1,
-      "threshold": 0.9084999859333038,
+      "threshold": 0.9105000197887421,
       "left": 9,
       "right": 12
     },
@@ -67,7 +67,7 @@
     },
     {
       "id": 10,
-      "leaf": "Intermediate"
+      "leaf": "Beginner"
     },
     {
       "id": 11,
@@ -76,7 +76,7 @@
     {
       "id": 12,
       "feature": 1,
-      "threshold": 0.9325000047683716,
+      "threshold": 0.9305000007152557,
       "left": 13,
       "right": 14
     },

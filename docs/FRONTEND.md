@@ -173,13 +173,15 @@ LED lights, not the button, as on the box). It is **display-only**: the
 web cannot control the hardware ("Mirror of the device. Play on the game
 console.").
 
-- **One state machine.** idle (attract) -> per attempt: countdown (1 2 3
-  GO!) -> watch -> countdown (1 2 3 BEGIN!) -> input -> result ->
+- **One state machine.** idle (LEDs dark, like the box) -> per attempt:
+  countdown (1 2 3 Go!) -> watch -> countdown (1 2 3 Begin!) -> input -> result ->
   finished ("Final score N, saving...") -> the existing kiosk result reveal
   (`kioskState.js`, unchanged). `screenMode()` decides: the mirror wins while
   a game runs; after `game_finished` it waits until the latest-session poll
   shows that `session_id`, then the result reveal takes over (fallback: idle
-  after 15 s). `game_reset` (START held) goes back to idle; 90 s of silence = idle.
+  after 15 s). `game_reset` (START pressed mid-game) goes back to idle; 90 s
+  of silence = idle. The LCD rows and the LED blink/chase copy the box's
+  firmware (`rr_render`, `rr_leds`), so the TV and the box say the same.
 - **One stream per tab.** `LiveProvider` (App.jsx) opens ONE `EventSource`
   for the whole tab (`live/useLiveGame.js`); the header and the leaderboard
   read the same state. EventSource reconnects by itself; after 3 failures it
@@ -195,7 +197,7 @@ console.").
   what the LCD shows and when the next change is (`nextAt`); the component
   re-renders only at that moment and toggles CSS classes. Animations are
   transform/opacity only; prefers-reduced-motion switches states without
-  movement; the attract loop pauses in a hidden tab.
+  movement (the LEDs do not blink or chase).
 - **Header.** "Live game" (`/live`; `/result` still works and highlights it)
   and, while a game runs, a pulsing bulb + **LIVE** that links to `/live`. It
   keeps its place when hidden, so the header never jumps. The leaderboard
@@ -284,7 +286,7 @@ brochure file, in BOTH `en` and `fil`), import it in the component, run
 `npm test`. A banned word, a long sentence or an abbreviation fails the test.
 Code, comments, docs and developer tools (`/live?debug=1`) may keep technical
 words. Known exception: the panel's 20 x 4 display copies the game console's
-own text ("WATCH SEQUENCE", "NEW PATTERN NEXT", see
+own text ("Watch the sequence", "New pattern, same Lv", see
 `docs/LIVE_PROTOCOL.md`); changing it needs the firmware owner, so it is not
 in `visitorText.js`.
 

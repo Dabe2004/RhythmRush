@@ -149,7 +149,7 @@ export const visitorText = {
     },
     barLabel: "Out of time",
     description: "Bar chart of how long every try took. The table below lists the same values.",
-    caption: "When time ran out, the bar shows the whole time limit for that level.",
+    caption: "When time ran out, the bar shows the longest time limit for that level.",
     xAxis: "Try",
     yAxis: "Seconds",
   },
