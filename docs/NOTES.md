@@ -42,7 +42,7 @@ Build order for the whole project:
 |---|---|---|---|
 | Adaptive Difficulty | `LinearRegression` | `accuracy` (0-1), `reaction_ratio`, `level` | Steps to add next level, rounded and clamped to 0, 1, 2. Optional: if the server is slow/down, the ESP32 adds +1. |
 | Skill Classifier | `DecisionTreeClassifier(max_depth=3)` | the 4 features below | `Beginner`, `Intermediate`, `Pro`. Labels come from the simulator's **hidden player skill**, not from score percentiles. |
-| Animal IQ Matcher | `NearestNeighbors(k=1)` on standardized 4 features | the 4 features below | Animal chosen from the matched game's score percentile. UI must say **"just for fun, not a real IQ test"**. |
+| Animal IQ Matcher | `NearestNeighbors(k=1)` on standardized 4 features | the 4 features below | Finds a similar game; since November 2026 the animal comes from the player's own score percentile (see "Consistent animals"). UI must say **"just for fun, not a real IQ test"**. |
 
 ### Files
 
@@ -726,6 +726,27 @@ with the firmware owner). API: `docs/API.md`, "Live game". Frontend:
 6. **No sound on the web.** The "Play sounds on this screen" button and its
    WebAudio beeps were removed (November 2026): the box's buzzer is the only
    sound, and a TV beeping a little later than the box sounded like an echo.
+
+### Consistent animals and models that reload themselves (November 2026)
+
+1. **Old models kept running.** The server read the model files once at
+   start. After a retrain it kept the old ones until restarted, so games
+   arriving in between got the old (Pig-heavy) animals. Now `ml.js` checks
+   each file's change time on use and reloads a newer file by itself; a file
+   still being written keeps the model loaded before. (Tested in
+   `backend/tests/ml.test.js`.)
+2. **Almost equal scores got different animals** (1,712 Elephant vs 1,713
+   Dolphin; a lower score could even beat a higher one), because the animal
+   came from the nearest similar game's percentile, and speed or accuracy
+   decided which game was nearest. Now the animal and Fun IQ come from the
+   player's **own score percentile** among the 2,000 reference games: the
+   same score always gets the same animal, and a higher score never gets a
+   lower one (tested for every score 0-3,200). The nearest game is still
+   found and stored (`matched_session_id`). Reference set is fixed until the
+   next retrain, so results do not drift during the event.
+3. All saved games were re-scored (backup `backend/data/rhythm.before-rescore-3.db`).
+   The brochure now says "We compare your score with many practice games" and
+   "The same score always gets the same animal."
 
 ### Practice players recalibrated to the first real games (November 2026)
 

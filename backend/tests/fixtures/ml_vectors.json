@@ -735,7 +735,7 @@
       "expected": {
         "id": "SYN-001290",
         "distance": 0.04719664097338346,
-        "percentile": 0.43425,
+        "percentile": 0.37425,
         "animal": "Orangutan"
       }
     },
@@ -749,7 +749,7 @@
       "expected": {
         "id": "SYN-001441",
         "distance": 0.09900298540749766,
-        "percentile": 0.126,
+        "percentile": 0.03325,
         "animal": "Pig"
       }
     },
@@ -763,8 +763,8 @@
       "expected": {
         "id": "SYN-000808",
         "distance": 0.14602309549101145,
-        "percentile": 0.644,
-        "animal": "Elephant"
+        "percentile": 0.77825,
+        "animal": "Bottlenose Dolphin"
       }
     },
     {
@@ -777,7 +777,7 @@
       "expected": {
         "id": "SYN-000952",
         "distance": 0.07611709237488037,
-        "percentile": 0.43425,
+        "percentile": 0.35325,
         "animal": "Orangutan"
       }
     },
@@ -791,7 +791,7 @@
       "expected": {
         "id": "SYN-000409",
         "distance": 0.2471636177004251,
-        "percentile": 0.70325,
+        "percentile": 0.59925,
         "animal": "Elephant"
       }
     },
@@ -805,8 +805,8 @@
       "expected": {
         "id": "SYN-001187",
         "distance": 0.11147495570313153,
-        "percentile": 0.8055,
-        "animal": "Bottlenose Dolphin"
+        "percentile": 0.59925,
+        "animal": "Elephant"
       }
     },
     {
@@ -819,8 +819,8 @@
       "expected": {
         "id": "SYN-000314",
         "distance": 0.10966727453396378,
-        "percentile": 0.70325,
-        "animal": "Elephant"
+        "percentile": 0.80725,
+        "animal": "Bottlenose Dolphin"
       }
     },
     {
@@ -833,8 +833,8 @@
       "expected": {
         "id": "SYN-000559",
         "distance": 0.24093470789017796,
-        "percentile": 0.167,
-        "animal": "Pig"
+        "percentile": 0.35325,
+        "animal": "Orangutan"
       }
     },
     {
@@ -847,7 +847,7 @@
       "expected": {
         "id": "SYN-001456",
         "distance": 0.18779590059365456,
-        "percentile": 0.26575,
+        "percentile": 0.14425,
         "animal": "Pig"
       }
     },
@@ -861,7 +861,7 @@
       "expected": {
         "id": "SYN-001033",
         "distance": 0.13269320903267115,
-        "percentile": 0.167,
+        "percentile": 0.21725,
         "animal": "Pig"
       }
     },
@@ -875,8 +875,8 @@
       "expected": {
         "id": "SYN-000485",
         "distance": 0.35516297432189303,
-        "percentile": 0.6735,
-        "animal": "Elephant"
+        "percentile": 0.80725,
+        "animal": "Bottlenose Dolphin"
       }
     },
     {
@@ -889,7 +889,7 @@
       "expected": {
         "id": "SYN-000063",
         "distance": 0.0650307914115881,
-        "percentile": 0.223,
+        "percentile": 0.14425,
         "animal": "Pig"
       }
     },
@@ -903,8 +903,8 @@
       "expected": {
         "id": "SYN-000775",
         "distance": 0.1361483258779675,
-        "percentile": 0.793,
-        "animal": "Bottlenose Dolphin"
+        "percentile": 0.59925,
+        "animal": "Elephant"
       }
     },
     {
@@ -917,7 +917,7 @@
       "expected": {
         "id": "SYN-000815",
         "distance": 0.3549911887568995,
-        "percentile": 0.71275,
+        "percentile": 0.59925,
         "animal": "Elephant"
       }
     },
@@ -931,7 +931,7 @@
       "expected": {
         "id": "SYN-001773",
         "distance": 0.15156605602523676,
-        "percentile": 0.39325,
+        "percentile": 0.47025,
         "animal": "Orangutan"
       }
     },
@@ -945,7 +945,7 @@
       "expected": {
         "id": "SYN-001765",
         "distance": 0.09259054745339872,
-        "percentile": 0.02125,
+        "percentile": 0.00125,
         "animal": "Pig"
       }
     },
@@ -959,7 +959,7 @@
       "expected": {
         "id": "SYN-000677",
         "distance": 0.2279902464708691,
-        "percentile": 0.658,
+        "percentile": 0.59925,
         "animal": "Elephant"
       }
     },
@@ -973,8 +973,8 @@
       "expected": {
         "id": "SYN-001903",
         "distance": 0.22096680926711174,
-        "percentile": 0.32125,
-        "animal": "Orangutan"
+        "percentile": 0.22875,
+        "animal": "Pig"
       }
     },
     {
@@ -987,7 +987,7 @@
       "expected": {
         "id": "SYN-000085",
         "distance": 0.14824952481620246,
-        "percentile": 0.126,
+        "percentile": 0.14425,
         "animal": "Pig"
       }
     },
@@ -1001,7 +1001,7 @@
       "expected": {
         "id": "SYN-001826",
         "distance": 0.2001538080955435,
-        "percentile": 0.09325,
+        "percentile": 0.14425,
         "animal": "Pig"
       }
     },
@@ -1015,7 +1015,7 @@
       "expected": {
         "id": "SYN-000143",
         "distance": 0.020120125840923948,
-        "percentile": 0.1865,
+        "percentile": 0.16325,
         "animal": "Pig"
       }
     },
@@ -1029,7 +1029,7 @@
       "expected": {
         "id": "SYN-001214",
         "distance": 0.20340037443363365,
-        "percentile": 0.75675,
+        "percentile": 0.80725,
         "animal": "Bottlenose Dolphin"
       }
     },
@@ -1043,7 +1043,7 @@
       "expected": {
         "id": "SYN-000848",
         "distance": 0.19706964976785907,
-        "percentile": 0.1415,
+        "percentile": 0.14425,
         "animal": "Pig"
       }
     },
@@ -1057,7 +1057,7 @@
       "expected": {
         "id": "SYN-000467",
         "distance": 0.17455378217396542,
-        "percentile": 0.02125,
+        "percentile": 0.00125,
         "animal": "Pig"
       }
     },
@@ -1071,8 +1071,8 @@
       "expected": {
         "id": "SYN-001473",
         "distance": 0.11510407301158376,
-        "percentile": 0.81625,
-        "animal": "Bottlenose Dolphin"
+        "percentile": 0.93675,
+        "animal": "Chimpanzee"
       }
     }
   ]

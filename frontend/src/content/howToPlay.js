@@ -125,15 +125,15 @@ const en = {
       id: "animal",
       title: "Your animal",
       paragraphs: [
-        "We find an earlier game that was like yours.",
-        "The better that game scored compared with all the others, the higher your animal.",
+        "We compare your score with many practice games.",
+        "The higher your score ranks, the higher your animal.",
         "Chimpanzee is the top group and Pig is the starting group.",
       ],
       table: animalRows("en"),
       notes: [
         "Just for fun, not a real IQ test.",
-        "Ranks and animals are based on practice games and on the games played so far.",
-        "So they can change as more people play.",
+        "Ranks and animals are based on practice games.",
+        "The same score always gets the same animal.",
       ],
     },
     {
@@ -239,15 +239,15 @@ const fil = {
       id: "animal",
       title: "Ang hayop mo",
       paragraphs: [
-        "Hinahanap namin ang naunang larong kahawig ng sa iyo.",
-        "Kapag mas mataas ang score ng larong iyon kaysa sa iba, mas mataas ang hayop mo.",
+        "Ikinukumpara namin ang score mo sa maraming practice game.",
+        "Kapag mas mataas ang puwesto ng score mo, mas mataas ang hayop mo.",
         "Chimpanzee ang pinakamataas na grupo at Pig ang panimulang grupo.",
       ],
       table: animalRows("fil"),
       notes: [
         "Katuwaan lang, hindi totoong IQ test.",
-        "Galing ang mga ranggo at hayop sa mga practice game at sa mga larong nalaro na.",
-        "Kaya puwede itong magbago habang mas marami ang naglalaro.",
+        "Galing ang mga ranggo at hayop sa mga practice game.",
+        "Parehong score, parehong hayop palagi.",
       ],
     },
     {

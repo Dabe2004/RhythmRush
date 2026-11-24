@@ -108,8 +108,9 @@ Same session_id sent twice must be saved ONCE (return 200 {"duplicate":true}).
    Output: Beginner | Intermediate | Pro. Labels come from the simulator's HIDDEN player skill
    class (player_type), NOT from score percentiles. hidden_skill, hidden_speed, player_type and
    skill_label must NEVER be used as model inputs.
-3. Animal IQ Matcher - NearestNeighbors(k=1) on the 4 standardized features. The matched
-   game's score PERCENTILE picks the animal: top 10% Chimpanzee (IQ 90-100), next 15% Bottlenose
+3. Animal IQ Matcher - NearestNeighbors(k=1) on the 4 standardized features finds "a game like
+   yours". The player's OWN score PERCENTILE among the reference games picks the animal (changed
+   Nov 2026 so a higher score never gets a lower animal): top 10% Chimpanzee (IQ 90-100), next 15% Bottlenose
    Dolphin (80-90), next 20% Elephant (70-80), next 25% Orangutan (60-70), rest Pig (50-60).
    UI must say "just for fun, not a real IQ test".
 

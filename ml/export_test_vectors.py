@@ -211,14 +211,28 @@ def build_difficulty_cases(data, difficulty: dict, picker: random.Random) -> lis
     return cases
 
 
+def own_score_percentile(value: float, scores: list[float]) -> float:
+    """The player's own score percentile (average rank, like pandas and ml.js)."""
+    less = sum(1 for score in scores if score < value)
+    equal = sum(1 for score in scores if score == value)
+    return (less + (equal + 1) / 2) / len(scores)
+
+
 def build_animal_cases(data, animal: dict, difficulty_unused, picker: random.Random) -> list[dict]:
-    """25 jittered games, matched against the reference rows only."""
+    """
+    25 jittered games, matched against the reference rows only.
+
+    The nearest row is "a game like yours"; the animal comes from the
+    player's OWN score percentile (consistent: a higher score never gets a
+    lower animal).
+    """
     rows = animal["rows"]
     mean = [float(value) for value in animal["mean"]]
     std = [float(value) for value in animal["std"]]
     tiers = animal["tiers"]
 
     examples = [[float(value) for value in row["features"]] for row in rows]
+    scores = [example[0] for example in examples]
     scaled_examples = [standardize(example, mean, std) for example in examples]
 
     # Same idea as check_exports.py: small noise on real games so the query
@@ -236,7 +250,7 @@ def build_animal_cases(data, animal: dict, difficulty_unused, picker: random.Ran
         query = standardize(noisy, mean, std)
         matched_index, distance = nearest_example(query, scaled_examples)
         matched = rows[matched_index]
-        percentile = float(matched["score_percentile"])
+        percentile = own_score_percentile(noisy[0], scores)
 
         cases.append(
             {

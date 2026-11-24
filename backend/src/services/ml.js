@@ -5,9 +5,10 @@
 // training scripts in /ml (backend/artifacts/*.json) and reproduces the same
 // maths. ml/check_exports.py is the Python twin of the code in this file.
 //
-// The artifacts are read once, on first use, then cached in memory.
-// If a file is missing or broken, the function throws a clear Error; the
-// caller (the upload route) decides what to do.
+// The artifacts are read on first use and cached in memory. A cached file
+// is read again when it changes on disk (a retrain), so the server never
+// keeps using old models. If a file is missing or broken, the function
+// throws a clear Error; the caller (the upload route) decides what to do.
 
 const fs = require("fs");
 const path = require("path");
@@ -65,12 +66,35 @@ function readArtifact(filename) {
   return data;
 }
 
-function loadSkill() {
+// Each artifact is cached together with its file's change time. A newer
+// file (written by a retrain) is loaded on the next use, no restart needed.
+// If the new file cannot be read yet (still being written), the previously
+// loaded model keeps working.
+function cachedArtifact(key, filename, build) {
   ensureCache();
-  if (cache.skill) return cache.skill;
+  let stamp = null;
+  try {
+    stamp = fs.statSync(path.join(artifactsDir(), filename)).mtimeMs;
+  } catch {
+    // Missing file: readArtifact below reports it clearly.
+  }
+  const old = cache[key];
+  if (old && old.stamp === stamp) return old.value;
+  try {
+    cache[key] = { stamp, value: build(readArtifact(filename)) };
+  } catch (err) {
+    if (!old) throw err;
+    console.error(`${err.message}; keeping the model loaded before`);
+    return old.value;
+  }
+  return cache[key].value;
+}
 
-  const data = readArtifact("skill.json");
+function loadSkill() {
+  return cachedArtifact("skill", "skill.json", buildSkill);
+}
 
+function buildSkill(data) {
   if (!Array.isArray(data.nodes) || data.nodes.length === 0) {
     throw new Error("Invalid skill.json: missing nodes array");
   }
@@ -78,41 +102,35 @@ function loadSkill() {
     throw new Error("Invalid skill.json: missing features array");
   }
 
-  cache.skill = {
+  return {
     version: data.version,
     features: data.features,
     // id -> node, so walking the tree is a simple lookup.
     nodes: new Map(data.nodes.map((node) => [Number(node.id), node])),
   };
-
-  return cache.skill;
 }
 
 function loadDifficulty() {
-  ensureCache();
-  if (cache.difficulty) return cache.difficulty;
+  return cachedArtifact("difficulty", "difficulty.json", buildDifficulty);
+}
 
-  const data = readArtifact("difficulty.json");
-
+function buildDifficulty(data) {
   if (typeof data.intercept !== "number" || typeof data.weights !== "object" || data.weights === null) {
     throw new Error("Invalid difficulty.json: expected intercept and weights");
   }
 
-  cache.difficulty = {
+  return {
     version: data.version,
     intercept: data.intercept,
     weights: data.weights,
   };
-
-  return cache.difficulty;
 }
 
 function loadAnimal() {
-  ensureCache();
-  if (cache.animal) return cache.animal;
+  return cachedArtifact("animal", "animal.json", buildAnimal);
+}
 
-  const data = readArtifact("animal.json");
-
+function buildAnimal(data) {
   if (!Array.isArray(data.mean) || !Array.isArray(data.std)) {
     throw new Error("Invalid animal.json: missing mean/std arrays");
   }
@@ -128,7 +146,7 @@ function loadAnimal() {
   const scores = data.rows.map((row) => Number(row.features[0]));
   const scaledRows = data.rows.map((row) => standardize(row.features, data.mean, data.std));
 
-  cache.animal = {
+  return {
     version: data.version,
     mean: data.mean,
     std: data.std,
@@ -137,8 +155,6 @@ function loadAnimal() {
     scaledRows,
     tiers: data.tiers,
   };
-
-  return cache.animal;
 }
 
 function ensureCache() {
@@ -302,12 +318,17 @@ function predictSkill(features) {
 // ---------------------------------------------------------------------------
 // Model 3: Animal IQ Matcher
 // ---------------------------------------------------------------------------
-// Nearest neighbor over the reference rows plus every stored session_features
-// row (except excludeSessionId). The matched game's score percentile picks
-// the animal and its IQ.
+// The animal and its IQ come from the player's OWN score percentile among
+// the reference games: consistent, so a higher score never gets a lower
+// animal, and the same score always gets the same one. The nearest neighbor
+// over the reference rows plus every stored session_features row (except
+// excludeSessionId) is still found: it is "a game like yours"
+// (matchedSessionId). Its percentile used to pick the animal, which let two
+// almost equal scores land on different animals.
 function matchAnimal(db, features, excludeSessionId) {
   const model = loadAnimal();
-  const query = standardize(toNumbers(features, FEATURE_NAMES, "matchAnimal"), model.mean, model.std);
+  const values = toNumbers(features, FEATURE_NAMES, "matchAnimal");
+  const query = standardize(values, model.mean, model.std);
 
   let bestDistance = Infinity;
   let bestPercentile = null;
@@ -351,14 +372,14 @@ function matchAnimal(db, features, excludeSessionId) {
     }
   }
 
-  const animal = animalForPercentile(bestPercentile);
-  const iq = iqForPercentile(bestPercentile);
+  const percentile = percentileFromScores(values[0], model.scores); // values[0] = final_score
 
   return {
-    animal,
-    iq,
-    percentile: bestPercentile,
+    animal: animalForPercentile(percentile),
+    iq: iqForPercentile(percentile),
+    percentile,
     matchedSessionId: bestSessionId,
+    matchedPercentile: bestPercentile,
     distance: bestDistance,
   };
 }

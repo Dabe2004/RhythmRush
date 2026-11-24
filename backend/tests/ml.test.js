@@ -158,7 +158,7 @@ describe("matchAnimal", () => {
     expect(vectors.animal).toHaveLength(25);
   });
 
-  it("matches the Python nearest row, distance, percentile and animal", () => {
+  it("matches the Python nearest row and distance; the animal comes from the own score", () => {
     const referenceIds = new Set(animalJson.rows.map((row) => row.id));
 
     for (const testCase of vectors.animal) {
@@ -270,6 +270,63 @@ describe("matchAnimal", () => {
 // ---------------------------------------------------------------------------
 // Versions and failure behaviour
 // ---------------------------------------------------------------------------
+describe("matchAnimal is consistent", () => {
+  it("a higher score never gets a lower animal or IQ (other inputs fixed)", () => {
+    const order = ["Pig", "Orangutan", "Elephant", "Bottlenose Dolphin", "Chimpanzee"];
+    let previous = null;
+    for (let score = 0; score <= 3200; score += 7) {
+      const result = ml.matchAnimal(db, { final_score: score, avg_reaction_sec: 0.4, highest_sequence_length: 6, success_rate: 0.6 }, null);
+      if (previous) {
+        expect(order.indexOf(result.animal)).toBeGreaterThanOrEqual(order.indexOf(previous.animal));
+        expect(result.iq).toBeGreaterThanOrEqual(previous.iq);
+      }
+      previous = result;
+    }
+  });
+
+  it("the same score gets the same animal whatever the speed or accuracy", () => {
+    const a = ml.matchAnimal(db, { final_score: 1712, avg_reaction_sec: 0.25, highest_sequence_length: 8, success_rate: 0.9 }, null);
+    const b = ml.matchAnimal(db, { final_score: 1712, avg_reaction_sec: 0.9, highest_sequence_length: 5, success_rate: 0.3 }, null);
+    expect([a.animal, a.iq]).toEqual([b.animal, b.iq]);
+    expect(a.percentile).toBeCloseTo(ml.percentileForScore(1712), 12);
+  });
+});
+
+describe("retrained artifacts", () => {
+  it("are picked up without a restart; a half-written file keeps the old model", () => {
+    const fs = require("node:fs");
+    const os = require("node:os");
+    const path = require("node:path");
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rr-reload-"));
+    const previousDir = process.env.ARTIFACTS_DIR;
+    const file = path.join(dir, "difficulty.json");
+    const write = (intercept, when) => {
+      fs.writeFileSync(file, JSON.stringify({ version: 1, intercept, weights: { accuracy: 0, reactionRatio: 0, level: 0 } }));
+      fs.utimesSync(file, when, when); // a distinct change time, like a later retrain
+    };
+    const input = { accuracy: 0.5, reactionRatio: 1, level: 1 };
+
+    try {
+      process.env.ARTIFACTS_DIR = dir;
+      ml.resetCache();
+      write(0, new Date(2026, 0, 1));
+      expect(ml.predictSteps(input)).toBe(0);
+
+      write(2, new Date(2026, 0, 2)); // retrained while the server runs
+      expect(ml.predictSteps(input)).toBe(2);
+
+      fs.writeFileSync(file, '{"version": 1, "interc'); // still being written
+      fs.utimesSync(file, new Date(2026, 0, 3), new Date(2026, 0, 3));
+      expect(ml.predictSteps(input)).toBe(2);
+    } finally {
+      process.env.ARTIFACTS_DIR = previousDir;
+      ml.resetCache();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("modelVersions", () => {
   it("returns the version of each artifact", () => {
     expect(ml.modelVersions()).toEqual({ skill: 1, animal: 1, difficulty: 1 });

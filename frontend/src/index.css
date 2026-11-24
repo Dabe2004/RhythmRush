@@ -1648,6 +1648,12 @@ button.rr-start:active,
     border-top-width: 1px;
   }
 
+  /* "Nangungunang 10%" on one line: wrapped groups cost the room the QR
+     strip needs to stay on page 1. */
+  .brochure-animals td:nth-child(2) {
+    white-space: nowrap;
+  }
+
   .brochure-animals thead th {
     font-size: 9pt;
   }
@@ -1668,7 +1674,7 @@ button.rr-start:active,
     break-inside: avoid;
     page-break-inside: avoid;
     border: 2.5px solid #000;
-    padding: 2.5mm 3.5mm;
+    padding: 2mm 3.5mm;
   }
 
   /* "Join the booth Wi-Fi first" and "Wi-Fi: ...", one prominent row
@@ -1681,17 +1687,26 @@ button.rr-start:active,
   }
 
   .print-qr-wifi {
-    font-size: 16pt;
+    font-size: 13pt;
     font-weight: 800;
   }
 
   .print-qr-wifi-name {
-    font-size: 14pt;
+    font-size: 12pt;
+  }
+
+  /* One strip across both columns at the bottom: Wi-Fi on the left, the QR
+     code on the right. Narrow enough that the brochure stays on one page. */
+  .print-qr {
+    column-span: all;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6mm;
   }
 
   .print-qr-code,
   .print-qr-staff {
-    flex-basis: 100%;
+    margin-left: auto;
   }
 
   .print-qr-blank {
@@ -1702,36 +1717,35 @@ button.rr-start:active,
     display: flex;
     align-items: center;
     gap: 4mm;
-    margin-top: 1.5mm;
   }
 
   .print-qr svg {
-    width: 40mm;
-    height: 40mm;
+    width: 26mm;
+    height: 26mm;
     flex-shrink: 0;
   }
 
   .print-qr-caption {
-    font-size: 14pt;
+    font-size: 12pt;
     font-weight: 800;
   }
 
   .print-qr-address {
-    margin-top: 1mm;
+    margin-top: 0.5mm;
     overflow-wrap: anywhere;
     font-family: ui-monospace, Consolas, monospace;
-    font-size: 12pt;
+    font-size: 10pt;
   }
 
   .print-qr-staff {
-    margin-top: 2mm;
     font-size: 14pt;
     font-weight: 800;
   }
 
-  /* Filipino sentences are longer: tighter spacing and smaller title circles
-     keep it on one page. Text sizes stay the same (body 11pt). */
-  .brochure[lang="fil"] .brochure-panel {
+  /* Tighter spacing keeps the brochure on one page (both languages); Filipino
+     sentences are longer, so it also gets smaller title circles below. Text
+     sizes stay the same (body 11pt). */
+  .brochure .brochure-panel {
     margin-bottom: 1.5mm;
     padding-top: 1.6mm;
     padding-bottom: 1.8mm;
